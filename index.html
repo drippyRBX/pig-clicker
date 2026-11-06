@@ -157,6 +157,39 @@ button,input,select{font:inherit} button{cursor:pointer}
 @keyframes auraPulse{from{filter:drop-shadow(0 0 12px var(--auraC)) drop-shadow(0 14px 14px rgba(90,40,10,.28))}to{filter:drop-shadow(0 0 34px var(--auraC)) drop-shadow(0 0 64px var(--auraC)) drop-shadow(0 14px 14px rgba(90,40,10,.28))}}
 .panel-ctl{display:flex;flex-direction:column;gap:5px;min-width:158px;flex:0 0 158px}
 .panel-ctl .room-input,.panel-ctl select{border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:7px 9px;font-weight:800;width:100%}
+
+/* ---------- v2.2: floating staff panels + tool cards ---------- */
+.staff-float{position:fixed;left:12px;top:88px;z-index:90;width:min(94vw,560px);max-height:82vh;background:var(--card);border:2px solid var(--line);border-radius:20px;box-shadow:0 18px 50px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden}
+.staff-head{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--card2);border-bottom:2px solid var(--line);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.staff-head h3{flex:1;margin:0;font-size:1.1rem}
+.staff-x{border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;width:34px;height:34px;font-weight:900;font-size:1rem;flex:0 0 34px}
+.staff-body{overflow:auto;padding:12px;flex:1;min-height:0}
+.staff-float.min .staff-body{display:none}
+.tool-sec{margin:14px 0 4px}
+.tool-sec h4{margin:0 0 8px;font-size:1rem}
+.tool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.tool-card{border:2px solid var(--line);background:var(--card2);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.tool-card b{font-size:.92rem}
+.tool-card small{color:var(--muted);font-weight:700;line-height:1.35}
+.tool-card input,.tool-card select{border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:8px 10px;font-weight:800;width:100%}
+.tool-card .buy{width:100%}
+.panel-tools{margin:0 0 12px;border:2px dashed var(--line);border-radius:16px;padding:12px;background:var(--card)}
+
+/* ---------- v2.2: private DMs ---------- */
+.dm-thread{display:flex;gap:11px;align-items:center;width:100%;text-align:left;border:2px solid var(--line);background:var(--card2);border-radius:14px;padding:10px 12px;margin-bottom:8px;color:var(--ink)}
+.dm-thread:hover{border-color:var(--pink)}
+.dm-thread .av{font-size:1.5rem}
+.dm-thread .grow{flex:1;min-width:0}
+.dm-thread h3{margin:0;font-size:1rem}
+.dm-thread p{margin:0;color:var(--muted);font-weight:700;font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dm-msg{max-width:82%;border-radius:14px;padding:8px 12px;font-weight:700;margin-bottom:6px;word-break:break-word;background:var(--card2);border:2px solid var(--line);width:fit-content}
+.dm-msg.mine{margin-left:auto;background:var(--pink);border-color:var(--pink-d);color:#fff}
+.dm-msg .when{display:block;font-size:.68rem;font-weight:800;opacity:.75;margin-top:2px}
+
+/* ---------- v2.2: the greatest badge ---------- */
+.ach.greatest{border:3px solid var(--gold);background:linear-gradient(135deg,rgba(245,179,1,.28),rgba(255,217,77,.08));box-shadow:0 0 14px rgba(245,179,1,.4)}
+.ach.greatest.done{animation:greatGlow 1.6s ease-in-out infinite alternate}
+@keyframes greatGlow{from{box-shadow:0 0 10px rgba(245,179,1,.35)}to{box-shadow:0 0 26px rgba(245,179,1,.7)}}
 .aura-dot{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:middle;margin-right:5px;box-shadow:0 0 8px currentColor}
 .pres{font-size:.72rem;font-weight:900}
 .pres.on{color:var(--green-d)} .pres.off{color:var(--muted)}
@@ -290,6 +323,7 @@ button,input,select{font:inherit} button{cursor:pointer}
     <span id="raidStrip">🗡️ Raid boss: —</span>
     <span id="onlineStrip">🟢 Online: 1</span>
     <span id="cloudStrip">☁️ Guest mode — progress stays on this device</span>
+    <span id="eventStrip" style="display:none"></span>
   </div>
 
   <!-- ============ VIEW: PLAY ============ -->
@@ -493,10 +527,30 @@ button,input,select{font:inherit} button{cursor:pointer}
       <div id="friendList"></div>
     </section>
 
+    <section class="card" aria-label="Private messages">
+      <h2>💬 Private Messages</h2>
+      <p class="sub">Private chats with your friends only — nobody else can read them. Tap 💬 Message on any friend to start one.</p>
+      <div id="dmList"></div>
+    </section>
+
     <section class="card" aria-label="Blocked players">
       <h2>🚫 Blocked</h2>
       <p class="sub">Blocked players can't be your friends or duel rivals, and their requests are hidden. Unblock any time.</p>
       <div id="blockedList"></div>
+    </section>
+  </main>
+
+  <!-- ============ VIEW: DM (private conversation) ============ -->
+  <main class="view" id="view-dm">
+    <section class="card" aria-label="Private conversation" style="margin-top:14px">
+      <button class="chip-btn" id="btnDmBack" type="button">← Back to Friends</button>
+      <h2 id="dmTitle" style="margin-top:10px">💬 Chat</h2>
+      <p class="sub">Private — only you and your friend can read this.</p>
+      <div class="gchat" id="dmMessages" style="max-height:55vh"></div>
+      <form class="chat-form" id="dmForm">
+        <input class="chat-input" id="dmInput" maxlength="500" placeholder="Message privately…" autocomplete="off"/>
+        <button class="send-btn" type="submit">Send</button>
+      </form>
     </section>
   </main>
 
@@ -510,6 +564,7 @@ button,input,select{font:inherit} button{cursor:pointer}
         <button class="tab" id="lbTabFriends" type="button">🐷 Friends only</button>
       </div>
       <div id="globalBoard"></div>
+      <p class="sub" style="margin-top:8px">👑 Owner &amp; admins are hidden from this board for fairness — they can grant themselves coins.</p>
       <p class="sub" id="myRankLine" style="margin-top:8px"></p>
     </section>
 
@@ -631,7 +686,7 @@ button,input,select{font:inherit} button{cursor:pointer}
       <p class="sub" id="installNote" style="margin-top:10px"></p>
     </section>
 
-    <p class="foot">🐷 Pig Clicker v2.1 — tap, upgrade, prestige, raid and duel. Signed-in progress saves to the cloud; guest progress stays on this device.</p>
+    <p class="foot">🐷 Pig Clicker v2.2 — tap, upgrade, prestige, raid and duel. Signed-in progress saves to the cloud; guest progress stays on this device.</p>
   </main>
 </div>
 
@@ -743,6 +798,11 @@ var TITLES=[
  {id:"champ", name:"Champion Tapper", how:"Reach Champion VIP tier", test:function(s){return vipTier(s.taps).id==="champ"}}
 ];
 function vipTier(taps){
+ /* v2.2: a staff-granted VIP badge overrides the tap-based tier */
+ if(typeof S!=="undefined"&&S&&S.vipGranted){
+  var gm={bronze:{id:"bronze",name:"Bronze",cls:"vip-bronze",next:null},silver:{id:"silver",name:"Silver",cls:"vip-silver",next:null},gold:{id:"gold",name:"Gold",cls:"vip-gold",next:null},champ:{id:"champ",name:"Champion",cls:"vip-champ",next:null}};
+  if(gm[S.vipGranted])return gm[S.vipGranted];
+ }
  if(taps>=10000000)return{id:"champ",name:"Champion",cls:"vip-champ",next:null};
  if(taps>=1000000)return{id:"gold",name:"Gold",cls:"vip-gold",next:10000000};
  if(taps>=100000)return{id:"silver",name:"Silver",cls:"vip-silver",next:1000000};
@@ -769,8 +829,10 @@ function applyPowerAura(){
  btn.classList.toggle("aura-anim",!!f&&(f.id==="goku_ssj2"||f.id==="goku_bluekaioken"||f.id==="goku_mui"));
  btn.style.setProperty("--auraC",f?f.color:"transparent");
 }
-/* 60 badges: the original 12 keep their ids, 48 more join them */
+/* 61 badges: the original 12 keep their ids, 48 more join them — plus the
+   greatest one of all, 👑 Met the Owner, first in the list (grant-only). */
 var ACHIEVEMENTS=[
+ {id:"met_owner", icon:"👑", name:"Met the Owner", desc:"You met Drippy, the Owner of Pig Clicker. The greatest badge in the game.", test:function(s){return !!s.achDone["met_owner"];}},
  {id:"a1", icon:"👆", name:"First Oink", desc:"Tap the pig once.", test:function(s){return s.taps>=1}},
  {id:"a2", icon:"💪", name:"Finger Workout", desc:"1,000 total taps.", test:function(s){return s.taps>=1000}},
  {id:"a3", icon:"💰", name:"Pig Rich", desc:"Earn 10,000 lifetime coins.", test:function(s){return s.lifetime>=10000}},
@@ -833,6 +895,16 @@ var ACHIEVEMENTS=[
  {id:"b48", icon:"🥊", name:"First Blood", desc:"Win 1 click duel.", test:function(s){return (s.duelWins||0)>=1}}
 ];
 var UPDATE_LOG=[
+ {v:"v2.2", tag:"OWNER & ADMIN SUPER UPDATE", date:"November 6, 2026", items:[
+  "🪟 Movable Owner & Admin panels: drag them anywhere by the header (works on touch too), minimize them, close them, and reopen them from the Profile tab — never stuck in one spot again.",
+  "🛠️ 30+ staff tools: coins (including INF), levels, XP, prestige, Golden Apples, skill points, every Goku power, unlock-all powers/skins, badges, titles, skins, Battle Pass tiers + Premium, VIP badges, bans, mutes, resets, wipes, farm-wide events and announcements — every tool its own card with its own space, nothing crammed in one line.",
+  "♾️ Give coins “inf”: type inf in the give-coins box to grant 999,999,999,999,999 coins (Owner only, with a confirm tap).",
+  "👑 Owner & admins are now hidden from the global leaderboard for fairness — your real stats still show in your Profile.",
+  "👑 NEW GREATEST BADGE — “Met the Owner”: the rarest badge in the game. The Owner can grant it from the panel, or you earn it automatically the first time the Owner DMs you.",
+  "💬 Private DMs: message any friend privately — your own thread, your own space, nobody else can read it.",
+  "📈 Grant levels: the Owner and Admins can now give levels, set an exact level, or hand out raw XP.",
+  "📜 Audit log viewer: every staff action, right inside the panel."
+ ]},
  {v:"v2.1", tag:"OWNER & ADMIN UPDATE", date:"November 6, 2026", items:[
   "👑 Owner claim: the first signed-in player to tap “Claim Owner” in the Profile tab becomes the one and only Owner — forever. Claiming also grants all 8 Goku forms instantly.",
   "👑 Gold OWNER tag: the Owner wears a gold 👑 OWNER tag on their profile, leaderboard rows and chat messages. Admins wear a blue 🛡️ ADMIN tag.",
@@ -888,7 +960,8 @@ function freshState(){
   gens:{},tapOwned:{},skinsOwned:{classic:true},skin:"classic",achDone:{},startedAt:Date.now(),
   skillPts:0,skills:{},title:"",bpXp:0,bpPremium:false,bpClaimed:{},bpClaimedP:{},
   dailyLast:"",dailyStreak:0,dailyCount:0,lastLevelReward:1,burstsUsed:0,raidDamage:0,duelWins:0,
-  guildId:"",guildName:"",quests:null,banner:"sunset",lastSeen:Date.now(),powers:[],equippedPower:""};
+  guildId:"",guildName:"",quests:null,banner:"sunset",lastSeen:Date.now(),powers:[],equippedPower:"",
+  grantedTitles:[],vipGranted:""};
 }
 var S=freshState();
 var combo=1, comboTimer=null, bestComboSeen=1;
@@ -984,14 +1057,15 @@ function doTap(x,y,quiet){
  if(cpsNow()>S.bestCps){S.bestCps=cpsNow();}
  var crit=Math.random()<critChance();
  var gain=perTap()*(crit?10:1);
- S.coins+=gain;S.lifetime+=gain;S.taps++;sessionTaps++;
+ var coinGain=gain*eventCoinMult(), xpGain=gain*eventXpMult();
+ S.coins+=coinGain;S.lifetime+=xpGain;S.taps++;sessionTaps++;
  addBpXp(0.1);
  if(crit){S.crits++;sndCrit();flashCrit();}else if(!quiet)sndOink();
  combo=Math.min(2,combo+0.04); if(combo>bestComboSeen)bestComboSeen=combo; S.bestCombo=Math.max(S.bestCombo||1,bestComboSeen);
  clearTimeout(comboTimer);comboTimer=setTimeout(function(){combo=1;renderStats();},1600);
  pigBtn.classList.add("squish");setTimeout(function(){pigBtn.classList.remove("squish");},80);
  if(qol.vibe&&navigator.vibrate)navigator.vibrate(crit?30:8);
- if(!quiet)spawnFloat(gain,crit,x,y);
+ if(!quiet)spawnFloat(coinGain,crit,x,y);
  onDuelTap();onRaidTapGain(gain);
  questProgress();
  checkAch();checkTitles();checkLevelRewards();renderStats();
@@ -1025,10 +1099,11 @@ function showGolden(){
 $("goldenPig").addEventListener("click",function(){
  if(isBanned){toast("🚫 You are banned — game actions are disabled.");return;}
  var bonus=Math.max(perTap()*50,perSec()*60,100)*(1+skillLvl("magnet")*0.5);
- S.coins+=bonus;S.lifetime+=bonus;S.goldenCaught++;
+ var coinBonus=bonus*eventCoinMult(), xpBonus=bonus*eventXpMult();
+ S.coins+=coinBonus;S.lifetime+=xpBonus;S.goldenCaught++;
  $("goldenPig").style.display="none";sndGold();
- toast("✨ Golden pig caught! +"+fmt(bonus)+" coins!");
- feed("✨ "+displayName()+" caught a Golden Pig! +"+fmt(bonus)+" 🐷",true);
+ toast("✨ Golden pig caught! +"+fmt(coinBonus)+" coins!");
+ feed("✨ "+displayName()+" caught a Golden Pig! +"+fmt(coinBonus)+" 🐷",true);
  questProgress();checkAch();checkTitles();renderStats();scheduleGolden();mpPublishProfile();markDirty();
 });
 
@@ -1196,12 +1271,12 @@ function renderAch(){
  ACHIEVEMENTS.forEach(function(a){
   var d=false;try{d=!!S.achDone[a.id]&&a.test(S)||!!S.achDone[a.id];}catch(e){d=!!S.achDone[a.id];}
   if(S.achDone[a.id])done++;
-  var el=document.createElement("div");el.className="ach"+(S.achDone[a.id]?" done":"");
+  var el=document.createElement("div");el.className="ach"+(S.achDone[a.id]?" done":"")+(a.id==="met_owner"?" greatest":"");
   el.innerHTML=a.icon+" "+a.name+"<small>"+a.desc+"</small>";grid.appendChild(el);
  });
  $("achCount").textContent=done+" of "+ACHIEVEMENTS.length+" unlocked";
 }
-function unlockedTitles(){return TITLES.filter(function(t){try{return t.test(S);}catch(e){return false;}});}
+function unlockedTitles(){return TITLES.filter(function(t){try{return t.test(S)||(S.grantedTitles||[]).indexOf(t.id)>-1;}catch(e){return (S.grantedTitles||[]).indexOf(t.id)>-1;}});}
 function checkTitles(){
  var un=unlockedTitles();
  un.forEach(function(t){
@@ -1670,7 +1745,8 @@ var fbApp=null, fbAuth=null, fbDb=null, fbUser=null;
 var fbReady=false, fbDenied=false, fbOnlineCount=0;
 var friendsCache=[], blockedCache=[], guildCache=null, topCache=[];
 /* roles: owner (first-claim, config/owner) + admins (config/admins) */
-var ownerInfo=null, ownerLoaded=false, adminUids=[], myRole="player", isBanned=false;
+var ownerInfo=null, ownerLoaded=false, adminUids=[], myRole="player", isBanned=false, myMuted=false;
+var eventCfg={}, appliedInboxKeys={};
 var lastRoleSig="", panelPlayers=[], panelSearch="", cloudCoinsSeen=null;
 var unsubscribers=[];
 function fbInit(){
@@ -1866,7 +1942,9 @@ function teardownCloudListeners(){
  stopDuelListeners();
  ownerInfo=null;ownerLoaded=false;adminUids=[];myRole="player";lastRoleSig="";cloudCoinsSeen=null;
  incomingReqs=[];outgoingReqs=[];reqToastArmed=false;friendResultsCache=[];
- renderRolePanel();renderRequests();
+ dmThreads=[];currentDm=null;dmMessages=[];if(dmUnsub){try{dmUnsub();}catch(e){}dmUnsub=null;}
+ eventCfg={};appliedInboxKeys={};myMuted=false;isBanned=false;
+ renderRolePanel();renderRequests();renderDmList();renderEventStrip();
 }
 function setupCloudListeners(){
  teardownCloudListeners();
@@ -1905,6 +1983,14 @@ function setupCloudListeners(){
     d.powers.forEach(function(pid){if(S.powers.indexOf(pid)===-1){S.powers.push(pid);gotNew=true;}});
     if(gotNew){toast("⚡ A new power was granted to you! Check the ⚡ Powers tab in Upgrades.");sndGold();renderShop();markDirty();}
    }
+   if(typeof d.muted==="boolean")myMuted=d.muted;
+   /* v2.2 staff inbox: Owner/Admin grants land here — apply each item once
+      (keyed, so a re-fire can never double-apply), then remove it. */
+   if(Array.isArray(d.staffInbox)&&d.staffInbox.length){
+    var inbox=d.staffInbox.slice();
+    applyInbox(inbox);
+    fbDb.collection("users").doc(fbUser.uid).update({staffInbox:firebase.firestore.FieldValue.arrayRemove.apply(null,inbox)}).catch(function(){});
+   }
    /* keep my doc's role field in sync with the config docs (claim/grant source of truth) */
    if(ownerLoaded&&d.role!==myRole){fbDb.collection("users").doc(fbUser.uid).update({role:myRole}).catch(function(){});}
   },function(err){noteFbError(err,"mydoc");});
@@ -1923,6 +2009,14 @@ function setupCloudListeners(){
  }catch(e){}
  setupFriendReqListeners();
  setupGchatListener();setupRaidListener();setupGuildBoardListener();setupDuelListeners();
+ /* v2.2: farm-wide events (double coins / double XP) */
+ try{
+  var uE=fbDb.collection("config").doc("events").onSnapshot(function(doc){
+   eventCfg=doc.exists?doc.data():{};renderEventStrip();
+  },function(){});
+  unsubscribers.push(uE);
+ }catch(e){}
+ setupDmListener();
 }
 
 /* ============================== GLOBAL LEADERBOARD ============================== */
@@ -1939,6 +2033,8 @@ function renderGlobalBoard(){
   var fids={};friendsCache.forEach(function(f){fids[f.uid]=true;});fids[fbUser.uid]=true;
   arr=arr.filter(function(d){return fids[d._uid];});
  }
+ /* v2.2: Owner & admins never show on the board — it's unfair, they can grant coins */
+ arr=arr.filter(function(d){var r=roleOfUid(d._uid,d.role);return r!=="owner"&&r!=="admin";});
  if(!arr.length){el.innerHTML='<div class="empty">'+(lbFilter==="friends"?"No friends on the board yet — add some in the Friends tab!":"The board is empty — be the first legend. 🐷")+"</div>";}
  else{
   el.innerHTML="";
@@ -1949,6 +2045,10 @@ function renderGlobalBoard(){
    b.addEventListener("click",function(){openProfile({avatar:d.avatar,avatarImg:d.avatarImg,name:d.name,coins:d.coins,lifetime:d.lifetime,pps:d.pps,taps:d.taps,bestCombo:d.bestCombo,bestCps:d.bestCps,level:d.level,apples:d.apples,title:titleName(d.title)||d.title,vip:d.vip,skin:"—",banner:d.banner,guild:d.guildName});});
    el.appendChild(b);
   });
+ }
+ if(myRole==="owner"||myRole==="admin"){
+  $("myRankLine").textContent="👑 You're the "+(myRole==="owner"?"Owner":"Admin")+" — hidden from this board for fairness. Your real stats still show in your Profile.";
+  return;
  }
  var myIdx=-1;topCache.forEach(function(d,i){if(d._uid===fbUser.uid)myIdx=i;});
  $("myRankLine").textContent=myIdx>-1?("🏅 You are #"+(myIdx+1)+" in the world right now. "+(myIdx===0?"THE TOP PIG. 👑":"Tap your way up!")):"You're not in the Top 100 yet — every tap counts. Your totals update from your cloud save.";
@@ -1967,6 +2067,8 @@ function renderFriends(){
   row.innerHTML='<span class="av">'+avatarHTML(live||f,40)+'</span><span class="grow"><h3>'+esc(f.name||f.username)+'</h3><p><span class="pres '+(live&&isOnline(live.updatedAt)?"on":"off")+'">'+(live&&isOnline(live.updatedAt)?"🟢 Online now":"⚪ Offline")+"</span>"+(live?" · Lv "+(live.level||1)+" · "+fmt(live.lifetime||0)+" lifetime":"")+'</p></span>';
   var db=document.createElement("button");db.type="button";db.className="buy small pink";db.textContent="⚔️ Duel";
   db.addEventListener("click",function(){var sel=$("duelPick");sel.value=f.uid;showView("social");$("btnDuelSend").click();});
+  var mb=document.createElement("button");mb.type="button";mb.className="buy small blue";mb.textContent="💬 Message";
+  mb.addEventListener("click",function(){openDm(f.uid,f.name||f.username);});
   var rb=document.createElement("button");rb.type="button";rb.className="buy small";rb.textContent="Remove";
   rb.addEventListener("click",function(){
    friendsCache=friendsCache.filter(function(x){return x.uid!==f.uid;});
@@ -1981,7 +2083,7 @@ function renderFriends(){
    renderFriends();cloudSaveNow();toast("Blocked "+(f.name||f.username)+". They can't be re-added while blocked.");
   });
   var wrap=document.createElement("div");wrap.style.display="flex";wrap.style.flexDirection="column";wrap.style.gap="5px";
-  wrap.appendChild(db);wrap.appendChild(rb);wrap.appendChild(bb);
+  wrap.appendChild(db);wrap.appendChild(mb);wrap.appendChild(rb);wrap.appendChild(bb);
   row.appendChild(wrap);el.appendChild(row);
  });
  renderDuelPick();renderBlocked();
@@ -2202,6 +2304,7 @@ $("gchatForm").addEventListener("submit",function(e){
  e.preventDefault();
  var v=$("gchatInput").value.trim();if(!v)return;
  if(isBanned){toast("🚫 Banned players can't use global chat.");return;}
+ if(myMuted){toast("🔇 You are muted in global chat.");return;}
  if(!fbUser||!fbDb){toast("Global chat needs an account — sign in first (Profile tab).");return;}
  $("gchatInput").value="";
  fbDb.collection("globalChat").add({uid:fbUser.uid,name:displayName(),role:myRole,avatar:profile.avatar,avatarImg:profile.avatarImg||"",text:v.slice(0,200),reactions:{},ts:firebase.firestore.FieldValue.serverTimestamp()})
@@ -2542,7 +2645,7 @@ function claimOwner(){
  });
 }
 
-/* ---------- panels ---------- */
+/* ---------- panels (v2.2: floating, draggable, minimizable) ---------- */
 function renderRolePanel(){
  var area=$("roleArea");if(!area)return;
  var sig=(fbReady?"1":"0")+"|"+(fbUser?fbUser.uid:"guest")+"|"+(ownerLoaded?"1":"0")+"|"+(ownerInfo?ownerInfo.ownerUid:"none")+"|"+myRole;
@@ -2568,16 +2671,55 @@ function renderRolePanel(){
   var isOwner=myRole==="owner";
   html+='<h3 style="margin:12px 0 4px">'+(isOwner?"🛠️ Owner Panel":"🛡️ Admin Panel (nerfed)")+'</h3>'
    +'<p class="sub">'+(isOwner
-     ?"Full control: grant/revoke admin, ban/unban anyone, and hand out coins & powers. Every action posts a system message in global chat and is written to the audit log."
-     :"You can ban/unban players and hand out coins & powers. You can NOT ban the Owner or other admins, can NOT lift an Owner ban, and can NOT grant admin or change any roles. Every action is announced in global chat and audit-logged.")+'</p>'
-   +'<div class="room-row" style="margin-bottom:10px"><input class="room-input" id="panelSearch" placeholder="🔎 Search players by name…" style="flex:1" autocomplete="off"/><button class="chip-btn" id="btnPanelRefresh" type="button">↻ Refresh list</button></div>'
-   +'<div id="panelList"><div class="empty">Loading players…</div></div>';
+     ?"Full control: 30+ tools — coins (even INF), levels, XP, powers, badges, bans, mutes, resets, farm-wide events and announcements. The panel floats: drag it anywhere, minimize it, close it, reopen it here. Every action posts a system message in global chat and is written to the audit log."
+     :"You can ban/unban players, mute them, and hand out coins, levels & powers. You can NOT ban the Owner or other admins, can NOT lift an Owner ban, and can NOT grant admin or change any roles. Every action is announced in global chat and audit-logged.")+'</p>'
+   +'<button class="big-btn" id="btnOpenPanel" type="button">'+(isOwner?"🛠️ Open Owner Panel":"🛡️ Open Admin Panel")+'</button>';
  }
  area.innerHTML=html;
  var cb=$("btnClaimOwner");if(cb)cb.addEventListener("click",claimOwner);
- var ps=$("panelSearch");if(ps)ps.addEventListener("input",function(){panelSearch=ps.value;renderPanelList();});
- var rf=$("btnPanelRefresh");if(rf)rf.addEventListener("click",loadPanelPlayers);
- if(fbUser&&(myRole==="owner"||myRole==="admin"))loadPanelPlayers();
+ var op=$("btnOpenPanel");if(op)op.addEventListener("click",openStaffPanel);
+ var ft=$("staffFloatTitle");if(ft)ft.textContent=myRole==="owner"?"🛠️ Owner Panel":"🛡️ Admin Panel (nerfed)";
+ if(fbUser&&(myRole==="owner"||myRole==="admin")){renderFarmTools();loadPanelPlayers();}
+}
+
+/* ---------- floating staff window: drag by header, minimize, close ---------- */
+function buildStaffFloat(){
+ if($("staffFloat"))return;
+ var win=document.createElement("div");
+ win.id="staffFloat";win.className="staff-float";win.style.display="none";
+ win.innerHTML='<div class="staff-head" id="staffHead"><h3 id="staffFloatTitle">🛠️ Owner Panel</h3>'
+  +'<button type="button" class="staff-x" id="staffMin" aria-label="Minimize panel">—</button>'
+  +'<button type="button" class="staff-x" id="staffClose" aria-label="Close panel">✕</button></div>'
+  +'<div class="staff-body" id="staffFloatBody"><div id="farmTools"></div>'
+  +'<div class="room-row" style="margin-bottom:10px"><input class="room-input" id="panelSearch" placeholder="🔎 Search players by name…" style="flex:1" autocomplete="off"/><button class="chip-btn" id="btnPanelRefresh" type="button">↻ Refresh list</button></div>'
+  +'<div id="panelList"><div class="empty">Loading players…</div></div></div>';
+ document.body.appendChild(win);
+ var head=$("staffHead"),drag=null;
+ head.addEventListener("pointerdown",function(e){
+  if(e.target.closest("button"))return;
+  drag={dx:e.clientX-win.offsetLeft,dy:e.clientY-win.offsetTop};
+  try{head.setPointerCapture(e.pointerId);}catch(err){}
+  e.preventDefault();
+ });
+ head.addEventListener("pointermove",function(e){
+  if(!drag)return;
+  var w=win.offsetWidth;
+  win.style.left=Math.max(0,Math.min(window.innerWidth-w,e.clientX-drag.dx))+"px";
+  win.style.top=Math.max(0,Math.min(window.innerHeight-64,e.clientY-drag.dy))+"px";
+ });
+ ["pointerup","pointercancel"].forEach(function(ev){head.addEventListener(ev,function(){drag=null;});});
+ $("staffMin").addEventListener("click",function(){
+  var min=win.classList.toggle("min");
+  $("staffMin").textContent=min?"+":"—";
+ });
+ $("staffClose").addEventListener("click",function(){win.style.display="none";});
+ $("panelSearch").addEventListener("input",function(){panelSearch=$("panelSearch").value;renderPanelList();});
+ $("btnPanelRefresh").addEventListener("click",loadPanelPlayers);
+}
+function openStaffPanel(){
+ var win=$("staffFloat");if(!win)return;
+ win.style.display="flex";
+ renderFarmTools();loadPanelPlayers();
 }
 function loadPanelPlayers(){
  if(!fbDb||!fbUser)return;
@@ -2587,6 +2729,8 @@ function loadPanelPlayers(){
   renderPanelList();
  }).catch(function(err){noteFbError(err,"panelList");var el=$("panelList");if(el)el.innerHTML='<div class="empty">☁️ Could not load the player list — check back soon.</div>';});
 }
+/* ---------- player list: compact rows, tap 🛠️ Manage for that player's tools ---------- */
+var panelSelectedUid=null;
 function renderPanelList(){
  var el=$("panelList");if(!el||!fbUser)return;
  var q=panelSearch.trim().toLowerCase();
@@ -2598,41 +2742,16 @@ function renderPanelList(){
   shown++;
   var role=roleOfUid(p._uid,p.role),isMe=p._uid===fbUser.uid;
   var row=document.createElement("div");row.className="player";row.style.cursor="default";row.style.alignItems="flex-start";
-  row.innerHTML='<span class="av">'+avatarHTML(p,40)+'</span><span class="grow"><h3>'+esc(nm)+roleTag(role)+(isMe?'<span class="you-tag">YOU</span>':"")+(p.banned?'<span class="role-tag tag-banned">🔨 BANNED</span>':"")+'</h3><p>🐷 '+fmt(p.coins||0)+' · Lv '+(p.level||1)+' · '+fmt(p.lifetime||0)+' lifetime'+(p.banned&&p.bannedByOwner?" · banned by the Owner":"")+'</p></span>';
-  var ctl=document.createElement("div");ctl.className="panel-ctl";
-  var amt=document.createElement("input");amt.type="number";amt.min="1";amt.placeholder="Coins to give";amt.setAttribute("aria-label","Coins to give "+nm);
-  var gc=document.createElement("button");gc.type="button";gc.className="buy small";gc.textContent="Give 🪙 coins";
-  gc.addEventListener("click",function(){
-   var v=Math.floor(Number(amt.value)||0);
-   if(v<1){sndErr();toast("Type how many coins to give first.");return;}
-   panelGiveCoins(p,v);amt.value="";
-  });
-  var sel=document.createElement("select");sel.setAttribute("aria-label","Power to give "+nm);
-  GOKU_FORMS.forEach(function(f){var o=document.createElement("option");o.value=f.id;o.textContent="⚡ "+f.name+" ×"+f.mult;sel.appendChild(o);});
-  var gp=document.createElement("button");gp.type="button";gp.className="buy small pink";gp.textContent="Give power";
-  gp.addEventListener("click",function(){panelGivePower(p,sel.value);});
-  var bb=document.createElement("button");bb.type="button";
-  var banBlocked="",banWhy="";
-  if(isMe){banBlocked="self";banWhy="You can't ban yourself.";}
-  else if(myRole==="admin"&&role==="owner"){banBlocked="owner";banWhy="Admins can't ban the Owner.";}
-  else if(myRole==="admin"&&role==="admin"){banBlocked="admin";banWhy="Admins can't ban other admins.";}
-  else if(myRole==="admin"&&p.banned&&p.bannedByOwner){banBlocked="ownerban";banWhy="Only the Owner can lift an Owner ban.";}
-  bb.className="buy small "+(p.banned?"blue":"red");
-  bb.textContent=p.banned?"🔓 Unban":"🔨 Ban";
-  if(banBlocked){bb.disabled=true;bb.title=banWhy;}
-  bb.addEventListener("click",function(){
-   if(banBlocked){toast(banWhy);return;}
-   panelSetBan(p,!p.banned);
-  });
-  ctl.appendChild(amt);ctl.appendChild(gc);ctl.appendChild(sel);ctl.appendChild(gp);ctl.appendChild(bb);
-  if(banBlocked){var note=document.createElement("small");note.style.color="var(--muted)";note.style.fontWeight="800";note.textContent=banWhy;ctl.appendChild(note);}
-  if(myRole==="owner"&&!isMe&&role!=="owner"){
-   var ab=document.createElement("button");ab.type="button";ab.className="buy small blue";
-   ab.textContent=role==="admin"?"🛡️ Revoke admin":"🛡️ Make admin";
-   ab.addEventListener("click",function(){panelSetAdmin(p,role!=="admin");});
-   ctl.appendChild(ab);
+  row.innerHTML='<span class="av">'+avatarHTML(p,40)+'</span><span class="grow"><h3>'+esc(nm)+roleTag(role)+(isMe?'<span class="you-tag">YOU</span>':"")+(p.banned?'<span class="role-tag tag-banned">🔨 BANNED</span>':"")+(p.muted?'<span class="role-tag" style="background:var(--muted);color:#fff">🔇 MUTED</span>':"")+'</h3><p>🐷 '+fmt(p.coins||0)+' · Lv '+(p.level||1)+' · '+fmt(p.lifetime||0)+' lifetime'+(p.banned&&p.bannedByOwner?" · banned by the Owner":"")+'</p></span>';
+  var mg=document.createElement("button");mg.type="button";mg.className="buy small pink";
+  mg.textContent=panelSelectedUid===p._uid?"▲ Close tools":"🛠️ Manage";
+  mg.addEventListener("click",function(){panelSelectedUid=panelSelectedUid===p._uid?null:p._uid;renderPanelList();});
+  row.appendChild(mg);el.appendChild(row);
+  if(panelSelectedUid===p._uid){
+   var tools=document.createElement("div");tools.className="panel-tools";
+   buildPlayerTools(tools,p,role,isMe);
+   el.appendChild(tools);
   }
-  row.appendChild(ctl);el.appendChild(row);
  });
  if(!shown){
   var e=document.createElement("div");e.className="empty";
@@ -2698,11 +2817,538 @@ function panelSetAdmin(p,make){
  }).catch(function(err){noteFbError(err,"setAdmin");toast(fbErrText(err.code||"permission-denied"));});
 }
 
+/* ============================== v2.2: STAFF INBOX (grants that stick) ==============================
+   Staff write {t, ...} items into the target's `staffInbox` array. The target's
+   own client applies each item to its live state (keyed, so a re-fire can never
+   double-apply), then removes it. This is the only way state-level grants
+   (levels/XP, badges, titles, skins, BP, VIP) survive the target's own saves,
+   which overwrite their doc from local state every 15s. */
+function inboxKey(){return "g"+Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
+function achById(id){for(var i=0;i<ACHIEVEMENTS.length;i++)if(ACHIEVEMENTS[i].id===id)return ACHIEVEMENTS[i];return null;}
+function skinName(id){for(var i=0;i<SKINS.length;i++)if(SKINS[i].id===id)return SKINS[i].name;return "";}
+function sendInbox(p, items, action, label){
+ if(!fbDb||!fbUser||(myRole!=="owner"&&myRole!=="admin"))return Promise.reject(new Error("staff-only"));
+ items.forEach(function(it){if(!it.k)it.k=inboxKey();});
+ return fbDb.collection("users").doc(p._uid).update({staffInbox:firebase.firestore.FieldValue.arrayUnion.apply(null,items)}).then(function(){
+  auditGrant(action,p,{});
+  if(label)systemChat(label);
+  toast("🎁 Sent to "+(p.name||p.username)+"!");
+ }).catch(function(err){noteFbError(err,"inbox");toast(fbErrText(err.code||"permission-denied"));throw err;});
+}
+function applyInbox(items){
+ if(!Array.isArray(items)||!items.length)return;
+ var changed=false;
+ items.forEach(function(it){
+  if(!it||!it.t||!it.k)return;
+  if(appliedInboxKeys[it.k])return; /* already applied — never double-apply */
+  appliedInboxKeys[it.k]=1;
+  if(it.t==="xp"&&it.amt){S.lifetime=Math.max(0,S.lifetime+it.amt);toast("🎁 You gained "+fmt(it.amt)+" XP!");changed=true;}
+  else if(it.t==="setxp"&&typeof it.amt==="number"){S.lifetime=Math.max(0,it.amt);toast("🎁 Your XP was set by staff.");changed=true;}
+  else if(it.t==="apples"&&it.n){S.apples+=it.n;toast("🍎 You received "+it.n+" Golden Apples!");changed=true;}
+  else if(it.t==="prestige"&&it.n){S.prestiges+=it.n;toast("🌀 You gained "+it.n+" prestige levels!");changed=true;}
+  else if(it.t==="skillpts"&&it.n){S.skillPts=(S.skillPts||0)+it.n;toast("⭐ You received "+it.n+" Skill Points!");changed=true;}
+  else if(it.t==="bpxp"&&it.n){addBpXp(it.n);toast("🎟️ You received Battle Pass XP!");changed=true;}
+  else if(it.t==="bppremium"){S.bpPremium=true;toast("🎟️ Battle Pass Premium unlocked!");changed=true;}
+  else if(it.t==="achievement"&&it.id){var a=achById(it.id);if(a&&!S.achDone[it.id]){S.achDone[it.id]=true;toast("🏅 Badge unlocked: "+a.name+"!");feed("🏅 "+displayName()+" unlocked the badge “"+a.name+"”",true);sndGold();}changed=true;}
+  else if(it.t==="title"&&it.id){if(!S.grantedTitles)S.grantedTitles=[];if(S.grantedTitles.indexOf(it.id)===-1)S.grantedTitles.push(it.id);toast("🏷️ You were granted the title: "+(titleName(it.id)||it.id)+"!");changed=true;}
+  else if(it.t==="skin"&&it.id){if(!S.skinsOwned)S.skinsOwned={};S.skinsOwned[it.id]=true;toast("🎨 You received the "+(skinName(it.id)||it.id)+" skin!");changed=true;}
+  else if(it.t==="skins_all"){SKINS.forEach(function(sk){S.skinsOwned[sk.id]=true;});toast("🎨 All skins unlocked!");changed=true;}
+  else if(it.t==="powers_all"){GOKU_FORMS.forEach(function(f){if(S.powers.indexOf(f.id)===-1)S.powers.push(f.id);});toast("⚡ All Goku powers unlocked!");changed=true;}
+  else if(it.t==="vip"&&it.id){S.vipGranted=it.id;toast("💎 VIP badge granted!");changed=true;}
+  else if(it.t==="reset"){S=freshState();bestComboSeen=1;combo=1;toast("🔄 Your progress was reset by the Owner.");changed=true;}
+  else if(it.t==="wipe"){S=freshState();bestComboSeen=1;combo=1;friendsCache=[];blockedCache=[];toast("🧹 Your data was wiped by the Owner.");changed=true;}
+ });
+ if(changed){
+  applySkin();renderAch();renderTree();renderAll();renderQuests();renderBp();renderTitleSelect();
+  renderFriends();renderRequests();renderGuild();checkLevelRewards();markDirty();cloudSaveNow();
+ }
+}
+
+/* ============================== v2.2: STAFF TOOL BUILDERS ============================== */
+function toolSec(parent,title){
+ var sec=document.createElement("div");sec.className="tool-sec";
+ var h=document.createElement("h4");h.textContent=title;sec.appendChild(h);
+ var g=document.createElement("div");g.className="tool-grid";sec.appendChild(g);
+ parent.appendChild(sec);return g;
+}
+function toolCard(title,desc){
+ var c=document.createElement("div");c.className="tool-card";
+ var b=document.createElement("b");b.textContent=title;c.appendChild(b);
+ var s=document.createElement("small");s.textContent=desc;c.appendChild(s);
+ return c;
+}
+function toolInput(ph,txt){
+ var i=document.createElement("input");
+ i.type=txt?"text":"number";i.min="1";i.placeholder=ph;i.setAttribute("aria-label",ph);
+ return i;
+}
+function toolBtn(label,cls){
+ var b=document.createElement("button");b.type="button";b.className="buy small "+(cls||"");b.textContent=label;return b;
+}
+function toolSelect(options){
+ var s=document.createElement("select");
+ options.forEach(function(o){var op=document.createElement("option");op.value=o.value;op.textContent=o.label;s.appendChild(op);});
+ return s;
+}
+function armConfirm(btn,armText,ms){
+ btn.dataset.arm="1";var old=btn.textContent;btn.textContent=armText;
+ setTimeout(function(){delete btn.dataset.arm;btn.textContent=old;},ms||3000);
+}
+function lifetimeForLevel(lv){lv=Math.max(1,Math.min(50,lv));return Math.pow(lv-1,2)*100;}
+
+/* ---------- per-player tools: 31 for Owner, 5 for Admin ---------- */
+function buildPlayerTools(container,p,role,isMe){
+ var isOwner=myRole==="owner";
+ var nm=p.name||p.username||"Player";
+ /* --- 💰 Coins --- */
+ var g=toolSec(container,"💰 Coins");
+ var c1=toolCard("Give coins","Hand out Pig Coins. Type inf for the max (Owner only).");
+ var inCoins=toolInput("Amount or inf",true);var bCoins=toolBtn("Give 🪙 coins");
+ bCoins.addEventListener("click",function(){
+  var s=(inCoins.value||"").trim().toLowerCase(),amt;
+  if(s==="inf"||s==="infinity"){
+   if(!isOwner){toast("Only the Owner can give INF coins.");return;}
+   amt=999999999999999;
+   if(!bCoins.dataset.arm){armConfirm(bCoins,"⚠️ Tap again to confirm INF");return;}
+   delete bCoins.dataset.arm;bCoins.textContent="Give 🪙 coins";
+  }else{
+   amt=Math.floor(Number(inCoins.value)||0);
+   if(amt<1){sndErr();toast("Type how many coins to give first.");return;}
+  }
+  panelGiveCoins(p,amt);inCoins.value="";
+ });
+ c1.appendChild(inCoins);c1.appendChild(bCoins);g.appendChild(c1);
+ if(isOwner){
+  var c2=toolCard("Set exact coins","Set this player's coin balance to an exact number.");
+  var inSet=toolInput("Exact coin total");var bSet=toolBtn("Set coins","blue");
+  bSet.addEventListener("click",function(){
+   if(!inSet.value){sndErr();toast("Type the exact coin total first.");return;}
+   panelSetCoins(p,Math.max(0,Math.floor(Number(inSet.value)||0)));inSet.value="";
+  });
+  c2.appendChild(inSet);c2.appendChild(bSet);g.appendChild(c2);
+ }
+ /* --- 📈 Levels & XP --- */
+ var g2=toolSec(container,"📈 Levels & XP");
+ var c3=toolCard("Give levels","Add levels (grants the XP needed to reach them).");
+ var inLv=toolInput("Levels to give");var bLv=toolBtn("Give levels");
+ bLv.addEventListener("click",function(){
+  var n=Math.floor(Number(inLv.value)||0);
+  if(n<1){sndErr();toast("Type how many levels first.");return;}
+  panelGiveLevels(p,n);inLv.value="";
+ });
+ c3.appendChild(inLv);c3.appendChild(bLv);g2.appendChild(c3);
+ if(isOwner){
+  var c4=toolCard("Set exact level","Jump this player to an exact level (1–50).");
+  var inSL=toolInput("Level 1–50");var bSL=toolBtn("Set level","blue");
+  bSL.addEventListener("click",function(){
+   if(!inSL.value){sndErr();toast("Type the level first.");return;}
+   panelSetLevel(p,Math.max(1,Math.min(50,Math.floor(Number(inSL.value)||0))));inSL.value="";
+  });
+  c4.appendChild(inSL);c4.appendChild(bSL);g2.appendChild(c4);
+  var c5=toolCard("Give XP","Hand out raw XP (lifetime coins = XP).");
+  var inXp=toolInput("XP amount");var bXp=toolBtn("Give XP");
+  bXp.addEventListener("click",function(){
+   var n=Math.floor(Number(inXp.value)||0);
+   if(n<1){sndErr();toast("Type how much XP first.");return;}
+   sendInbox(p,[{t:"xp",amt:n}],"grant_xp","🎁 👑 Owner gave "+fmtFull(n)+" XP to "+nm);inXp.value="";
+  });
+  c5.appendChild(inXp);c5.appendChild(bXp);g2.appendChild(c5);
+ }
+ /* --- 🌟 Progress (Owner) --- */
+ if(isOwner){
+  var g3=toolSec(container,"🌟 Progress");
+  var c6=toolCard("Give prestige levels","Add prestige levels.");
+  var inPr=toolInput("Prestige levels");var bPr=toolBtn("Give prestige");
+  bPr.addEventListener("click",function(){var n=Math.floor(Number(inPr.value)||0);if(n<1){sndErr();toast("Type how many first.");return;}sendInbox(p,[{t:"prestige",n:n}],"grant_prestige","🌀 👑 Owner gave "+n+" prestige levels to "+nm);inPr.value="";});
+  c6.appendChild(inPr);c6.appendChild(bPr);g3.appendChild(c6);
+  var c7=toolCard("Give Golden Apples","Hand out Golden Apples.");
+  var inAp=toolInput("Apples");var bAp=toolBtn("Give 🍎 apples");
+  bAp.addEventListener("click",function(){var n=Math.floor(Number(inAp.value)||0);if(n<1){sndErr();toast("Type how many first.");return;}sendInbox(p,[{t:"apples",n:n}],"grant_apples","🍎 👑 Owner gave "+n+" Golden Apples to "+nm);inAp.value="";});
+  c7.appendChild(inAp);c7.appendChild(bAp);g3.appendChild(c7);
+  var c8=toolCard("Give Skill Points","Hand out ⭐ Skill Points for the prestige tree.");
+  var inSp=toolInput("Skill Points");var bSp=toolBtn("Give ⭐ points");
+  bSp.addEventListener("click",function(){var n=Math.floor(Number(inSp.value)||0);if(n<1){sndErr();toast("Type how many first.");return;}sendInbox(p,[{t:"skillpts",n:n}],"grant_skillpts","⭐ 👑 Owner gave "+n+" Skill Points to "+nm);inSp.value="";});
+  c8.appendChild(inSp);c8.appendChild(bSp);g3.appendChild(c8);
+ }
+ /* --- ⚡ Powers --- */
+ var g4=toolSec(container,"⚡ Powers");
+ var c9=toolCard("Give Goku power","Grant one of the 8 Goku forms.");
+ var selP=toolSelect(GOKU_FORMS.map(function(f){return{value:f.id,label:"⚡ "+f.name+" ×"+f.mult};}));
+ var bP=toolBtn("Give power","pink");
+ bP.addEventListener("click",function(){panelGivePower(p,selP.value);});
+ c9.appendChild(selP);c9.appendChild(bP);g4.appendChild(c9);
+ if(isOwner){
+  var c10=toolCard("Unlock all powers","Give ALL 8 Goku forms at once.");
+  var bPAll=toolBtn("Unlock all ⚡","pink");
+  bPAll.addEventListener("click",function(){panelGivePowerAll(p);});
+  c10.appendChild(bPAll);g4.appendChild(c10);
+ }
+ /* --- 🏅 Rewards (Owner) --- */
+ if(isOwner){
+  var g5=toolSec(container,"🏅 Rewards");
+  var c11=toolCard("Give badge","Grant any achievement badge.");
+  var selA=toolSelect(ACHIEVEMENTS.map(function(a){return{value:a.id,label:a.icon+" "+a.name};}));
+  var bA=toolBtn("Give badge","blue");
+  bA.addEventListener("click",function(){var a=achById(selA.value);sendInbox(p,[{t:"achievement",id:selA.value}],"grant_achievement","🏅 👑 Owner granted the “"+(a?a.name:selA.value)+"” badge to "+nm);});
+  c11.appendChild(selA);c11.appendChild(bA);g5.appendChild(c11);
+  var c12=toolCard("👑 Grant “Met the Owner”","The greatest badge in the game — only the Owner can give it.");
+  var bMO=toolBtn("👑 Grant Met the Owner","pink");
+  bMO.addEventListener("click",function(){sendInbox(p,[{t:"achievement",id:"met_owner"}],"grant_achievement","👑 "+displayName()+" granted the 👑 Met the Owner badge — the greatest badge in the game — to "+nm+"!");});
+  c12.appendChild(bMO);g5.appendChild(c12);
+  var c13=toolCard("Give title","Grant any player title.");
+  var selT=toolSelect(TITLES.map(function(t){return{value:t.id,label:"🏷️ "+t.name};}));
+  var bT=toolBtn("Give title");
+  bT.addEventListener("click",function(){sendInbox(p,[{t:"title",id:selT.value}],"grant_title","🏷️ 👑 Owner gave the “"+titleName(selT.value)+"” title to "+nm);});
+  c13.appendChild(selT);c13.appendChild(bT);g5.appendChild(c13);
+  var c14=toolCard("Give skin","Grant any pig skin.");
+  var selS=toolSelect(SKINS.map(function(s){return{value:s.id,label:"🎨 "+s.name};}));
+  var bS=toolBtn("Give skin");
+  bS.addEventListener("click",function(){sendInbox(p,[{t:"skin",id:selS.value}],"grant_skin","🎨 👑 Owner gave the "+skinName(selS.value)+" skin to "+nm);});
+  c14.appendChild(selS);c14.appendChild(bS);g5.appendChild(c14);
+  var c15=toolCard("Unlock all skins","Give every pig skin at once.");
+  var bSAll=toolBtn("Unlock all 🎨");
+  bSAll.addEventListener("click",function(){sendInbox(p,[{t:"skins_all"}],"grant_skins_all","🎨 👑 Owner unlocked ALL skins for "+nm+"!");});
+  c15.appendChild(bSAll);g5.appendChild(c15);
+  var c16=toolCard("Give Battle Pass tiers","Add Battle Pass tiers.");
+  var inBp=toolInput("Tiers to give");var bBp=toolBtn("Give tiers");
+  bBp.addEventListener("click",function(){var n=Math.floor(Number(inBp.value)||0);if(n<1){sndErr();toast("Type how many tiers first.");return;}sendInbox(p,[{t:"bpxp",n:n*BP_XP_PER}],"grant_bp","🎟️ 👑 Owner gave "+n+" Battle Pass tiers to "+nm);inBp.value="";});
+  c16.appendChild(inBp);c16.appendChild(bBp);g5.appendChild(c16);
+  var c17=toolCard("Give Battle Pass Premium","Unlock the Premium track.");
+  var bBpP=toolBtn("Give Premium 🎟️");
+  bBpP.addEventListener("click",function(){sendInbox(p,[{t:"bppremium"}],"grant_bp_premium","🎟️ 👑 Owner gave Battle Pass Premium to "+nm+"!");});
+  c17.appendChild(bBpP);g5.appendChild(c17);
+  var c18=toolCard("Grant VIP badge","Give a VIP tier badge (Bronze → Champion).");
+  var selV=toolSelect([{value:"bronze",label:"🥉 Bronze VIP"},{value:"silver",label:"🥈 Silver VIP"},{value:"gold",label:"🥇 Gold VIP"},{value:"champ",label:"👑 Champion VIP"}]);
+  var bV=toolBtn("Grant VIP","blue");
+  bV.addEventListener("click",function(){sendInbox(p,[{t:"vip",id:selV.value}],"grant_vip","💎 👑 Owner granted the "+selV.options[selV.selectedIndex].text+" badge to "+nm);});
+  c18.appendChild(selV);c18.appendChild(bV);g5.appendChild(c18);
+ }
+ /* --- 🔨 Moderation --- */
+ var g6=toolSec(container,"🔨 Moderation");
+ var banBlocked="",banWhy="";
+ if(isMe){banBlocked="self";banWhy="You can't ban yourself.";}
+ else if(myRole==="admin"&&role==="owner"){banBlocked="owner";banWhy="Admins can't ban the Owner.";}
+ else if(myRole==="admin"&&role==="admin"){banBlocked="admin";banWhy="Admins can't ban other admins.";}
+ else if(myRole==="admin"&&p.banned&&p.bannedByOwner){banBlocked="ownerban";banWhy="Only the Owner can lift an Owner ban.";}
+ var c19=toolCard(p.banned?"Unban player":"Ban player",banBlocked?banWhy:(p.banned?"Lift the ban — they can play again.":"Ban them: signed out on the spot, game locked."));
+ var bB=toolBtn(p.banned?"🔓 Unban":"🔨 Ban",p.banned?"blue":"red");
+ if(banBlocked){bB.disabled=true;bB.title=banWhy;}
+ bB.addEventListener("click",function(){if(banBlocked){toast(banWhy);return;}panelSetBan(p,!p.banned);});
+ c19.appendChild(bB);g6.appendChild(c19);
+ var muteBlocked="";
+ if(isMe)muteBlocked="You can't mute yourself.";
+ else if(myRole==="admin"&&(role==="owner"||role==="admin"))muteBlocked="Admins can't mute the Owner or other admins.";
+ var c20=toolCard(p.muted?"Unmute player":"Mute player",muteBlocked||(p.muted?"Let them chat again.":"Silence them in global chat and DMs."));
+ var bM=toolBtn(p.muted?"🔊 Unmute":"🔇 Mute","blue");
+ if(muteBlocked){bM.disabled=true;bM.title=muteBlocked;}
+ bM.addEventListener("click",function(){if(muteBlocked){toast(muteBlocked);return;}panelSetMute(p,!p.muted);});
+ c20.appendChild(bM);g6.appendChild(c20);
+ if(isOwner&&!isMe){
+  var c21=toolCard("Reset progress","Wipe their coins, levels, upgrades and badges back to zero. Account stays.");
+  var bR=toolBtn("🔄 Reset progress","red");
+  bR.addEventListener("click",function(){
+   if(!bR.dataset.arm){armConfirm(bR,"⚠️ Tap again to RESET");return;}
+   delete bR.dataset.arm;bR.textContent="🔄 Reset progress";panelResetPlayer(p);
+  });
+  c21.appendChild(bR);g6.appendChild(c21);
+  var c22=toolCard("Wipe all data","Full wipe: progress + friends + requests + chat messages. Gone forever.");
+  var bW=toolBtn("🧹 Wipe everything","red");
+  bW.addEventListener("click",function(){
+   if(!bW.dataset.arm){armConfirm(bW,"⚠️ Tap again to WIPE");return;}
+   delete bW.dataset.arm;bW.textContent="🧹 Wipe everything";panelWipePlayer(p);
+  });
+  c22.appendChild(bW);g6.appendChild(c22);
+ }
+ /* --- 🛡️ Roles (Owner) --- */
+ if(isOwner&&!isMe&&role!=="owner"){
+  var g7=toolSec(container,"🛡️ Roles");
+  var c23=toolCard(role==="admin"?"Revoke admin":"Make admin",role==="admin"?"Remove their Admin powers.":"Promote them to Admin (nerfed panel).");
+  var bA2=toolBtn(role==="admin"?"🛡️ Revoke admin":"🛡️ Make admin","blue");
+  bA2.addEventListener("click",function(){panelSetAdmin(p,role!=="admin");});
+  c23.appendChild(bA2);g7.appendChild(c23);
+ }
+}
+
+/* ---------- farm-wide tools (Owner only) ---------- */
+var farmToolsSig="";
+function renderFarmTools(){
+ var el=$("farmTools");if(!el)return;
+ var sig=myRole+"|"+(fbUser?fbUser.uid:"");
+ if(sig===farmToolsSig&&el.dataset.built)return;
+ farmToolsSig=sig;el.dataset.built="1";
+ el.innerHTML="";
+ if(myRole!=="owner")return;
+ var sec=document.createElement("div");sec.className="tool-sec";
+ var h=document.createElement("h4");h.textContent="🌍 Farm-wide tools — Owner only";sec.appendChild(h);
+ var g=document.createElement("div");g.className="tool-grid";sec.appendChild(g);
+ var c1=toolCard("📣 Global announcement","Post a system message to global chat.");
+ var inAn=toolInput("Announcement text…",true);var bAn=toolBtn("Send 📣","pink");
+ bAn.addEventListener("click",function(){
+  var v=inAn.value.trim();if(!v){sndErr();toast("Type the announcement first.");return;}
+  systemChat("📣 👑 Owner: "+v);auditGrant("announcement",{_uid:"*",name:"everyone"},{});toast("📣 Announcement sent!");inAn.value="";
+ });
+ c1.appendChild(inAn);c1.appendChild(bAn);g.appendChild(c1);
+ var c2=toolCard("🧹 Clear global chat","Delete the last 100 global chat messages.");
+ var bCl=toolBtn("Clear chat","red");
+ bCl.addEventListener("click",function(){
+  if(!bCl.dataset.arm){armConfirm(bCl,"⚠️ Tap again to CLEAR");return;}
+  delete bCl.dataset.arm;bCl.textContent="Clear chat";panelClearChat();
+ });
+ c2.appendChild(bCl);g.appendChild(c2);
+ var c3=toolCard("🎉 Double Coins event","Every tap + auto-earner pays ×2 for 1 hour.");
+ var bDC=toolBtn("Start ×2 Coins","pink");
+ bDC.addEventListener("click",function(){startEvent("coins",1);});
+ c3.appendChild(bDC);g.appendChild(c3);
+ var c4=toolCard("⚡ Double XP event","Levels fly twice as fast for 1 hour.");
+ var bDX=toolBtn("Start ×2 XP","pink");
+ bDX.addEventListener("click",function(){startEvent("xp",1);});
+ c4.appendChild(bDX);g.appendChild(c4);
+ var c5=toolCard("⏹️ End events","Stop all running double events now.");
+ var bE=toolBtn("End events","blue");
+ bE.addEventListener("click",function(){endEvents();});
+ c5.appendChild(bE);g.appendChild(c5);
+ var c6=toolCard("🌍 Give coins to ALL","Hand the same coins to every player.");
+ var inAll=toolInput("Coins each");var bAll=toolBtn("Give to ALL");
+ bAll.addEventListener("click",function(){var n=Math.floor(Number(inAll.value)||0);if(n<1){sndErr();toast("Type how many coins first.");return;}panelGiveAllCoins(n,false);inAll.value="";});
+ c6.appendChild(inAll);c6.appendChild(bAll);g.appendChild(c6);
+ var c7=toolCard("🟢 Give coins to ONLINE","Same, but only players online right now.");
+ var inOn=toolInput("Coins each");var bOn=toolBtn("Give to ONLINE");
+ bOn.addEventListener("click",function(){var n=Math.floor(Number(inOn.value)||0);if(n<1){sndErr();toast("Type how many coins first.");return;}panelGiveAllCoins(n,true);inOn.value="";});
+ c7.appendChild(inOn);c7.appendChild(bOn);g.appendChild(c7);
+ var c8=toolCard("📜 Audit log","Every staff action, newest first.");
+ var bAu=toolBtn("Load audit log","blue");
+ bAu.addEventListener("click",function(){loadAuditLog();});
+ c8.appendChild(bAu);g.appendChild(c8);
+ el.appendChild(sec);
+ var au=document.createElement("div");au.id="auditList";el.appendChild(au);
+}
+function loadAuditLog(){
+ var el=$("auditList");if(!el)return;
+ el.innerHTML='<div class="empty">Loading audit log…</div>';
+ fbDb.collection("grants").orderBy("at","desc").limit(50).get().then(function(snap){
+  if(snap.empty){el.innerHTML='<div class="empty">No actions logged yet.</div>';return;}
+  el.innerHTML="";
+  snap.forEach(function(d){var o=d.data();
+   var when=o.at&&o.at.toDate?o.at.toDate().toLocaleString([],{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):"";
+   var div=document.createElement("div");
+   div.innerHTML='<div style="background:var(--card2);border:2px solid var(--line);border-radius:11px;padding:7px 10px;font-weight:700;font-size:.88rem;margin-bottom:6px">'+esc(o.actorName||"")+" → "+esc(o.action||"")+" → "+esc(o.targetName||"")+(o.amount!=null?" ("+fmtFull(o.amount)+")":"")+(o.powerId?" ("+esc(o.powerId)+")":"")+' <span style="color:var(--muted)">'+when+'</span></div>';
+   el.appendChild(div);
+  });
+ }).catch(function(err){noteFbError(err,"audit");el.innerHTML='<div class="empty">☁️ Could not load the audit log.</div>';});
+}
+
+/* ---------- staff actions: coins / levels / mute / reset / wipe / all / events ---------- */
+function panelGiveLevels(p,n){
+ if(!fbDb||!fbUser||(myRole!=="owner"&&myRole!=="admin"))return;
+ var cur=p.level||1, nl=Math.min(50,cur+n);
+ if(nl<=cur){toast((p.name||p.username)+" is already level "+cur+".");return;}
+ var delta=lifetimeForLevel(nl)-(p.lifetime||0);
+ if(delta<=0){toast((p.name||p.username)+" already has the XP for level "+nl+".");return;}
+ sendInbox(p,[{t:"xp",amt:delta}],"grant_levels","📈 "+actorLabel()+" gave "+(nl-cur)+" levels to "+(p.name||p.username)+" (now level "+nl+")");
+}
+function panelSetLevel(p,lv){
+ if(!fbDb||!fbUser||myRole!=="owner")return;
+ sendInbox(p,[{t:"setxp",amt:lifetimeForLevel(lv)}],"set_level","📈 👑 Owner set "+(p.name||p.username)+" to level "+lv);
+}
+function panelSetCoins(p,target){
+ if(!fbDb||!fbUser||myRole!=="owner")return;
+ var delta=target-(p.coins||0);
+ if(delta===0){toast("They already have exactly that many coins.");return;}
+ fbDb.collection("users").doc(p._uid).update({coins:firebase.firestore.FieldValue.increment(delta)}).then(function(){
+  p.coins=target;
+  auditGrant("set_coins",p,{amount:target});
+  systemChat("🪙 👑 Owner set "+(p.name||p.username)+"'s coins to "+fmtFull(target));
+  toast("🪙 Set "+(p.name||p.username)+" to "+fmt(target)+" 🪙");
+  renderPanelList();
+ }).catch(function(err){noteFbError(err,"setCoins");toast(fbErrText(err.code||"permission-denied"));});
+}
+function panelGivePowerAll(p){
+ if(!fbDb||!fbUser||myRole!=="owner")return;
+ var ids=GOKU_FORMS.map(function(f){return f.id;});
+ fbDb.collection("users").doc(p._uid).update({powers:firebase.firestore.FieldValue.arrayUnion.apply(null,ids)}).then(function(){
+  auditGrant("grant_powers_all",p,{});
+  systemChat("⚡ 👑 Owner unlocked ALL Goku powers for "+(p.name||p.username)+"!");
+  toast("⚡ "+(p.name||p.username)+" now has all Goku powers!");
+  renderPanelList();
+ }).catch(function(err){noteFbError(err,"givePowersAll");toast(fbErrText(err.code||"permission-denied"));});
+}
+function panelSetMute(p,mute){
+ if(!fbDb||!fbUser||(myRole!=="owner"&&myRole!=="admin"))return;
+ if(p._uid===fbUser.uid){toast("You can't mute yourself.");return;}
+ var role=roleOfUid(p._uid,p.role);
+ if(myRole==="admin"&&(role==="owner"||role==="admin")){toast("🛡️ Admins can't mute the Owner or other admins.");return;}
+ fbDb.collection("users").doc(p._uid).update({muted:mute}).then(function(){
+  p.muted=mute;
+  auditGrant(mute?"mute":"unmute",p,{});
+  systemChat(mute?("🔇 "+actorLabel()+" muted "+(p.name||p.username)+" in chat"):("🔊 "+actorLabel()+" unmuted "+(p.name||p.username)));
+  toast(mute?("🔇 Muted "+(p.name||p.username)+"."):("🔊 Unmuted "+(p.name||p.username)+"."));
+  renderPanelList();
+ }).catch(function(err){noteFbError(err,"mute");toast(fbErrText(err.code||"permission-denied"));});
+}
+function panelResetPlayer(p){
+ if(!fbDb||!fbUser||myRole!=="owner")return;
+ sendInbox(p,[{t:"reset"}],"reset_progress","🔄 👑 Owner reset "+(p.name||p.username)+"'s progress.").then(function(){renderPanelList();});
+}
+function panelWipePlayer(p){
+ if(!fbDb||!fbUser||myRole!=="owner")return;
+ var jobs=[];
+ jobs.push(fbDb.collection("users").doc(p._uid).update({friends:[],blocked:[]}).catch(function(){}));
+ jobs.push(fbDb.collection("friendRequests").where("from","==",p._uid).get().then(function(s){s.forEach(function(d){d.ref.delete().catch(function(){});});}).catch(function(){}));
+ jobs.push(fbDb.collection("friendRequests").where("to","==",p._uid).get().then(function(s){s.forEach(function(d){d.ref.delete().catch(function(){});});}).catch(function(){}));
+ jobs.push(fbDb.collection("globalChat").where("uid","==",p._uid).limit(100).get().then(function(s){s.forEach(function(d){d.ref.delete().catch(function(){});});}).catch(function(){}));
+ Promise.all(jobs).then(function(){
+  return sendInbox(p,[{t:"wipe"}],"wipe_data","🧹 👑 Owner wiped "+(p.name||p.username)+"'s data (progress + friends + messages).");
+ }).then(function(){renderPanelList();});
+}
+function panelGiveAllCoins(amt,onlineOnly){
+ if(!fbDb||!fbUser||myRole!=="owner")return;
+ if(amt<1){toast("Type how many coins first.");return;}
+ fbDb.collection("users").limit(500).get().then(function(snap){
+  var n=0, jobs=[];
+  snap.forEach(function(doc){var d=doc.data();
+   if(onlineOnly&&Date.now()-(d.updatedAt||0)>=180000)return;
+   n++;
+   jobs.push(doc.ref.update({coins:firebase.firestore.FieldValue.increment(amt)}).catch(function(){}));
+  });
+  return Promise.all(jobs).then(function(){return n;});
+ }).then(function(n){
+  auditGrant(onlineOnly?"grant_coins_online":"grant_coins_all",{_uid:"*",name:n+" players"},{amount:amt});
+  systemChat("🎁 👑 Owner gave "+fmtFull(amt)+" Pig Coins to "+(onlineOnly?"everyone ONLINE":"ALL players")+"!");
+  toast("🎁 Gave "+fmt(amt)+" 🪙 to "+n+" players!");
+ }).catch(function(err){noteFbError(err,"giveAll");toast(fbErrText(err.code||"permission-denied"));});
+}
+function panelClearChat(){
+ if(!fbDb||!fbUser||myRole!=="owner")return;
+ fbDb.collection("globalChat").limit(100).get().then(function(snap){
+  var batch=fbDb.batch();snap.forEach(function(d){batch.delete(d.ref);});
+  return batch.commit();
+ }).then(function(){
+  auditGrant("clear_chat",{_uid:"*",name:"global chat"},{});
+  systemChat("🧹 👑 Owner cleared the global chat.");
+  toast("🧹 Global chat cleared.");
+ }).catch(function(err){noteFbError(err,"clearChat");toast(fbErrText(err.code||"permission-denied"));});
+}
+
+/* ---------- farm-wide events: double coins / double XP ---------- */
+function eventCoinMult(){return eventCfg&&eventCfg.doubleCoinsUntil&&Date.now()<eventCfg.doubleCoinsUntil?2:1;}
+function eventXpMult(){return eventCfg&&eventCfg.doubleXpUntil&&Date.now()<eventCfg.doubleXpUntil?2:1;}
+function renderEventStrip(){
+ var el=$("eventStrip");if(!el)return;
+ var now=Date.now(), bits=[];
+ if(eventCfg.doubleCoinsUntil&&now<eventCfg.doubleCoinsUntil)bits.push("🎉 DOUBLE COINS ×2 — ends "+new Date(eventCfg.doubleCoinsUntil).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}));
+ if(eventCfg.doubleXpUntil&&now<eventCfg.doubleXpUntil)bits.push("⚡ DOUBLE XP ×2 — ends "+new Date(eventCfg.doubleXpUntil).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}));
+ el.style.display=bits.length?"":"none";
+ el.textContent=bits.join(" · ");
+}
+function startEvent(kind,hours){
+ if(!fbDb||!fbUser||myRole!=="owner")return;
+ var upd={};
+ upd[kind==="coins"?"doubleCoinsUntil":"doubleXpUntil"]=Date.now()+hours*3600000;
+ fbDb.collection("config").doc("events").set(upd,{merge:true}).then(function(){
+  auditGrant(kind==="coins"?"event_double_coins":"event_double_xp",{_uid:"*",name:"everyone"},{});
+  systemChat(kind==="coins"?("🎉 👑 Owner started DOUBLE COINS for "+hours+" hour(s)! Every tap and auto-earner pays ×2!"):("🎉 👑 Owner started DOUBLE XP for "+hours+" hour(s)! Levels fly twice as fast!"));
+  toast("🎉 Event started!");
+ }).catch(function(err){noteFbError(err,"event");toast(fbErrText(err.code||"permission-denied"));});
+}
+function endEvents(){
+ if(!fbDb||!fbUser||myRole!=="owner")return;
+ fbDb.collection("config").doc("events").set({doubleCoinsUntil:0,doubleXpUntil:0},{merge:true}).then(function(){
+  auditGrant("event_end",{_uid:"*",name:"everyone"},{});
+  systemChat("⏹️ 👑 Owner ended all double events.");
+  toast("Events ended.");
+ }).catch(function(err){noteFbError(err,"eventEnd");toast(fbErrText(err.code||"permission-denied"));});
+}
+
+/* ============================== v2.2: PRIVATE DMS (friends only) ============================== */
+var dmThreads=[], currentDm=null, dmMessages=[], dmUnsub=null;
+function dmIdFor(a,b){return [a,b].sort().join("_");}
+function openDm(uid,name){
+ if(!fbUser||!fbDb)return;
+ if(!friendsCache.some(function(f){return f.uid===uid;})){toast("You can only DM friends — add them first!");return;}
+ currentDm={uid:uid,name:name||"Friend"};
+ $("dmTitle").textContent="💬 "+(name||"Friend");
+ dmMessages=[];
+ showView("dm");
+ if(dmUnsub){dmUnsub();dmUnsub=null;}
+ var ref=fbDb.collection("dms").doc(dmIdFor(fbUser.uid,uid)).collection("messages").orderBy("createdAt","asc").limit(200);
+ dmUnsub=ref.onSnapshot(function(snap){
+  dmMessages=[];snap.forEach(function(d){var o=d.data();o._id=d.id;dmMessages.push(o);});
+  renderDmMessages();
+ },function(err){noteFbError(err,"dm");});
+ renderDmMessages();
+}
+function renderDmMessages(){
+ var el=$("dmMessages");if(!el)return;
+ el.innerHTML="";
+ if(!dmMessages.length){el.innerHTML='<div class="empty">No messages yet — say hi! 🐷</div>';return;}
+ dmMessages.forEach(function(m){
+  var div=document.createElement("div");div.className="dm-msg"+(m.from===fbUser.uid?" mine":"");
+  var when=m.createdAt&&m.createdAt.toDate?m.createdAt.toDate().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"";
+  div.innerHTML=esc(m.text||"")+'<span class="when">'+when+'</span>';
+  el.appendChild(div);
+ });
+ el.scrollTop=el.scrollHeight;
+}
+function setupDmListener(){
+ if(!fbDb||!fbUser)return;
+ try{
+  var u=fbDb.collection("dms").where("participants","array-contains",fbUser.uid).onSnapshot(function(snap){
+   dmThreads=[];snap.forEach(function(d){var o=d.data();o._id=d.id;dmThreads.push(o);});
+   dmThreads.sort(function(a,b){return (b.lastAt||0)-(a.lastAt||0);});
+   renderDmList();
+  },function(err){noteFbError(err,"dmList");});
+  unsubscribers.push(u);
+ }catch(e){}
+}
+function renderDmList(){
+ var el=$("dmList");if(!el)return;
+ if(!fbUser){el.innerHTML='<div class="empty">Sign in to see private messages.</div>';return;}
+ if(!dmThreads.length){el.innerHTML='<div class="empty">No private chats yet. Tap 💬 Message on any friend to start one.</div>';return;}
+ el.innerHTML="";
+ dmThreads.forEach(function(t){
+  var otherUid=t.a===fbUser.uid?t.b:t.a;
+  var otherName=t.a===fbUser.uid?t.bName:t.aName;
+  var row=document.createElement("button");row.type="button";row.className="dm-thread";
+  row.innerHTML='<span class="av">💬</span><span class="grow"><h3>'+esc(otherName||"Friend")+'</h3><p>'+esc(t.lastText||"")+'</p></span>';
+  row.addEventListener("click",function(){openDm(otherUid,otherName);});
+  el.appendChild(row);
+ });
+}
+$("btnDmBack").addEventListener("click",function(){if(dmUnsub){dmUnsub();dmUnsub=null;}currentDm=null;showView("friends");});
+$("dmForm").addEventListener("submit",function(e){e.preventDefault();sendDm();});
+function sendDm(){
+ if(!currentDm||!fbUser||!fbDb)return;
+ var v=$("dmInput").value.trim();if(!v)return;
+ if(!friendsCache.some(function(f){return f.uid===currentDm.uid;})){toast("You can only DM friends.");return;}
+ if(isBanned){toast("🚫 Banned players can't send messages.");return;}
+ if(myMuted){toast("🔇 You are muted.");return;}
+ $("dmInput").value="";
+ var dmId=dmIdFor(fbUser.uid,currentDm.uid);
+ var parent=fbDb.collection("dms").doc(dmId);
+ /* parent doc first (rules need it to exist before messages can be written) */
+ parent.set({participants:[fbUser.uid,currentDm.uid],a:fbUser.uid,aName:displayName(),b:currentDm.uid,bName:currentDm.name,lastText:v.slice(0,120),lastAt:Date.now(),lastFrom:fbUser.uid},{merge:true}).then(function(){
+  return parent.collection("messages").add({from:fbUser.uid,text:v.slice(0,500),createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+ }).then(function(newRef){
+  /* owner's first DM to a player = they met the Owner → greatest badge */
+  if(myRole==="owner"){
+   parent.collection("messages").get().then(function(snap){
+    var had=false;
+    snap.forEach(function(d){if(d.id!==newRef.id&&d.data().from===fbUser.uid)had=true;});
+    if(!had){
+     sendInbox({_uid:currentDm.uid,name:currentDm.name,username:currentDm.name},[{t:"achievement",id:"met_owner"}],"grant_achievement","👑 "+displayName()+" met "+currentDm.name+" in DMs — "+currentDm.name+" unlocked the 👑 Met the Owner badge, the greatest badge in the game!");
+    }
+   }).catch(function(){});
+  }
+  renderDmList();
+ }).catch(function(err){noteFbError(err,"dmSend");toast(fbErrText(err.code||"permission-denied"));});
+}
+
 /* ============================== LOOPS / INIT ============================== */
-setInterval(function(){var gain=perSec()/10;if(gain>0){S.coins+=gain;S.lifetime+=gain;}renderStats();},100);
+setInterval(function(){var gain=perSec()/10;if(gain>0){S.coins+=gain*eventCoinMult();S.lifetime+=gain*eventXpMult();}renderStats();},100);
 setInterval(renderShop,4000);
 setInterval(saveLocal,5000);
 setInterval(function(){ensureQuests();},30000);
+setInterval(renderEventStrip,30000);
 
 /* load local cache, apply offline earnings */
 var savedData=loadLocal();
@@ -2728,9 +3374,10 @@ $("btnAnim").classList.toggle("on",qol.anim);$("btnAnim").textContent="✨ Effec
 document.body.classList.toggle("no-anim",!qol.anim);
 if(profile.name){$("farmName").textContent=profile.name+"'s Pig Farm";$("nameInput").value=profile.name;$("nameInput2").value=profile.name;}
 
-applySkin();refreshAvatarPicks();renderAch();renderTree();renderAll();renderPlayers();renderDaily();ensureQuests();renderQuests();renderBp();renderLog();renderCloudStrip();renderGlobalBoard();renderFriends();renderGuild();renderRaid();renderDuelPick();renderRolePanel();renderRequests();
+buildStaffFloat();
+applySkin();refreshAvatarPicks();renderAch();renderTree();renderAll();renderPlayers();renderDaily();ensureQuests();renderQuests();renderBp();renderLog();renderCloudStrip();renderGlobalBoard();renderFriends();renderGuild();renderRaid();renderDuelPick();renderRolePanel();renderRequests();renderDmList();renderEventStrip();
 checkTitles();
-feed("🐷 Welcome to Pig Clicker v2.1! Tap the pig, raid the boss, and check the Update Log in your Profile.");
+feed("🐷 Welcome to Pig Clicker v2.2! Tap the pig, raid the boss, and check the Update Log in your Profile.");
 mpConnect();scheduleGolden();
 fbInit();
 setTimeout(function(){toast("🐷 Tap the pig to start earning!");},600);
