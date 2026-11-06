@@ -3,22 +3,24 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<meta name="theme-color" content="#ff6b9d"/>
 <meta name="color-scheme" content="light dark"/>
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png"/>
-<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png"/>
-<link rel="apple-touch-icon" href="icon-512.png"/>
+<link rel="icon" href="data:,"/>
 <link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#ff6b9d"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
 <title>Pig Clicker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;700;800;900&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <style>
 :root{
   --bg:#fff6ec; --bg2:#ffeef5; --card:#ffffff; --card2:#fff9f0; --ink:#2b1a12; --muted:#7a5c4d;
   --line:#f0d9c8; --pink:#ff6b9d; --pink-d:#e94f83; --pig:#ffb3c8; --pig-d:#ff8fab; --snout:#ff7aa2;
   --green:#37b24d; --green-d:#2b8a3e; --gold:#f5b301; --brown:#8d5a3a; --mud:#b08968;
-  --red:#e03131; --shadow:0 10px 30px rgba(120,53,15,.14); --radius:20px;
+  --red:#e03131; --blue:#3b82c4; --shadow:0 10px 30px rgba(120,53,15,.14); --radius:20px;
 }
 @media (prefers-color-scheme: dark){
   :root{ --bg:#1d1218; --bg2:#24161d; --card:#2c1c24; --card2:#34222c; --ink:#ffeef5; --muted:#d8b4c2;
@@ -28,22 +30,33 @@
 body{margin:0;font-family:"Nunito",system-ui,sans-serif;background:linear-gradient(180deg,var(--bg2),var(--bg) 340px);color:var(--ink);-webkit-tap-highlight-color:transparent}
 h1,h2,h3,.baloo{font-family:"Baloo 2","Nunito",sans-serif}
 button,input,select{font:inherit} button{cursor:pointer}
-.wrap{max-width:1180px;margin:0 auto;padding:14px 14px 90px}
+.wrap{max-width:1180px;margin:0 auto;padding:12px 14px calc(132px + env(safe-area-inset-bottom))}
+.view{display:none}.view.on{display:block;animation:viewIn .22s ease-out}
+@keyframes viewIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 
-/* ---------- top stats ---------- */
-.stats{position:sticky;top:8px;z-index:40;display:grid;grid-template-columns:1.5fr repeat(3,1fr);gap:8px}
-.stat{background:var(--card);border:2px solid var(--line);border-radius:16px;padding:8px 12px;box-shadow:var(--shadow)}
-.stat small{display:block;color:var(--muted);font-weight:800;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase}
-.stat b{font-size:1.25rem;font-family:"Baloo 2";line-height:1.1}
-.stat.main b{color:var(--pink-d);font-size:1.55rem}
-@media(max-width:640px){.stats{grid-template-columns:1fr 1fr}.stat b{font-size:1.05rem}.stat.main b{font-size:1.3rem}}
+/* ---------- top HUD ---------- */
+.hud{position:sticky;top:8px;z-index:40;display:flex;gap:10px;align-items:center;background:var(--card);border:2px solid var(--line);border-radius:18px;padding:8px 10px;box-shadow:var(--shadow)}
+.hud-av{border:3px solid var(--pink);background:var(--bg2);border-radius:50%;width:52px;height:52px;font-size:1.7rem;display:grid;place-items:center;overflow:hidden;padding:0;flex:0 0 52px}
+.hud-av img{width:100%;height:100%;object-fit:cover}
+.hud-mid{flex:1;min-width:0}
+.hud-name{font-family:"Baloo 2";font-weight:800;font-size:1.12rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15}
+.hud-sub{color:var(--muted);font-weight:800;font-size:.76rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hud-coins{text-align:right}
+.hud-coins small{display:block;color:var(--muted);font-weight:800;font-size:.62rem;letter-spacing:.06em;text-transform:uppercase}
+.hud-coins b{font-size:1.35rem;font-family:"Baloo 2";color:var(--pink-d);line-height:1.05}
+.hud-cps{color:var(--muted);font-weight:800;font-size:.72rem}
+.hud-gear{border:2px solid var(--line);background:var(--card2);border-radius:14px;width:46px;height:46px;font-size:1.3rem;flex:0 0 46px}
+.alert-strip{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.alert-strip span{background:var(--card);border:2px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:900;font-size:.8rem;box-shadow:var(--shadow)}
+.alert-strip .warn{border-color:var(--gold);background:linear-gradient(180deg,rgba(245,179,1,.18),transparent)}
 
-/* ---------- layout ---------- */
-.layout{display:grid;grid-template-columns:minmax(320px,1.05fr) minmax(340px,1fr);gap:16px;margin-top:16px;align-items:start}
-@media(max-width:900px){.layout{grid-template-columns:1fr}}
-.card{background:var(--card);border:2px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+/* ---------- cards / layout ---------- */
+.card{background:var(--card);border:2px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-top:16px}
 .card h2{margin:0 0 4px;font-size:1.35rem}
 .sub{color:var(--muted);font-weight:700;font-size:.9rem;margin:0 0 12px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+@media(max-width:900px){.two-col{grid-template-columns:1fr}}
 
 /* ---------- pig stage ---------- */
 .stage{position:relative;text-align:center;overflow:hidden;background:
@@ -74,6 +87,14 @@ button,input,select{font:inherit} button{cursor:pointer}
 .stage-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px}
 .chip-btn{border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:8px 14px;font-weight:900}
 .chip-btn.on{background:var(--pink);border-color:var(--pink-d);color:#fff}
+.quickbar{display:flex;gap:10px;margin-top:14px}
+.quickbar button{flex:1;border:none;border-radius:16px;padding:14px 10px;font-family:"Baloo 2";font-weight:800;font-size:1.02rem;box-shadow:var(--shadow)}
+#btnBurst{background:linear-gradient(180deg,#ff8a5c,#f2502e);color:#fff}
+#btnBurst:disabled{opacity:.55}
+#btnAutoTap{background:var(--card);border:2px solid var(--line);color:var(--ink)}
+#btnAutoTap.on{background:var(--green);color:#fff;border-color:var(--green-d)}
+.stat-chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+.stat-chips span{background:var(--card2);border:2px solid var(--line);border-radius:999px;padding:5px 12px;font-weight:900;font-size:.82rem}
 
 /* ---------- shop ---------- */
 .buy-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
@@ -93,22 +114,23 @@ button,input,select{font:inherit} button{cursor:pointer}
 .buy small{display:block;font-weight:800;font-size:.75rem;opacity:.92}
 .buy:disabled{background:#c9b8ad;color:#fff;cursor:not-allowed;opacity:.75}
 .buy.maxed{background:var(--gold);color:#4a2f00}
+.buy.small{min-width:0;padding:8px 12px;font-size:.9rem}
+.buy.pink{background:var(--pink)} .buy.blue{background:var(--blue)} .buy.red{background:var(--red)}
 .prestige-box{border:2px dashed var(--gold);background:linear-gradient(180deg,rgba(245,179,1,.12),transparent);border-radius:16px;padding:13px;margin-top:6px}
 .big-btn{border:none;border-radius:14px;padding:12px 16px;font-weight:800;font-family:"Baloo 2";font-size:1.05rem;background:var(--gold);color:#4a2f00;width:100%}
 .big-btn:disabled{opacity:.5;cursor:not-allowed}
+.big-btn.pink{background:var(--pink);color:#fff}
 .skin-row{display:flex;gap:8px;flex-wrap:wrap}
 .skin{border:3px solid var(--line);background:var(--card2);border-radius:14px;padding:8px 10px;font-weight:900;text-align:center;min-width:86px}
 .skin.on{border-color:var(--pink)}
 .skin small{display:block;color:var(--muted);font-weight:800}
 .skin:disabled{opacity:.55}
 
-/* ---------- multiplayer ---------- */
-.mp-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;align-items:start}
-@media(max-width:900px){.mp-grid{grid-template-columns:1fr}}
+/* ---------- social / multiplayer ---------- */
 .status-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#adb5bd;vertical-align:middle;margin-right:6px}
 .status-dot.on{background:var(--green)} .status-dot.try{background:var(--gold)}
 .profile-form{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:10px}
-.profile-form input,.search-input,.chat-input,.room-input{border:2px solid var(--line);background:var(--card2);color:var(--ink);border-radius:12px;padding:10px 12px;font-weight:800;width:100%;min-width:0}
+.profile-form input,.search-input,.chat-input,.room-input,.auth-input,select.auth-input{border:2px solid var(--line);background:var(--card2);color:var(--ink);border-radius:12px;padding:10px 12px;font-weight:800;width:100%;min-width:0}
 .avatar-pick{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
 .avatar-pick button{border:2px solid var(--line);background:var(--card2);border-radius:12px;font-size:1.35rem;padding:5px 9px}
 .avatar-pick button.on{border-color:var(--pink);background:var(--bg2)}
@@ -117,25 +139,84 @@ button,input,select{font:inherit} button{cursor:pointer}
 .player{display:flex;gap:11px;align-items:center;width:100%;text-align:left;border:2px solid var(--line);background:var(--card2);border-radius:14px;padding:9px 11px;margin-bottom:8px;color:var(--ink)}
 .player:hover{border-color:var(--pink)}
 .player .av{font-size:1.8rem}
+.player .av img{width:40px;height:40px;border-radius:50%;object-fit:cover;vertical-align:middle}
 .player .grow{flex:1;min-width:0}
 .player h3{margin:0;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .player p{margin:0;color:var(--muted);font-weight:700;font-size:.8rem}
-.rank{font-family:"Baloo 2";font-weight:800;font-size:1.15rem;color:var(--muted);width:30px;text-align:center}
+.rank{font-family:"Baloo 2";font-weight:800;font-size:1.15rem;color:var(--muted);width:34px;text-align:center;flex:0 0 34px}
 .rank.top{color:var(--gold)}
 .you-tag{background:var(--pink);color:#fff;border-radius:99px;font-size:.65rem;padding:2px 8px;font-weight:900;vertical-align:middle;margin-left:5px}
+.title-tag{background:var(--gold);color:#4a2f00;border-radius:99px;font-size:.65rem;padding:2px 8px;font-weight:900;vertical-align:middle;margin-left:5px}
+.pres{font-size:.72rem;font-weight:900}
+.pres.on{color:var(--green-d)} .pres.off{color:var(--muted)}
 .empty{border:2px dashed var(--line);border-radius:14px;padding:16px;text-align:center;color:var(--muted);font-weight:800}
 .feed{max-height:240px;overflow:auto;display:flex;flex-direction:column;gap:6px}
 .feed div{background:var(--card2);border:2px solid var(--line);border-radius:11px;padding:7px 10px;font-weight:700;font-size:.88rem}
 .feed b{font-family:"Baloo 2"}
+.gchat{display:flex;flex-direction:column;gap:8px;max-height:320px;overflow:auto}
+.gmsg{background:var(--card2);border:2px solid var(--line);border-radius:13px;padding:8px 11px}
+.gmsg .who{font-family:"Baloo 2";font-weight:800;font-size:.88rem}
+.gmsg .txt{font-weight:700;font-size:.92rem;word-break:break-word}
+.react-row{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap}
+.react{border:2px solid var(--line);background:var(--card);border-radius:99px;padding:2px 9px;font-weight:900;font-size:.78rem}
+.react.mine{border-color:var(--pink);background:var(--bg2)}
 .chat-form{display:flex;gap:8px;margin-top:10px}
 .send-btn{border:none;background:var(--pink);color:#fff;border-radius:12px;padding:10px 16px;font-weight:900}
+.hpbar{height:16px;background:rgba(0,0,0,.14);border-radius:99px;overflow:hidden;margin:6px 0}
+.hpbar i{display:block;height:100%;background:linear-gradient(90deg,#f2502e,#ff8a5c);transition:width .4s}
 
-/* ---------- misc ---------- */
+/* ---------- progression ---------- */
 .ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .ach{border:2px solid var(--line);background:var(--card2);border-radius:14px;padding:10px;font-weight:800;font-size:.88rem}
 .ach small{display:block;color:var(--muted);font-weight:700}
 .ach.done{border-color:var(--gold);background:linear-gradient(180deg,rgba(245,179,1,.16),transparent)}
 .ach:not(.done){opacity:.65}
+.quest{display:flex;gap:10px;align-items:center;border:2px solid var(--line);background:var(--card2);border-radius:14px;padding:10px 12px;margin-bottom:8px}
+.quest .grow{flex:1;min-width:0}
+.quest h3{margin:0;font-size:.98rem}
+.quest p{margin:1px 0 0;color:var(--muted);font-weight:700;font-size:.8rem}
+.qbar{height:8px;background:rgba(0,0,0,.12);border-radius:99px;overflow:hidden;margin-top:5px}
+.qbar i{display:block;height:100%;background:var(--pink)}
+.bp-track{display:flex;flex-direction:column;gap:8px;max-height:430px;overflow:auto;padding-right:2px}
+.bp-tier{display:flex;gap:10px;align-items:center;border:2px solid var(--line);background:var(--card2);border-radius:14px;padding:9px 11px}
+.bp-tier .tn{font-family:"Baloo 2";font-weight:800;width:52px;text-align:center;flex:0 0 52px}
+.bp-tier .rw{flex:1;font-weight:800;font-size:.88rem}
+.bp-tier .rw small{display:block;color:var(--muted);font-weight:700}
+.bp-tier.locked{opacity:.6}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal-day{border:2px solid var(--line);background:var(--card2);border-radius:12px;padding:7px 3px;text-align:center;font-weight:900;font-size:.72rem}
+.cal-day small{display:block;font-size:.95rem}
+.cal-day.got{border-color:var(--green);background:linear-gradient(180deg,rgba(55,178,77,.16),transparent)}
+.cal-day.today{border-color:var(--gold);box-shadow:0 0 0 2px rgba(245,179,1,.35)}
+.cal-day.future{opacity:.55}
+.tree-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:9px}
+.node{border:2px solid var(--line);background:var(--card2);border-radius:15px;padding:11px;font-weight:800;font-size:.88rem}
+.node small{display:block;color:var(--muted);font-weight:700;margin:2px 0 8px}
+.node .pips{letter-spacing:.2em;color:var(--gold);font-size:.8rem}
+.vip-badge{display:inline-block;border-radius:8px;padding:2px 9px;font-weight:900;font-size:.75rem;color:#fff}
+.vip-bronze{background:#b07d4f}.vip-silver{background:#9aa5ad}.vip-gold{background:#e0a800;color:#4a2f00}.vip-champ{background:linear-gradient(90deg,#f2502e,#f5b301)}
+
+/* ---------- auth ---------- */
+.auth-tabs{display:flex;gap:6px;margin-bottom:12px}
+.auth-note{border:2px dashed var(--gold);border-radius:13px;padding:10px 12px;font-weight:800;font-size:.88rem;background:linear-gradient(180deg,rgba(245,179,1,.10),transparent);margin-bottom:12px}
+.auth-err{color:var(--red);font-weight:900;font-size:.88rem;min-height:1.2em;margin:6px 0}
+.auth-ok{color:var(--green-d);font-weight:900;font-size:.88rem;margin:6px 0}
+
+/* ---------- update log ---------- */
+.log-wrap{display:grid;grid-template-columns:118px 1fr;gap:0;border:2px solid var(--line);border-radius:16px;overflow:hidden}
+.log-side{background:var(--card2);border-right:2px solid var(--line);display:flex;flex-direction:column}
+.log-side button{border:none;border-bottom:2px solid var(--line);background:none;color:var(--ink);padding:16px 8px;font-family:"Baloo 2";font-weight:800;font-size:1.05rem;text-align:center}
+.log-side button small{display:block;font-family:"Nunito";font-weight:800;font-size:.66rem;color:var(--muted)}
+.log-side button.on{background:var(--pink);color:#fff}
+.log-side button.on small{color:#ffe3ee}
+.log-body{padding:16px;min-height:280px}
+.log-body h3{margin:0 0 2px;font-size:1.3rem}
+.log-body .date{color:var(--muted);font-weight:800;font-size:.8rem;margin-bottom:10px}
+.log-body ul{margin:0;padding-left:20px;font-weight:700;line-height:1.55}
+.log-body li{margin-bottom:5px}
+@media(max-width:520px){.log-wrap{grid-template-columns:86px 1fr}.log-side button{font-size:.92rem;padding:13px 4px}}
+
+/* ---------- misc / nav ---------- */
 .qol-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 @media(max-width:520px){.qol-grid{grid-template-columns:1fr}}
 .toggle{display:flex;justify-content:space-between;align-items:center;gap:10px;border:2px solid var(--line);background:var(--card2);border-radius:13px;padding:10px 12px;font-weight:900}
@@ -144,36 +225,67 @@ button,input,select{font:inherit} button{cursor:pointer}
 .stat-table{width:100%;border-collapse:collapse;font-weight:800}
 .stat-table td{padding:7px 4px;border-bottom:1px solid var(--line)}
 .stat-table td:last-child{text-align:right;font-family:"Baloo 2"}
-#toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:99;display:flex;flex-direction:column;gap:8px;align-items:center;width:min(92vw,430px);pointer-events:none}
+#toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:96px;z-index:99;display:flex;flex-direction:column;gap:8px;align-items:center;width:min(92vw,430px);pointer-events:none}
 .toast{background:var(--ink);color:var(--bg);border-radius:14px;padding:11px 16px;font-weight:900;box-shadow:var(--shadow);text-align:center;animation:toastIn .25s ease-out;width:100%}
 @keyframes toastIn{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
 .modal-bg{position:fixed;inset:0;background:rgba(20,8,14,.55);z-index:80;display:none;place-items:center;padding:16px}
 .modal-bg.open{display:grid}
 .modal{background:var(--card);border-radius:22px;max-width:420px;width:100%;padding:20px;border:2px solid var(--line);max-height:88vh;overflow:auto}
 .modal .big-av{font-size:3.4rem;text-align:center}
+.modal .big-av img{width:84px;height:84px;border-radius:50%;object-fit:cover}
 .modal h2{text-align:center;margin:4px 0 12px}
 .close-btn{width:100%;margin-top:12px}
 .foot{color:var(--muted);font-weight:700;text-align:center;margin-top:20px;font-size:.88rem}
-@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
-body.no-anim .floaty{display:none}
+.bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--card);border-top:2px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);padding:6px 4px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -8px 24px rgba(90,40,10,.10)}
+.bottom-nav button{border:none;background:none;color:var(--muted);font-weight:900;font-size:.72rem;padding:7px 2px;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:1px}
+.bottom-nav button .bi{font-size:1.35rem;line-height:1}
+.bottom-nav button.on{color:var(--pink-d);background:var(--bg2)}
+@media(max-width:640px){
+ #pigBtn svg{width:min(178px,52vw)}
+ .stage{padding:10px 12px}
+ .tap-hint{display:none}
+ .farm-name{font-size:1.2rem}
+ .hud{padding:6px 8px}.hud-av{width:44px;height:44px;flex-basis:44px;font-size:1.4rem}
+ .hud-coins b{font-size:1.15rem}
+ .alert-strip{margin-top:8px}.alert-strip span{padding:4px 10px;font-size:.74rem}
+ .stage-actions{flex-wrap:nowrap;margin-top:6px}
+ .stage-actions .chip-btn{padding:6px 8px;font-size:.76rem;white-space:nowrap}
+ .combo-wrap{margin-top:2px}
+ .quickbar{margin-top:10px}
+ .quickbar button{padding:11px 8px;font-size:.95rem}
+ #pigBtn{margin:2px auto}
+}
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <!-- STATS -->
-  <div class="stats" role="region" aria-label="Your piggy bank stats">
-    <div class="stat main"><small>🐷 Pig Coins</small><b id="stCoins">0</b></div>
-    <div class="stat"><small>Per tap</small><b id="stPerTap">1</b></div>
-    <div class="stat"><small>Per second</small><b id="stPerSec">0</b></div>
-    <div class="stat"><small>🍎 Golden Apples</small><b id="stApples">0</b></div>
+  <!-- TOP HUD -->
+  <header class="hud" aria-label="Your stats bar">
+    <button class="hud-av" id="hudAvatar" type="button" aria-label="Open your profile">🐷</button>
+    <div class="hud-mid">
+      <div class="hud-name" id="hudName">Guest Pig</div>
+      <div class="hud-sub">Lv <span id="hudLvl">1</span> · <span id="hudLvlTitle">Piglet Keeper</span> · <span id="hudTitle">No title</span> <span id="hudVip"></span></div>
+    </div>
+    <div class="hud-coins">
+      <small>🐷 Pig Coins</small><b id="stCoins">0</b>
+      <div class="hud-cps"><span id="stPerSec">0</span>/sec · <span id="stCps">0</span> CPS · tap <span id="stPerTap">1</span></div>
+    </div>
+    <button class="hud-gear" id="hudGear" type="button" aria-label="Settings and profile">⚙️</button>
+  </header>
+
+  <!-- MULTIPLAYER ALERT STRIP -->
+  <div class="alert-strip" aria-label="Live world status">
+    <span id="raidStrip">🗡️ Raid boss: —</span>
+    <span id="onlineStrip">🟢 Online: 1</span>
+    <span id="cloudStrip">☁️ Guest mode — progress stays on this device</span>
   </div>
 
-  <div class="layout">
-    <!-- CLICK STAGE -->
-    <section class="card stage" aria-label="Click the pig">
+  <!-- ============ VIEW: PLAY ============ -->
+  <main class="view on" id="view-play">
+    <section class="card stage" aria-label="Click the pig" style="margin-top:14px">
       <div class="farm-name" id="farmName">Your Pig Farm</div>
-      <div class="level-line">Level <span id="lvlNum">1</span> · <span id="lvlTitle">Piglet Keeper</span></div>
+      <div class="level-line">Level <span id="lvlNum">1</span> · <span id="lvlTitle">Piglet Keeper</span> · 🍎 <span id="stApples">0</span></div>
       <div class="xpbar"><i id="xpFill"></i></div>
       <div class="level-line" id="xpText">0 / 100 XP to next level</div>
 
@@ -213,7 +325,19 @@ body.no-anim .floaty{display:none}
       </div>
     </section>
 
-    <!-- SHOP -->
+    <div class="quickbar" aria-label="Quick actions">
+      <button id="btnBurst" type="button">⚡ BURST ×3 — Ready!</button>
+      <button id="btnAutoTap" type="button">🤖 Auto-Tapper: Off</button>
+    </div>
+    <div class="stat-chips" aria-label="Session stats">
+      <span>👆 Session taps: <b id="chipTaps">0</b></span>
+      <span>🔥 Best combo: <b id="chipCombo">×1.0</b></span>
+      <span>🎁 Daily reward: <b id="chipDaily">claim in Profile</b></span>
+    </div>
+  </main>
+
+  <!-- ============ VIEW: UPGRADES ============ -->
+  <main class="view" id="view-shop">
     <section class="card" aria-label="Shop and upgrades">
       <h2>🛒 Pig Shop</h2>
       <p class="sub">Upgrades, auto-clickers, skins and prestige — everything that makes the pig richer.</p>
@@ -232,110 +356,282 @@ body.no-anim .floaty{display:none}
       <div id="shopList"></div>
       <div id="prestigeBox" class="prestige-box" style="display:none">
         <h3 style="margin:0 0 4px">🍎 Pig Prestige</h3>
-        <p class="sub" style="margin-bottom:8px">Reset your coins and buildings to earn Golden Apples. Each apple = <b>+10% to ALL earnings, forever</b> (until you prestige again — apples stack).</p>
+        <p class="sub" style="margin-bottom:8px">Reset your coins and buildings to earn Golden Apples. Each apple = <b>+10% to ALL earnings, forever</b>. Prestiging also earns <b>Skill Points</b> for the tree below.</p>
         <p style="font-weight:800;margin:0 0 10px">Prestige now for <b id="prestigeGain">0 🍎</b> <span style="color:var(--muted)">(needs 1,000,000 lifetime coins)</span></p>
         <button class="big-btn" id="btnPrestige" type="button">PRESTIGE 🍎</button>
       </div>
     </section>
-  </div>
 
-  <!-- MULTIPLAYER -->
-  <div class="mp-grid">
-    <section class="card" aria-label="Multiplayer room and leaderboard">
-      <h2>🌍 Multiplayer Farm</h2>
-      <p class="sub"><span class="status-dot" id="mpDot"></span><span id="mpStatus">Connecting to the farm network…</span></p>
+    <section class="card" aria-label="Prestige skill tree">
+      <h2>🌳 Prestige Skill Tree</h2>
+      <p class="sub">Permanent upgrades bought with Skill Points (⭐ <b id="skillPts">0</b> available). Earn 1 ⭐ per Golden Apple gained from prestiging. These never reset.</p>
+      <div class="tree-grid" id="treeGrid"></div>
+    </section>
+  </main>
 
-      <div class="profile-form">
-        <input id="nameInput" maxlength="20" placeholder="Your farmer name" autocomplete="off"/>
-        <button class="send-btn" id="btnSetName" type="button">Set Profile</button>
+  <!-- ============ VIEW: MULTIPLAYER ============ -->
+  <main class="view" id="view-social">
+    <section class="card" aria-label="Raid boss">
+      <h2>🗡️ Co-op Raid Boss</h2>
+      <p class="sub">Everyone online taps the same boss down together. Rewards split by the damage YOU dealt. A new raid starts every few hours.</p>
+      <div id="raidBody">
+        <div style="font-family:'Baloo 2';font-weight:800;font-size:1.2rem" id="raidName">👹 MEGA MUD GOLEM</div>
+        <div class="hpbar"><i id="raidHpFill" style="width:100%"></i></div>
+        <p class="sub" id="raidInfo" style="margin-bottom:8px">Loading the raid…</p>
+        <div class="room-row">
+          <button class="buy pink" id="btnRaidTap" type="button">⚔️ RAID TAP</button>
+          <button class="buy blue" id="btnRaidClaim" type="button" style="display:none">🎁 Claim raid reward</button>
+          <span style="font-weight:900" id="raidMyDmg"></span>
+        </div>
       </div>
-      <div class="avatar-pick" id="avatarPick" aria-label="Pick your avatar"></div>
-
-      <div class="room-row" style="margin-bottom:6px">
-        <span style="font-weight:900;color:var(--muted)">ROOM CODE</span>
-        <span class="room-code" id="roomCodeTxt">—</span>
-        <button class="chip-btn" id="btnCopyCode" type="button">📋 Copy code</button>
-        <button class="chip-btn" id="btnNewRoom" type="button">🎲 New room</button>
-      </div>
-      <div class="room-row">
-        <input class="room-input" id="joinInput" maxlength="10" placeholder="Friend's room code…" style="flex:1" autocomplete="off"/>
-        <button class="send-btn" id="btnJoin" type="button">Join Room</button>
-      </div>
-      <p class="sub" style="margin-top:10px">Send your code to your friends — when they join the same room, you all show up on each other's leaderboard <b>live</b>. Race to the richest pig. 🏆</p>
-
-      <input class="search-input" id="playerSearch" placeholder="🔎 Search players by name…" autocomplete="off" style="margin-bottom:12px"/>
-      <div id="playerList"></div>
     </section>
 
-    <div>
-      <section class="card" aria-label="Farm feed and chat" style="margin-bottom:16px">
-        <h2>💬 Farm Feed &amp; Chat</h2>
-        <p class="sub">Big buys, prestiges and golden pigs get announced here. Say hi to your room.</p>
-        <div class="feed" id="feed"></div>
-        <form class="chat-form" id="chatForm">
-          <input class="chat-input" id="chatInput" maxlength="120" placeholder="Message your room…" autocomplete="off"/>
-          <button class="send-btn" type="submit">Send</button>
-        </form>
+    <section class="card" aria-label="Click duels">
+      <h2>🥊 1v1 Click Duels</h2>
+      <p class="sub">Challenge a friend to a 30-second tap race on the big pig. Winner takes a coin prize from the pot. Duels run over the cloud — both players must be signed in.</p>
+      <div id="duelBody">
+        <div class="room-row" style="margin-bottom:10px">
+          <select class="auth-input" id="duelPick" style="flex:1"></select>
+          <button class="send-btn" id="btnDuelSend" type="button">Challenge ⚔️</button>
+        </div>
+        <div id="duelStatus" class="empty">No duel running. Pick a friend and throw down.</div>
+      </div>
+    </section>
+
+    <div class="two-col">
+      <section class="card" aria-label="Multiplayer room and leaderboard" style="margin-top:0">
+        <h2>🌍 Multiplayer Farm</h2>
+        <p class="sub"><span class="status-dot" id="mpDot"></span><span id="mpStatus">Connecting to the farm network…</span></p>
+        <div class="profile-form">
+          <input id="nameInput" maxlength="20" placeholder="Your farmer name" autocomplete="off"/>
+          <button class="send-btn" id="btnSetName" type="button">Set Profile</button>
+        </div>
+        <div class="avatar-pick" id="avatarPick" aria-label="Pick your avatar"></div>
+        <div class="room-row" style="margin-bottom:6px">
+          <span style="font-weight:900;color:var(--muted)">ROOM CODE</span>
+          <span class="room-code" id="roomCodeTxt">—</span>
+          <button class="chip-btn" id="btnCopyCode" type="button">📋 Copy code</button>
+          <button class="chip-btn" id="btnNewRoom" type="button">🎲 New room</button>
+        </div>
+        <div class="room-row">
+          <input class="room-input" id="joinInput" maxlength="10" placeholder="Friend's room code…" style="flex:1" autocomplete="off"/>
+          <button class="send-btn" id="btnJoin" type="button">Join Room</button>
+        </div>
+        <p class="sub" style="margin-top:10px">Send your code to your friends — when they join the same room, you all show up on each other's leaderboard <b>live</b>. Race to the richest pig. 🏆</p>
+        <input class="search-input" id="playerSearch" placeholder="🔎 Search players by name…" autocomplete="off" style="margin-bottom:12px"/>
+        <div id="playerList"></div>
       </section>
 
-      <section class="card" aria-label="Achievements" style="margin-bottom:16px">
-        <h2>🏅 Achievements</h2>
-        <p class="sub" id="achCount">0 of 12 unlocked</p>
+      <div>
+        <section class="card" aria-label="Farm feed and room chat" style="margin-top:0">
+          <h2>💬 Farm Feed &amp; Room Chat</h2>
+          <p class="sub">Big buys, prestiges and golden pigs get announced here. Say hi to your room.</p>
+          <div class="feed" id="feed"></div>
+          <form class="chat-form" id="chatForm">
+            <input class="chat-input" id="chatInput" maxlength="120" placeholder="Message your room…" autocomplete="off"/>
+            <button class="send-btn" type="submit">Send</button>
+          </form>
+        </section>
+
+        <section class="card" aria-label="Global chat">
+          <h2>🌐 Global Chat</h2>
+          <p class="sub" id="gchatSub">Every signed-in pig farmer, one chat. Tap an emoji under a message to react.</p>
+          <div class="gchat" id="gchatList"></div>
+          <form class="chat-form" id="gchatForm">
+            <input class="chat-input" id="gchatInput" maxlength="200" placeholder="Message everyone…" autocomplete="off"/>
+            <button class="send-btn" type="submit">Send</button>
+          </form>
+        </section>
+      </div>
+    </div>
+
+    <section class="card" aria-label="Friends">
+      <h2>🐷 Friends</h2>
+      <p class="sub">Add friends by their Pig Clicker username. Friends power the friends-only leaderboard, duels and gifts of bragging rights.</p>
+      <div class="room-row" style="margin-bottom:12px">
+        <input class="room-input" id="friendInput" maxlength="24" placeholder="Friend's username…" style="flex:1" autocomplete="off"/>
+        <button class="send-btn" id="btnAddFriend" type="button">Add friend</button>
+      </div>
+      <div id="friendList"></div>
+    </section>
+
+    <section class="card" aria-label="Guilds">
+      <h2>🏰 Guilds</h2>
+      <p class="sub">Team up: shared guild bank, shared tap buffs for every member, and a guild leaderboard. Guild level = bank milestones — every level gives all members <b>+2% to everything</b>.</p>
+      <div id="guildBody"></div>
+      <h3 style="margin:16px 0 8px">🏆 Guild Leaderboard</h3>
+      <div id="guildBoard"></div>
+    </section>
+  </main>
+
+  <!-- ============ VIEW: RANKS ============ -->
+  <main class="view" id="view-ranks">
+    <section class="card" aria-label="Global leaderboard" style="margin-top:14px">
+      <h2>🏆 Global Leaderboard — Top 100</h2>
+      <p class="sub" id="lbSub">The richest pigs on Earth, live from the cloud. Totals come from saved cloud accounts — no funny business.</p>
+      <div class="tabs" role="tablist" aria-label="Leaderboard filter">
+        <button class="tab on" id="lbTabAll" type="button">🌍 Everyone</button>
+        <button class="tab" id="lbTabFriends" type="button">🐷 Friends only</button>
+      </div>
+      <div id="globalBoard"></div>
+      <p class="sub" id="myRankLine" style="margin-top:8px"></p>
+    </section>
+
+    <section class="card" aria-label="Battle pass">
+      <h2>🎟️ Battle Pass — Season 1: Mud Season</h2>
+      <p class="sub">Earn Pass XP from tapping, quests and raids. Free track for everyone; the Premium track (unlock: 25 🍎) doubles down with bigger drops. Tier <b id="bpTierTxt">0</b> · <b id="bpXpTxt">0</b> XP</p>
+      <div class="room-row" style="margin-bottom:12px">
+        <button class="buy" id="btnBpPremium" type="button">Unlock Premium — 25 🍎</button>
+        <span style="font-weight:900" id="bpPremState"></span>
+      </div>
+      <div class="bp-track" id="bpTrack"></div>
+    </section>
+
+    <div class="two-col">
+      <section class="card" aria-label="Quests" style="margin-top:0">
+        <h2>📜 Quests</h2>
+        <p class="sub">Fresh daily quests every day, big weekly ones every week. Claim the coins when you're done.</p>
+        <h3 style="margin:10px 0 6px">☀️ Daily</h3>
+        <div id="questDaily"></div>
+        <h3 style="margin:14px 0 6px">🗓️ Weekly</h3>
+        <div id="questWeekly"></div>
+      </section>
+
+      <section class="card" aria-label="Achievement badges" style="margin-top:0">
+        <h2>🏅 Badges</h2>
+        <p class="sub" id="achCount">0 of 60 unlocked</p>
         <div class="ach-grid" id="achGrid"></div>
       </section>
-
-      <section class="card" aria-label="Your stats and quality of life">
-        <h2>📊 Stats &amp; QoL</h2>
-        <table class="stat-table">
-          <tr><td>Total taps</td><td id="qTaps">0</td></tr>
-          <tr><td>Lifetime coins earned</td><td id="qLife">0</td></tr>
-          <tr><td>Critical oinks</td><td id="qCrits">0</td></tr>
-          <tr><td>Golden pigs caught</td><td id="qGold">0</td></tr>
-          <tr><td>Prestiges</td><td id="qPrest">0</td></tr>
-          <tr><td>Play time</td><td id="qTime">0:00</td></tr>
-        </table>
-        <h3 style="margin:16px 0 8px">Quality of life</h3>
-        <div class="qol-grid">
-          <div class="toggle"><span>🔢 Short numbers (1.2M)</span><button id="qFmt" class="on" type="button">ON</button></div>
-          <div class="toggle"><span>⚡ Hold-to-tap (press &amp; hold pig)</span><button id="qHold" class="on" type="button">ON</button></div>
-          <div class="toggle"><span>🎯 Show best next buy hint</span><button id="qHint" class="on" type="button">ON</button></div>
-          <div class="toggle"><span>🔔 Milestone toasts</span><button id="qToast" class="on" type="button">ON</button></div>
-        </div>
-        <p class="sub" id="hintLine" style="margin-top:12px"></p>
-        <button class="chip-btn" id="btnReset" type="button" style="color:var(--red);border-color:var(--red)">🗑️ Hard reset run</button>
-      </section>
     </div>
-  </div>
+  </main>
 
-  <section class="card" aria-label="Get the app on your phone" style="margin-top:16px">
-    <h2>📱 Get Pig Clicker as an App</h2>
-    <p class="sub">This game ships with an app manifest, so it installs like a real app — full screen, its own icon, no browser bars.</p>
-    <button class="big-btn" id="btnInstall" type="button">📲 Install Pig Clicker</button>
-    <div class="qol-grid" style="margin-top:12px">
-      <div class="ach"><b>🤖 Android (Chrome)</b><small>Tap Install above — or open the ⋮ menu and choose “Install app” / “Add to Home screen”. To turn it into a shareable APK file for friends, run this page's address through PWABuilder (free) and send them the APK it builds.</small></div>
-      <div class="ach"><b>🍎 iPhone (Safari)</b><small>Tap the Share button, then “Add to Home Screen”. Pig Clicker lands on your home screen and opens full-screen like an app.</small></div>
-    </div>
-    <p class="sub" id="installNote" style="margin-top:10px"></p>
-  </section>
+  <!-- ============ VIEW: PROFILE ============ -->
+  <main class="view" id="view-profile">
+    <section class="card" aria-label="Account" style="margin-top:14px">
+      <h2>🔐 Account</h2>
+      <div id="authArea"></div>
+    </section>
 
-  <p class="foot">🐷 Pig Clicker — tap, upgrade, prestige, and out-earn your friends in the same room. Progress lives in this session; keep the tab open for long runs.</p>
+    <section class="card" aria-label="Daily login rewards">
+      <h2>📅 Daily Login Rewards</h2>
+      <p class="sub">Come back every day to grow your streak. Day 7 and day 28 drop Golden Apples. Streak: <b id="dailyStreak">0 days</b></p>
+      <div class="cal-grid" id="calGrid"></div>
+      <button class="big-btn pink" id="btnDaily" type="button" style="margin-top:12px">🎁 Claim today's reward</button>
+    </section>
+
+    <section class="card" aria-label="Your profile and cosmetics">
+      <h2>🎨 Profile &amp; Cosmetics</h2>
+      <p class="sub">Your public pig identity: avatar, title, showcase banner and VIP tier — shown on leaderboards and in chat.</p>
+      <div class="profile-form">
+        <input id="nameInput2" maxlength="20" placeholder="Display name" autocomplete="off"/>
+        <button class="send-btn" id="btnSetName2" type="button">Save name</button>
+      </div>
+      <h3 style="margin:12px 0 6px">Avatar</h3>
+      <div class="avatar-pick" id="avatarPick2" aria-label="Pick your avatar"></div>
+      <div class="room-row">
+        <label class="chip-btn" for="avatarFile" style="display:inline-block">🖼️ Upload custom avatar</label>
+        <input type="file" id="avatarFile" accept="image/*" style="display:none"/>
+        <button class="chip-btn" id="btnClearAvatarImg" type="button">Use emoji avatar</button>
+      </div>
+      <h3 style="margin:14px 0 6px">Title</h3>
+      <select class="auth-input" id="titleSelect"></select>
+      <h3 style="margin:14px 0 6px">Showcase banner</h3>
+      <div class="skin-row" id="bannerRow"></div>
+      <div id="bannerPreview" style="margin-top:10px;border-radius:14px;padding:16px;font-family:'Baloo 2';font-weight:800;font-size:1.15rem;text-align:center;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.35)"></div>
+      <h3 style="margin:14px 0 6px">VIP tier <span style="color:var(--muted);font-size:.82rem">(by lifetime taps)</span></h3>
+      <div id="vipLine" style="font-weight:900"></div>
+      <h3 style="margin:14px 0 6px">Cosmetics inventory</h3>
+      <div id="cosmLine" style="font-weight:800;color:var(--muted)"></div>
+    </section>
+
+    <section class="card" aria-label="Your stats and quality of life">
+      <h2>📊 Stats &amp; QoL</h2>
+      <table class="stat-table">
+        <tr><td>Total taps</td><td id="qTaps">0</td></tr>
+        <tr><td>Biggest combo</td><td id="qCombo">×1.0</td></tr>
+        <tr><td>Best CPS</td><td id="qCps">0</td></tr>
+        <tr><td>Lifetime coins earned</td><td id="qLife">0</td></tr>
+        <tr><td>Critical oinks</td><td id="qCrits">0</td></tr>
+        <tr><td>Golden pigs caught</td><td id="qGold">0</td></tr>
+        <tr><td>Prestiges</td><td id="qPrest">0</td></tr>
+        <tr><td>Raid damage dealt</td><td id="qRaid">0</td></tr>
+        <tr><td>Duels won</td><td id="qDuels">0</td></tr>
+        <tr><td>Play time (session)</td><td id="qTime">0:00</td></tr>
+      </table>
+      <h3 style="margin:16px 0 8px">Quality of life</h3>
+      <div class="qol-grid">
+        <div class="toggle"><span>🔢 Short numbers (1.2M)</span><button id="qFmt" class="on" type="button">ON</button></div>
+        <div class="toggle"><span>⚡ Hold-to-tap (press &amp; hold pig)</span><button id="qHold" class="on" type="button">ON</button></div>
+        <div class="toggle"><span>🎯 Show best next buy hint</span><button id="qHint" class="on" type="button">ON</button></div>
+        <div class="toggle"><span>🔔 Milestone toasts</span><button id="qToast" class="on" type="button">ON</button></div>
+      </div>
+      <p class="sub" id="hintLine" style="margin-top:12px"></p>
+      <button class="chip-btn" id="btnReset" type="button" style="color:var(--red);border-color:var(--red)">🗑️ Hard reset run</button>
+    </section>
+
+    <section class="card" aria-label="Update log">
+      <h2>📜 Update Log</h2>
+      <p class="sub">Every version of Pig Clicker. Tap a version on the side to see what it added.</p>
+      <div class="log-wrap">
+        <div class="log-side" id="logSide" role="tablist" aria-label="Versions"></div>
+        <div class="log-body" id="logBody"></div>
+      </div>
+    </section>
+
+    <section class="card" aria-label="Get the app on your phone">
+      <h2>📱 Get Pig Clicker as an App</h2>
+      <p class="sub">This game ships with an app manifest, so it installs like a real app — full screen, its own icon, no browser bars.</p>
+      <button class="big-btn" id="btnInstall" type="button">📲 Install Pig Clicker</button>
+      <div class="qol-grid" style="margin-top:12px">
+        <div class="ach"><b>🤖 Android (Chrome)</b><small>Tap Install above — or open the ⋮ menu and choose “Install app” / “Add to Home screen”. To turn it into a shareable APK file for friends, run this page's address through PWABuilder (free) and send them the APK it builds.</small></div>
+        <div class="ach"><b>🍎 iPhone (Safari)</b><small>Tap the Share button, then “Add to Home Screen”. Pig Clicker lands on your home screen and opens full-screen like an app.</small></div>
+      </div>
+      <p class="sub" id="installNote" style="margin-top:10px"></p>
+    </section>
+
+    <p class="foot">🐷 Pig Clicker v2.0 — tap, upgrade, prestige, raid and duel. Signed-in progress saves to the cloud; guest progress stays on this device.</p>
+  </main>
 </div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav" aria-label="Main navigation">
+  <button type="button" data-view="play" class="on"><span class="bi">🐷</span>Play</button>
+  <button type="button" data-view="shop"><span class="bi">🛒</span>Upgrades</button>
+  <button type="button" data-view="social"><span class="bi">🌍</span>Multiplayer</button>
+  <button type="button" data-view="ranks"><span class="bi">🏆</span>Ranks</button>
+  <button type="button" data-view="profile"><span class="bi">🎨</span>Profile</button>
+</nav>
 
 <!-- PROFILE MODAL -->
 <div class="modal-bg" id="profileModal">
   <div class="modal" role="dialog" aria-modal="true" aria-label="Player profile">
     <div class="big-av" id="pmAvatar">🐷</div>
     <h2 id="pmName">Player</h2>
+    <div id="pmBanner" style="border-radius:12px;padding:10px;text-align:center;font-weight:900;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.35);margin-bottom:10px"></div>
     <table class="stat-table">
       <tr><td>Pig Coins</td><td id="pmCoins">0</td></tr>
       <tr><td>Lifetime earned</td><td id="pmLife">0</td></tr>
       <tr><td>Per second</td><td id="pmPps">0</td></tr>
       <tr><td>Total taps</td><td id="pmTaps">0</td></tr>
+      <tr><td>Biggest combo</td><td id="pmCombo">×1.0</td></tr>
+      <tr><td>Best CPS</td><td id="pmCps">0</td></tr>
       <tr><td>Level</td><td id="pmLevel">1</td></tr>
       <tr><td>Golden Apples</td><td id="pmApples">0</td></tr>
+      <tr><td>Title</td><td id="pmTitle">—</td></tr>
+      <tr><td>VIP tier</td><td id="pmVip">—</td></tr>
       <tr><td>Skin</td><td id="pmSkin">Classic</td></tr>
     </table>
     <button class="big-btn close-btn" id="pmClose" type="button">Close</button>
+  </div>
+</div>
+
+<!-- OFFLINE EARNINGS MODAL -->
+<div class="modal-bg" id="awayModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Welcome back">
+    <div class="big-av">💤</div>
+    <h2>While you were away…</h2>
+    <p style="text-align:center;font-weight:800" id="awayText">Your pigs kept working.</p>
+    <button class="big-btn close-btn" id="awayClose" type="button">Collect 🪙</button>
   </div>
 </div>
 
@@ -374,6 +670,43 @@ var SKINS=[
  {id:"galaxy", name:"Galaxy Pig", cost:250000000, pig:"#b197fc", pigD:"#8f6fe8", snout:"#a678f0", hat:""}
 ];
 var AVATARS=["🐷","🐽","🧑‍🌾","👑","😎","🤠","🦸","🐖","🥓","🍎"];
+var BANNERS=[
+ {id:"sunset", name:"Sunset Farm", css:"linear-gradient(90deg,#ff8a5c,#ff6b9d)"},
+ {id:"meadow", name:"Meadow", css:"linear-gradient(90deg,#51cf66,#8fd07a)"},
+ {id:"mudbath", name:"Mud Bath", css:"linear-gradient(90deg,#b08968,#8d5a3a)"},
+ {id:"goldrush", name:"Gold Rush", css:"linear-gradient(90deg,#f5b301,#ffe066)"},
+ {id:"galaxy", name:"Galaxy", css:"linear-gradient(90deg,#5f3dc4,#9775fa)"},
+ {id:"royal", name:"Royal Pink", css:"linear-gradient(90deg,#e94f83,#ff8fab)"}
+];
+var LEVEL_TITLES=["Piglet Keeper","Mud Rookie","Oink Apprentice","Pig Whisperer","Barn Boss","Truffle Baron","Oink Manager","Pig Tycoon","Kingdom Ruler","Oink Legend","Pig God"];
+var SKILL_NODES=[
+ {id:"might", icon:"💪", name:"Mighty Hoof", desc:"+25% tap power per level.", max:5, costs:[1,1,2,2,3]},
+ {id:"army", icon:"🤖", name:"Auto Army", desc:"+20% auto-clicker earnings per level.", max:5, costs:[1,1,2,2,3]},
+ {id:"crit", icon:"💥", name:"Crit Charm", desc:"+2% critical chance per level.", max:5, costs:[1,2,2,3,3]},
+ {id:"magnet", icon:"🧲", name:"Golden Magnet", desc:"Golden pigs pay +50% more per level.", max:3, costs:[2,3,4]},
+ {id:"vault", icon:"💤", name:"Deep Sleep Vault", desc:"Offline earnings rate +25% per level.", max:3, costs:[2,3,4]},
+ {id:"orchard", icon:"🍏", name:"Apple Orchard", desc:"Prestige apple gains +15% per level.", max:3, costs:[3,4,5]}
+];
+var TITLES=[
+ {id:"taplegend", name:"Tap Legend", how:"100,000 lifetime taps", test:function(s){return s.taps>=100000}},
+ {id:"royalty", name:"Oink Royalty", how:"Prestige 3 times", test:function(s){return s.prestiges>=3}},
+ {id:"hoarder", name:"Golden Hoarder", how:"Catch 25 golden pigs", test:function(s){return s.goldenCaught>=25}},
+ {id:"comboking", name:"Combo King", how:"Reach a ×2.0 combo after 10,000 taps", test:function(s){return s.bestCombo>=2&&s.taps>=10000}},
+ {id:"empire", name:"Empire Builder", how:"Own 150 auto-clickers", test:function(s){return totalGens()>=150}},
+ {id:"billionaire", name:"Billionaire Pig", how:"Earn 1 trillion lifetime coins", test:function(s){return s.lifetime>=1e12}},
+ {id:"raider", name:"Raid Slayer", how:"Deal 1,000,000 raid damage", test:function(s){return (s.raidDamage||0)>=1e6}},
+ {id:"duelist", name:"Duel Champion", how:"Win 5 click duels", test:function(s){return (s.duelWins||0)>=5}},
+ {id:"guildie", name:"Guild Loyalist", how:"Join a guild", test:function(s){return !!s.guildId}},
+ {id:"champ", name:"Champion Tapper", how:"Reach Champion VIP tier", test:function(s){return vipTier(s.taps).id==="champ"}}
+];
+function vipTier(taps){
+ if(taps>=10000000)return{id:"champ",name:"Champion",cls:"vip-champ",next:null};
+ if(taps>=1000000)return{id:"gold",name:"Gold",cls:"vip-gold",next:10000000};
+ if(taps>=100000)return{id:"silver",name:"Silver",cls:"vip-silver",next:1000000};
+ if(taps>=10000)return{id:"bronze",name:"Bronze",cls:"vip-bronze",next:100000};
+ return{id:"none",name:"No VIP tier yet",cls:"",next:10000};
+}
+/* 60 badges: the original 12 keep their ids, 48 more join them */
 var ACHIEVEMENTS=[
  {id:"a1", icon:"👆", name:"First Oink", desc:"Tap the pig once.", test:function(s){return s.taps>=1}},
  {id:"a2", icon:"💪", name:"Finger Workout", desc:"1,000 total taps.", test:function(s){return s.taps>=1000}},
@@ -386,27 +719,121 @@ var ACHIEVEMENTS=[
  {id:"a9", icon:"✨", name:"Golden Touch", desc:"Catch 3 golden pigs.", test:function(s){return s.goldenCaught>=3}},
  {id:"a10", icon:"🍎", name:"Reborn Pig", desc:"Prestige once.", test:function(s){return s.prestiges>=1}},
  {id:"a11", icon:"🔥", name:"Combo Master", desc:"Reach a ×2.0 combo.", test:function(s){return s.bestCombo>=2}},
- {id:"a12", icon:"🎨", name:"Fashion Pig", desc:"Own 3 skins.", test:function(s){return Object.keys(s.skinsOwned).length>=3}}
+ {id:"a12", icon:"🎨", name:"Fashion Pig", desc:"Own 3 skins.", test:function(s){return Object.keys(s.skinsOwned).length>=3}},
+ {id:"b1", icon:"🖱️", name:"Century Tapper", desc:"100 total taps.", test:function(s){return s.taps>=100}},
+ {id:"b2", icon:"🏃", name:"Tap Sprinter", desc:"5,000 total taps.", test:function(s){return s.taps>=5000}},
+ {id:"b3", icon:"🚴", name:"Tap Marathon", desc:"10,000 total taps.", test:function(s){return s.taps>=10000}},
+ {id:"b4", icon:"✈️", name:"Tap Jet", desc:"25,000 total taps.", test:function(s){return s.taps>=25000}},
+ {id:"b5", icon:"🚀", name:"Tap Rocket", desc:"50,000 total taps.", test:function(s){return s.taps>=50000}},
+ {id:"b6", icon:"☄️", name:"Tap Comet", desc:"100,000 total taps.", test:function(s){return s.taps>=100000}},
+ {id:"b7", icon:"🌠", name:"Tap Supernova", desc:"250,000 total taps.", test:function(s){return s.taps>=250000}},
+ {id:"b8", icon:"🪐", name:"Million Finger", desc:"1,000,000 total taps.", test:function(s){return s.taps>=1000000}},
+ {id:"b9", icon:"🪙", name:"Coin Collector", desc:"Earn 100 lifetime coins.", test:function(s){return s.lifetime>=100}},
+ {id:"b10", icon:"💵", name:"Pig Payday", desc:"Earn 100,000 lifetime coins.", test:function(s){return s.lifetime>=1e5}},
+ {id:"b11", icon:"💸", name:"Money Flood", desc:"Earn 10,000,000 lifetime coins.", test:function(s){return s.lifetime>=1e7}},
+ {id:"b12", icon:"🏝️", name:"Pig Island Owner", desc:"Earn 100,000,000 lifetime coins.", test:function(s){return s.lifetime>=1e8}},
+ {id:"b13", icon:"🛸", name:"Pig Galaxy Brain", desc:"Earn 100,000,000,000 lifetime coins.", test:function(s){return s.lifetime>=1e11}},
+ {id:"b14", icon:"👾", name:"Trillionaire Pig", desc:"Earn 1,000,000,000,000 lifetime coins.", test:function(s){return s.lifetime>=1e12}},
+ {id:"b15", icon:"♾️", name:"Beyond Numbers", desc:"Earn 1,000,000,000,000,000 lifetime coins.", test:function(s){return s.lifetime>=1e15}},
+ {id:"b16", icon:"🐣", name:"First Helper", desc:"Own 1 auto-clicker.", test:function(s){return totalGens()>=1}},
+ {id:"b17", icon:"🧺", name:"Small Herd", desc:"Own 10 auto-clickers.", test:function(s){return totalGens()>=10}},
+ {id:"b18", icon:"🏘️", name:"Pig Village", desc:"Own 50 auto-clickers.", test:function(s){return totalGens()>=50}},
+ {id:"b19", icon:"🏙️", name:"Pig City", desc:"Own 100 auto-clickers.", test:function(s){return totalGens()>=100}},
+ {id:"b20", icon:"🌆", name:"Pig Metropolis", desc:"Own 150 auto-clickers.", test:function(s){return totalGens()>=150}},
+ {id:"b21", icon:"🌍", name:"Pig Planet", desc:"Own 200 auto-clickers.", test:function(s){return totalGens()>=200}},
+ {id:"b22", icon:"🎯", name:"Lucky Tap", desc:"Land 1 critical oink.", test:function(s){return s.crits>=1}},
+ {id:"b23", icon:"🎰", name:"Crit Machine", desc:"Land 100 critical oinks.", test:function(s){return s.crits>=100}},
+ {id:"b24", icon:"⚡", name:"Crit Storm", desc:"Land 500 critical oinks.", test:function(s){return s.crits>=500}},
+ {id:"b25", icon:"🌩️", name:"Crit Hurricane", desc:"Land 2,500 critical oinks.", test:function(s){return s.crits>=2500}},
+ {id:"b26", icon:"🔮", name:"Crit Oracle", desc:"Land 10,000 critical oinks.", test:function(s){return s.crits>=10000}},
+ {id:"b27", icon:"🌟", name:"First Gold", desc:"Catch 1 golden pig.", test:function(s){return s.goldenCaught>=1}},
+ {id:"b28", icon:"🏆", name:"Gold Hunter", desc:"Catch 10 golden pigs.", test:function(s){return s.goldenCaught>=10}},
+ {id:"b29", icon:"👑", name:"Gold Royalty", desc:"Catch 25 golden pigs.", test:function(s){return s.goldenCaught>=25}},
+ {id:"b30", icon:"💛", name:"Gold Obsessed", desc:"Catch 50 golden pigs.", test:function(s){return s.goldenCaught>=50}},
+ {id:"b31", icon:"🪙", name:"Century Gold", desc:"Catch 100 golden pigs.", test:function(s){return s.goldenCaught>=100}},
+ {id:"b32", icon:"🔁", name:"Double Reborn", desc:"Prestige 3 times.", test:function(s){return s.prestiges>=3}},
+ {id:"b33", icon:"🌀", name:"Prestige Loop", desc:"Prestige 5 times.", test:function(s){return s.prestiges>=5}},
+ {id:"b34", icon:"🎡", name:"Eternal Return", desc:"Prestige 10 times.", test:function(s){return s.prestiges>=10}},
+ {id:"b35", icon:"🎢", name:"Prestige Maniac", desc:"Prestige 25 times.", test:function(s){return s.prestiges>=25}},
+ {id:"b36", icon:"🍏", name:"Apple Snack", desc:"Hold 10 Golden Apples.", test:function(s){return s.apples>=10}},
+ {id:"b37", icon:"🧺", name:"Apple Basket", desc:"Hold 50 Golden Apples.", test:function(s){return s.apples>=50}},
+ {id:"b38", icon:"🌳", name:"Apple Orchard Owner", desc:"Hold 100 Golden Apples.", test:function(s){return s.apples>=100}},
+ {id:"b39", icon:"🏔️", name:"Apple Mountain", desc:"Hold 500 Golden Apples.", test:function(s){return s.apples>=500}},
+ {id:"b40", icon:"🌡️", name:"Warm Combo", desc:"Reach a ×1.5 combo.", test:function(s){return s.bestCombo>=1.5}},
+ {id:"b41", icon:"👗", name:"Full Wardrobe", desc:"Own all 6 skins.", test:function(s){return Object.keys(s.skinsOwned).length>=6}},
+ {id:"b42", icon:"📈", name:"Level 10", desc:"Reach level 10.", test:function(s){return level()>=10}},
+ {id:"b43", icon:"📊", name:"Level 25", desc:"Reach level 25.", test:function(s){return level()>=25}},
+ {id:"b44", icon:"🏅", name:"Level 50", desc:"Reach the max level, 50.", test:function(s){return level()>=50}},
+ {id:"b45", icon:"💢", name:"Burst Mode", desc:"Use the Burst skill 10 times.", test:function(s){return (s.burstsUsed||0)>=10}},
+ {id:"b46", icon:"🗡️", name:"Raid Recruit", desc:"Deal 100,000 raid damage.", test:function(s){return (s.raidDamage||0)>=100000}},
+ {id:"b47", icon:"⚔️", name:"Raid Veteran", desc:"Deal 1,000,000 raid damage.", test:function(s){return (s.raidDamage||0)>=1e6}},
+ {id:"b48", icon:"🥊", name:"First Blood", desc:"Win 1 click duel.", test:function(s){return (s.duelWins||0)>=1}}
 ];
-var LEVEL_TITLES=["Piglet Keeper","Mud Rookie","Oink Apprentice","Pig Whisperer","Barn Boss","Truffle Baron","Oink Manager","Pig Tycoon","Kingdom Ruler","Oink Legend","Pig God"];
+var UPDATE_LOG=[
+ {v:"v2.0", tag:"THE FIREBASE UPDATE", date:"November 6, 2026", items:[
+  "🔐 Real accounts: register and log in with a username, email and password — your pig follows you to any device.",
+  "☁️ Cloud saves: progress saves to your account automatically (and keeps a local backup for offline play).",
+  "🏆 Global leaderboard: the Top 100 richest pigs on Earth, live, plus a friends-only board.",
+  "🐷 Friends: add players by username, see who's online, and duel them.",
+  "🥊 1v1 click duels: 30-second tap races against friends for a coin prize.",
+  "🗡️ Co-op raid boss: everyone taps the same boss down together; rewards split by damage.",
+  "🏰 Guilds: shared bank, shared tap buffs, and a guild leaderboard.",
+  "🌐 Global chat with emoji reactions — plus your room chat stays exactly as it was.",
+  "🎟️ Battle Pass: Season 1 'Mud Season' with free and premium reward tracks.",
+  "📅 Daily login reward calendar with streaks, plus daily & weekly quests.",
+  "🏅 Badges expanded from 12 to 60, unlockable player titles (Tap Legend!), and VIP tiers — Bronze to Champion.",
+  "🌳 Prestige skill tree: spend Skill Points on permanent upgrades.",
+  "💤 Offline earnings: your pigs keep working while you're away (banked up to 8 hours).",
+  "⚡ New Burst skill (×3 tap power) and an Auto-Tapper toggle in the quick action bar.",
+  "📜 This update log — versions down the side, tap one to read it. You're using it right now.",
+  "📱 New mobile layout: top HUD, live raid strip, and a one-thumb bottom nav."
+ ]},
+ {v:"v1.1", tag:"MULTIPLAYER ROOMS", date:"November 6, 2026", items:[
+  "🌍 Room codes: create a room, share the 6-letter code, and race your friends live.",
+  "📊 Live room leaderboard with player profiles — tap anyone to see their coins, level and skin.",
+  "🔎 Player search by name inside your room.",
+  "💬 Farm feed & room chat: big buys, prestiges and golden pigs announced to the whole room.",
+  "🎨 Custom avatars from the pig gallery.",
+  "📱 PWA app install: Pig Clicker ships with a manifest and icon, so it installs full-screen like a real app (and became the phone APK)."
+ ]},
+ {v:"v1.0", tag:"LAUNCH DAY", date:"November 6, 2026", items:[
+  "🐷 The pig arrives: tap it, earn Pig Coins, repeat forever.",
+  "🤖 11 auto-clickers, from the humble Piglet Helper to the Pig Dimension Portal.",
+  "👆 6 tap-power upgrades, all the way up to the Cosmic Tap.",
+  "🔥 Combo meter: tap fast to build up to a ×2.0 combo.",
+  "💥 Critical oinks (×10) and the roaming ✨ Golden Pig bonus event.",
+  "🎨 6 pig skins — Classic Pink, Golden, Minty, Bubblegum, Pig King and Galaxy.",
+  "🛒 Buy ×1 / ×10 / ×100 / MAX in the shop.",
+  "🍎 Golden Apple prestige: reset for permanent +10% per apple.",
+  "🏅 The first 12 achievements, levels up to 50, and QoL toggles (hold-to-tap, short numbers, best-buy hints, sound / vibration / effects)."
+ ]}
+];
 
 /* ============================== STATE ============================== */
 function freshState(){
- return {coins:0,lifetime:0,taps:0,crits:0,goldenCaught:0,prestiges:0,apples:0,
-  gens:{},tapOwned:{},skinsOwned:{classic:true},skin:"classic",achDone:{},startedAt:Date.now()};
+ return {coins:0,lifetime:0,taps:0,crits:0,goldenCaught:0,prestiges:0,apples:0,bestCombo:1,bestCps:0,
+  gens:{},tapOwned:{},skinsOwned:{classic:true},skin:"classic",achDone:{},startedAt:Date.now(),
+  skillPts:0,skills:{},title:"",bpXp:0,bpPremium:false,bpClaimed:{},bpClaimedP:{},
+  dailyLast:"",dailyStreak:0,dailyCount:0,lastLevelReward:1,burstsUsed:0,raidDamage:0,duelWins:0,
+  guildId:"",guildName:"",quests:null,banner:"sunset",lastSeen:Date.now()};
 }
 var S=freshState();
 var combo=1, comboTimer=null, bestComboSeen=1;
 var buyAmt=1, activeTab="auto";
 var qol={fmt:true,hold:true,hint:true,toasts:true,sound:true,vibe:true,anim:true};
-var profile={name:"",avatar:"🐷"};
+var profile={name:"",avatar:"🐷",avatarImg:"",username:""};
 var myId="p"+Math.random().toString(36).slice(2,10);
 var roomCode=makeCode();
-var players={}; /* id -> profile snapshot */
+var players={};
 var startTime=Date.now();
+var sessionTaps=0;
+var tapTimes=[]; /* anti-cheat + CPS window */
+var burstUntil=0, burstReadyAt=0, autoTapOn=false, autoTapInt=null;
+var cloudDirty=false;
 
 function makeCode(){var c="ABCDEFGHJKMNPQRSTUVWXYZ23456789",o="";for(var i=0;i<6;i++)o+=c[Math.floor(Math.random()*c.length)];return o;}
 function $(id){return document.getElementById(id);}
+function esc(t){var d=document.createElement("div");d.textContent=t==null?"":t;return d.innerHTML;}
 function fmt(n){
  if(!qol.fmt) return Math.floor(n).toLocaleString("en-US");
  if(n<1000) return Math.floor(n).toString();
@@ -416,14 +843,31 @@ function fmt(n){
 }
 function fmtRate(n){if(n<100&&n%1!==0)return n.toFixed(1);return fmt(n);}
 function totalGens(){var t=0;for(var k in S.gens)t+=S.gens[k];return t;}
+function skillLvl(id){return S.skills[id]||0;}
 function appleMult(){return 1+S.apples*0.10;}
-function perSec(){var t=0;GENERATORS.forEach(function(g){t+=(S.gens[g.id]||0)*g.pps;});return t*appleMult();}
-function perTap(){var m=1;TAP_UPGRADES.forEach(function(u){if(S.tapOwned[u.id])m*=u.mult;});return m*appleMult()*combo;}
+function guildBuff(){return 1+(guildCache&&guildCache.id===S.guildId?(guildCache.level||0)*0.02:0);}
+function perSec(){var t=0;GENERATORS.forEach(function(g){t+=(S.gens[g.id]||0)*g.pps;});return t*appleMult()*(1+skillLvl("army")*0.20)*guildBuff();}
+function critChance(){return 0.05+skillLvl("crit")*0.02;}
+function perTap(){var m=1;TAP_UPGRADES.forEach(function(u){if(S.tapOwned[u.id])m*=u.mult;});var v=m*appleMult()*combo*(1+skillLvl("might")*0.25)*guildBuff();if(Date.now()<burstUntil)v*=3;return v;}
 function level(){return Math.min(50,Math.floor(Math.sqrt(Math.max(0,S.lifetime)/100))+1);}
 function xpInfo(){var lv=level();if(lv>=50)return{p:1,txt:"MAX LEVEL"};var cur=Math.pow(lv-1,2)*100,nxt=Math.pow(lv,2)*100;var p=(S.lifetime-cur)/(nxt-cur);return{p:Math.max(0,Math.min(1,p)),txt:fmt(S.lifetime-cur)+" / "+fmt(nxt-cur)+" XP to next level"};}
 function genCost(g,owned){return Math.ceil(g.base*Math.pow(1.15,owned));}
 function bulkCost(g,owned,n){var t=0;for(var i=0;i<n;i++)t+=genCost(g,owned+i);return t;}
 function maxAffordable(g,owned){var n=0,c=S.coins;while(n<500){var cost=genCost(g,owned+n);if(cost>c)break;c-=cost;n++;}return n;}
+function titleName(id){if(!id)return"";for(var i=0;i<TITLES.length;i++)if(TITLES[i].id===id)return TITLES[i].name;return"";}
+function displayName(){return profile.name||profile.username||"Anonymous Pig";}
+function markDirty(){cloudDirty=true;saveLocal();}
+
+/* ============================== LOCAL CACHE ============================== */
+var LS_KEY="pigclicker.v2.save";
+function saveLocal(){
+ try{localStorage.setItem(LS_KEY,JSON.stringify({S:S,qol:qol,profile:profile,roomCode:roomCode,savedAt:Date.now()}));}catch(e){}
+}
+function loadLocal(){
+ try{var raw=localStorage.getItem(LS_KEY);if(!raw)return null;var d=JSON.parse(raw);if(!d||!d.S)return null;
+  var base=freshState();for(var k in base){if(d.S[k]===undefined)d.S[k]=base[k];}
+  return d;}catch(e){return null;}
+}
 
 /* ============================== AUDIO ============================== */
 var AC=null;
@@ -442,19 +886,41 @@ function feed(text,alsoSend){
  while($("feed").children.length>30)$("feed").lastChild.remove();
  if(alsoSend)mpPublish("feed",{text:text});
 }
+function safeAvatarImg(v){
+ /* Only allow strict base64 image data URLs (what the in-page uploader produces).
+    Anything else from a remote profile is treated as no image — never interpolated raw. */
+ if(typeof v!=="string")return "";
+ return /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]{20,}$/.test(v)?v:"";
+}
+function avatarHTML(p,size){
+ var img=p?safeAvatarImg(p.avatarImg):"";
+ if(img)return '<img src="'+img+'" alt="" style="width:'+(size||40)+'px;height:'+(size||40)+'px;border-radius:50%;object-fit:cover;vertical-align:middle"/>';
+ return esc((p&&p.avatar)||"🐷");
+}
 
 /* ============================== CLICKING ============================== */
 var pigBtn=$("pigBtn");
-function doTap(x,y){
- var crit=Math.random()<0.05;
+function cpsNow(){var now=Date.now();while(tapTimes.length&&tapTimes[0]<now-1000)tapTimes.shift();return tapTimes.length;}
+function doTap(x,y,quiet){
+ var now=Date.now();
+ tapTimes.push(now);
+ /* anti-cheat: max ~20 taps per second — anything faster is ignored, not counted */
+ var inWin=0;for(var i=tapTimes.length-1;i>=0&&tapTimes[i]>now-1000;i--)inWin++;
+ if(inWin>20){tapTimes.pop();return;}
+ if(cpsNow()>S.bestCps){S.bestCps=cpsNow();}
+ var crit=Math.random()<critChance();
  var gain=perTap()*(crit?10:1);
- S.coins+=gain;S.lifetime+=gain;S.taps++;if(crit){S.crits++;sndCrit();flashCrit();}else sndOink();
- combo=Math.min(2,combo+0.04); if(combo>bestComboSeen)bestComboSeen=combo; S.bestCombo=bestComboSeen;
+ S.coins+=gain;S.lifetime+=gain;S.taps++;sessionTaps++;
+ addBpXp(0.1);
+ if(crit){S.crits++;sndCrit();flashCrit();}else if(!quiet)sndOink();
+ combo=Math.min(2,combo+0.04); if(combo>bestComboSeen)bestComboSeen=combo; S.bestCombo=Math.max(S.bestCombo||1,bestComboSeen);
  clearTimeout(comboTimer);comboTimer=setTimeout(function(){combo=1;renderStats();},1600);
  pigBtn.classList.add("squish");setTimeout(function(){pigBtn.classList.remove("squish");},80);
  if(qol.vibe&&navigator.vibrate)navigator.vibrate(crit?30:8);
- spawnFloat(gain,crit,x,y);
- checkAch();renderStats();
+ if(!quiet)spawnFloat(gain,crit,x,y);
+ onDuelTap();onRaidTapGain(gain);
+ questProgress();
+ checkAch();checkTitles();checkLevelRewards();renderStats();
 }
 function flashCrit(){var f=$("critFlash");f.classList.add("show");setTimeout(function(){f.classList.remove("show");},700);}
 function spawnFloat(gain,crit,x,y){
@@ -467,7 +933,6 @@ function spawnFloat(gain,crit,x,y){
  setTimeout(function(){el.remove();},980);
 }
 pigBtn.addEventListener("pointerdown",function(e){doTap(e.clientX,e.clientY);});
-/* hold-to-tap */
 var holdInt=null;
 pigBtn.addEventListener("pointerdown",function(){if(!qol.hold)return;clearInterval(holdInt);holdInt=setInterval(function(){doTap();},180);});
 ["pointerup","pointerleave","pointercancel"].forEach(function(ev){pigBtn.addEventListener(ev,function(){clearInterval(holdInt);});});
@@ -484,26 +949,50 @@ function showGolden(){
  clearTimeout(goldenHide);goldenHide=setTimeout(function(){b.style.display="none";scheduleGolden();},7000);
 }
 $("goldenPig").addEventListener("click",function(){
- var bonus=Math.max(perTap()*50,perSec()*60,100);
+ var bonus=Math.max(perTap()*50,perSec()*60,100)*(1+skillLvl("magnet")*0.5);
  S.coins+=bonus;S.lifetime+=bonus;S.goldenCaught++;
  $("goldenPig").style.display="none";sndGold();
  toast("✨ Golden pig caught! +"+fmt(bonus)+" coins!");
  feed("✨ "+displayName()+" caught a Golden Pig! +"+fmt(bonus)+" 🐷",true);
- checkAch();renderStats();scheduleGolden();mpPublishProfile();
+ questProgress();checkAch();checkTitles();renderStats();scheduleGolden();mpPublishProfile();markDirty();
 });
+
+/* burst + auto-tapper */
+$("btnBurst").addEventListener("click",function(){
+ var now=Date.now();
+ if(now<burstReadyAt){sndErr();return;}
+ burstUntil=now+30000;burstReadyAt=now+180000;S.burstsUsed++;
+ sndCrit();toast("⚡ BURST! Tap power ×3 for 30 seconds!");checkAch();markDirty();renderQuick();
+});
+$("btnAutoTap").addEventListener("click",function(){
+ autoTapOn=!autoTapOn;
+ if(autoTapOn){autoTapInt=setInterval(function(){doTap(null,null,true);},220);toast("🤖 Auto-Tapper ON — 5 taps a second, hands-free.");}
+ else{clearInterval(autoTapInt);toast("🤖 Auto-Tapper OFF.");}
+ renderQuick();
+});
+function renderQuick(){
+ var now=Date.now(),b=$("btnBurst");
+ if(now<burstUntil)b.textContent="⚡ BURST ACTIVE — "+Math.ceil((burstUntil-now)/1000)+"s of ×3!";
+ else if(now<burstReadyAt){b.textContent="⚡ Burst recharging — "+Math.ceil((burstReadyAt-now)/1000)+"s";b.disabled=true;}
+ else{b.textContent="⚡ BURST ×3 — Ready!";b.disabled=false;}
+ if(now>=burstUntil)b.disabled=now<burstReadyAt;
+ $("btnAutoTap").textContent="🤖 Auto-Tapper: "+(autoTapOn?"On":"Off");
+ $("btnAutoTap").classList.toggle("on",autoTapOn);
+}
+setInterval(renderQuick,500);
 
 /* ============================== SHOP ============================== */
 document.querySelectorAll(".buy-amt").forEach(function(b){b.addEventListener("click",function(){
  document.querySelectorAll(".buy-amt").forEach(function(x){x.classList.remove("on");});b.classList.add("on");
  buyAmt=b.dataset.amt==="max"?"max":parseInt(b.dataset.amt,10);renderShop();
 });});
-document.querySelectorAll(".tab").forEach(function(t){t.addEventListener("click",function(){
- document.querySelectorAll(".tab").forEach(function(x){x.classList.remove("on");});t.classList.add("on");
+document.querySelectorAll(".tab[data-tab]").forEach(function(t){t.addEventListener("click",function(){
+ document.querySelectorAll(".tab[data-tab]").forEach(function(x){x.classList.remove("on");});t.classList.add("on");
  activeTab=t.dataset.tab;renderShop();
 });});
 
 function renderShop(){
- var list=$("shopList");list.innerHTML="";
+ var list=$("shopList");if(!list)return;list.innerHTML="";
  $("prestigeBox").style.display=activeTab==="prestige"?"block":"none";
  if(activeTab==="auto"){
   GENERATORS.forEach(function(g){
@@ -519,7 +1008,7 @@ function renderShop(){
     if(S.coins<bulkCost(g,S.gens[g.id]||0,n)){sndErr();return;}
     var o=S.gens[g.id]||0,c=bulkCost(g,o,n);S.coins-=c;S.gens[g.id]=o+n;sndBuy();
     if(n>=10||g.base>=450000)feed("🛒 "+displayName()+" bought ×"+n+" "+g.name+"!",true);
-    checkAch();renderAll();mpPublishProfile();
+    questProgress();checkAch();checkTitles();renderAll();mpPublishProfile();markDirty();
    });
    item.appendChild(btn);list.appendChild(item);
   });
@@ -535,7 +1024,7 @@ function renderShop(){
     if(S.tapOwned[u.id]||S.coins<u.cost){sndErr();return;}
     S.coins-=u.cost;S.tapOwned[u.id]=true;sndBuy();toast("👆 "+u.name+" — tap power up!");
     feed("👆 "+displayName()+" unlocked "+u.name+"!",true);
-    renderAll();mpPublishProfile();
+    renderAll();mpPublishProfile();markDirty();
    });
    item.appendChild(btn);list.appendChild(item);
   });
@@ -546,11 +1035,11 @@ function renderShop(){
    var b=document.createElement("button");b.type="button";b.className="skin"+(on?" on":"");
    b.innerHTML='<span style="font-size:1.6rem">🐷</span><br>'+sk.name+'<small>'+(owned?(on?"Equipped ✔":"Tap to equip"):"🪙 "+fmt(sk.cost))+'</small>';
    b.addEventListener("click",function(){
-    if(S.skinsOwned[sk.id]){S.skin=sk.id;applySkin();sndBuy();renderShop();mpPublishProfile();return;}
+    if(S.skinsOwned[sk.id]){S.skin=sk.id;applySkin();sndBuy();renderShop();mpPublishProfile();markDirty();return;}
     if(S.coins<sk.cost){sndErr();toast("Not enough coins for "+sk.name);return;}
     S.coins-=sk.cost;S.skinsOwned[sk.id]=true;S.skin=sk.id;applySkin();sndBuy();
     toast("🎨 New skin: "+sk.name+"!");feed("🎨 "+displayName()+" is now rocking the "+sk.name+" skin!",true);
-    checkAch();renderAll();mpPublishProfile();
+    checkAch();renderAll();mpPublishProfile();markDirty();
    });
    row.appendChild(b);
   });
@@ -562,14 +1051,15 @@ function renderShop(){
  }
  updateHint();
 }
-function prestigeGain(){return S.lifetime>=1e6?Math.floor(Math.pow(S.lifetime/1e6,0.5)*10):0;}
+function prestigeGain(){if(S.lifetime<1e6)return 0;return Math.floor(Math.pow(S.lifetime/1e6,0.5)*10*(1+skillLvl("orchard")*0.15));}
 $("btnPrestige").addEventListener("click",function(){
  var gain=prestigeGain();if(gain<1){sndErr();return;}
- var keepApples=S.apples+gain,keepPrest=S.prestiges+1,keepLife=S.lifetime,keepTaps=S.taps,keepCrits=S.crits,keepGold=S.goldenCaught,keepSkins=S.skinsOwned,keepAch=S.achDone,keepStart=S.startedAt;
- S=freshState();S.apples=keepApples;S.prestiges=keepPrest;S.lifetime=keepLife;S.taps=keepTaps;S.crits=keepCrits;S.goldenCaught=keepGold;S.skinsOwned=keepSkins;S.achDone=keepAch;S.startedAt=keepStart;S.bestCombo=bestComboSeen;
- combo=1;sndGold();toast("🍎 PRESTIGE! +"+gain+" Golden Apples — everything earns +10% each, forever!");
+ var keep={apples:S.apples+gain,prestiges:S.prestiges+1,lifetime:S.lifetime,taps:S.taps,crits:S.crits,gold:S.goldenCaught,skins:S.skinsOwned,ach:S.achDone,start:S.startedAt,bestCombo:S.bestCombo,bestCps:S.bestCps,skillPts:S.skillPts+gain,skills:S.skills,title:S.title,bpXp:S.bpXp,bpPremium:S.bpPremium,bpClaimed:S.bpClaimed,bpClaimedP:S.bpClaimedP,dailyLast:S.dailyLast,dailyStreak:S.dailyStreak,dailyCount:S.dailyCount,lastLevelReward:S.lastLevelReward,burstsUsed:S.burstsUsed,raidDamage:S.raidDamage,duelWins:S.duelWins,guildId:S.guildId,guildName:S.guildName,quests:S.quests,banner:S.banner};
+ S=freshState();
+ S.apples=keep.apples;S.prestiges=keep.prestiges;S.lifetime=keep.lifetime;S.taps=keep.taps;S.crits=keep.crits;S.goldenCaught=keep.gold;S.skinsOwned=keep.skins;S.achDone=keep.ach;S.startedAt=keep.start;S.bestCombo=keep.bestCombo;S.bestCps=keep.bestCps;S.skillPts=keep.skillPts;S.skills=keep.skills;S.title=keep.title;S.bpXp=keep.bpXp;S.bpPremium=keep.bpPremium;S.bpClaimed=keep.bpClaimed;S.bpClaimedP=keep.bpClaimedP;S.dailyLast=keep.dailyLast;S.dailyStreak=keep.dailyStreak;S.dailyCount=keep.dailyCount;S.lastLevelReward=keep.lastLevelReward;S.burstsUsed=keep.burstsUsed;S.raidDamage=keep.raidDamage;S.duelWins=keep.duelWins;S.guildId=keep.guildId;S.guildName=keep.guildName;S.quests=keep.quests;S.banner=keep.banner;
+ combo=1;sndGold();toast("🍎 PRESTIGE! +"+gain+" Golden Apples and +"+gain+" ⭐ Skill Points!");
  feed("🍎 "+displayName()+" PRESTIGED for +"+gain+" Golden Apples!",true);
- checkAch();renderAll();mpPublishProfile();
+ checkAch();checkTitles();renderAll();renderTree();mpPublishProfile();markDirty();cloudSaveNow();
 });
 function applySkin(){
  var sk=SKINS.find(function(x){return x.id===S.skin;})||SKINS[0];
@@ -579,35 +1069,122 @@ function applySkin(){
  $("pigHat").setAttribute("d",sk.hat||"");
 }
 
-/* ============================== ACHIEVEMENTS / STATS ============================== */
+/* ============================== SKILL TREE ============================== */
+function renderTree(){
+ $("skillPts").textContent=S.skillPts;
+ var grid=$("treeGrid");grid.innerHTML="";
+ SKILL_NODES.forEach(function(n){
+  var lv=skillLvl(n.id),maxed=lv>=n.max,cost=maxed?null:n.costs[lv];
+  var el=document.createElement("div");el.className="node";
+  var pips="";for(var i=0;i<n.max;i++)pips+=i<lv?"●":"○";
+  el.innerHTML=n.icon+" <b>"+n.name+"</b><small>"+n.desc+'</small><span class="pips">'+pips+"</span>";
+  var b=document.createElement("button");b.type="button";b.className="buy small";b.style.marginTop="8px";b.style.width="100%";
+  b.textContent=maxed?"MAXED ✔":"Upgrade — "+cost+" ⭐";
+  b.disabled=maxed||S.skillPts<cost;
+  b.addEventListener("click",function(){
+   var l2=skillLvl(n.id);if(l2>=n.max||S.skillPts<n.costs[l2]){sndErr();return;}
+   S.skillPts-=n.costs[l2];S.skills[n.id]=l2+1;sndBuy();toast(n.icon+" "+n.name+" upgraded to level "+(l2+1)+"!");
+   renderTree();renderStats();markDirty();
+  });
+  el.appendChild(b);grid.appendChild(el);
+ });
+}
+
+/* ============================== ACHIEVEMENTS / TITLES / LEVELS ============================== */
 function checkAch(){
  ACHIEVEMENTS.forEach(function(a){
-  if(!S.achDone[a.id]&&a.test(S)){S.achDone[a.id]=true;toast("🏅 Achievement: "+a.name+"!");feed("🏅 "+displayName()+" unlocked “"+a.name+"”",true);sndGold();renderAch();}
+  if(!S.achDone[a.id]&&a.test(S)){S.achDone[a.id]=true;toast("🏅 Badge unlocked: "+a.name+"!");feed("🏅 "+displayName()+" unlocked the badge “"+a.name+"”",true);sndGold();renderAch();}
  });
 }
 function renderAch(){
- var done=0,grid=$("achGrid");grid.innerHTML="";
+ var done=0,grid=$("achGrid");if(!grid)return;grid.innerHTML="";
  ACHIEVEMENTS.forEach(function(a){
-  var d=!!S.achDone[a.id];if(d)done++;
-  var el=document.createElement("div");el.className="ach"+(d?" done":"");
+  var d=false;try{d=!!S.achDone[a.id]&&a.test(S)||!!S.achDone[a.id];}catch(e){d=!!S.achDone[a.id];}
+  if(S.achDone[a.id])done++;
+  var el=document.createElement("div");el.className="ach"+(S.achDone[a.id]?" done":"");
   el.innerHTML=a.icon+" "+a.name+"<small>"+a.desc+"</small>";grid.appendChild(el);
  });
  $("achCount").textContent=done+" of "+ACHIEVEMENTS.length+" unlocked";
 }
+function unlockedTitles(){return TITLES.filter(function(t){try{return t.test(S);}catch(e){return false;}});}
+function checkTitles(){
+ var un=unlockedTitles();
+ un.forEach(function(t){
+  if(!checkTitles.seen)checkTitles.seen={};
+  if(!checkTitles.seen[t.id]&&S.taps>0){checkTitles.seen[t.id]=true;}
+ });
+ renderTitleSelect(un);
+}
+function renderTitleSelect(un){
+ un=un||unlockedTitles();
+ var sel=$("titleSelect");if(!sel)return;
+ var cur=sel.value||S.title;
+ sel.innerHTML='<option value="">No title equipped</option>';
+ un.forEach(function(t){var o=document.createElement("option");o.value=t.id;o.textContent="🏷️ "+t.name+" — "+t.how;sel.appendChild(o);});
+ TITLES.forEach(function(t){if(!un.some(function(u){return u.id===t.id;})){var o=document.createElement("option");o.value=t.id;o.disabled=true;o.textContent="🔒 "+t.name+" — "+t.how;sel.appendChild(o);}});
+ sel.value=S.title||"";
+ if(cur&&sel.value!==cur)sel.value=S.title||"";
+}
+$("titleSelect").addEventListener("change",function(){
+ var v=$("titleSelect").value;
+ if(v&&!unlockedTitles().some(function(t){return t.id===v;})){sndErr();return;}
+ S.title=v;toast(v?("🏷️ Title equipped: "+titleName(v)):"Title removed.");renderStats();mpPublishProfile();markDirty();
+});
+function checkLevelRewards(){
+ var lv=level();
+ while(S.lastLevelReward<lv){
+  S.lastLevelReward++;
+  if(S.lastLevelReward%5===0){
+   var bonus=S.lastLevelReward*1000;
+   S.coins+=bonus;
+   toast("🎉 Level "+S.lastLevelReward+" milestone! Bonus +"+fmt(bonus)+" 🪙");
+   feed("🎉 "+displayName()+" hit level "+S.lastLevelReward+"!",true);
+   markDirty();
+  }
+ }
+}
+
+/* ============================== RENDER ============================== */
 function renderStats(){
  $("stCoins").textContent=fmt(S.coins);
  $("stPerTap").textContent=fmt(perTap());
  $("stPerSec").textContent=fmtRate(perSec());
+ $("stCps").textContent=cpsNow();
  $("stApples").textContent=S.apples+" (×"+appleMult().toFixed(1)+")";
  var lv=level(),xp=xpInfo();
  $("lvlNum").textContent=lv;$("lvlTitle").textContent=LEVEL_TITLES[Math.min(LEVEL_TITLES.length-1,Math.floor((lv-1)/5))];
+ $("hudLvl").textContent=lv;$("hudLvlTitle").textContent=LEVEL_TITLES[Math.min(LEVEL_TITLES.length-1,Math.floor((lv-1)/5))];
+ $("hudName").textContent=displayName()+(S.guildName?" · 🏰 "+S.guildName:"");
+ $("hudTitle").textContent=titleName(S.title)||"No title";
+ var vt=vipTier(S.taps);
+ $("hudVip").innerHTML=vt.id!=="none"?'<span class="vip-badge '+vt.cls+'">'+vt.name+" VIP</span>":"";
  $("xpFill").style.width=(xp.p*100)+"%";$("xpText").textContent=xp.txt;
  $("comboTxt").textContent="×"+combo.toFixed(1);
  $("comboFill").style.width=((combo-1)/1*100)+"%";
+ $("chipTaps").textContent=fmt(sessionTaps);
+ $("chipCombo").textContent="×"+(Math.max(S.bestCombo||1,bestComboSeen)).toFixed(1);
  $("qTaps").textContent=fmt(S.taps);$("qLife").textContent=fmt(S.lifetime);
+ $("qCombo").textContent="×"+(S.bestCombo||1).toFixed(1);$("qCps").textContent=S.bestCps||0;
  $("qCrits").textContent=fmt(S.crits);$("qGold").textContent=S.goldenCaught;$("qPrest").textContent=S.prestiges;
+ $("qRaid").textContent=fmt(S.raidDamage||0);$("qDuels").textContent=S.duelWins||0;
  var secs=Math.floor((Date.now()-startTime)/1000);
  $("qTime").textContent=Math.floor(secs/60)+":"+("0"+(secs%60)).slice(-2);
+ var av=$("hudAvatar");
+ if(safeAvatarImg(profile.avatarImg))av.innerHTML='<img src="'+safeAvatarImg(profile.avatarImg)+'" alt=""/>';else av.textContent=profile.avatar||"🐷";
+ $("vipLine").innerHTML=vt.id==="none"?("No tier yet — "+fmt(vt.next-S.taps)+" taps to 🥉 Bronze."):('<span class="vip-badge '+vt.cls+'">'+vt.name+"</span>")+(vt.next?(" · "+fmt(vt.next-S.taps)+" taps to the next tier."):" · Top tier. Absolute pig royalty. 👑");
+ $("cosmLine").textContent="🎨 Skins owned: "+Object.keys(S.skinsOwned).length+" / "+SKINS.length+" · 🖼️ Banner: "+(BANNERS.find(function(b){return b.id===S.banner;})||BANNERS[0]).name+" · 🐷 Avatar: "+(profile.avatarImg?"custom photo":profile.avatar);
+ renderBanner();
+}
+function renderBanner(){
+ var b=BANNERS.find(function(x){return x.id===S.banner;})||BANNERS[0];
+ var pv=$("bannerPreview");if(pv){pv.style.background=b.css;pv.textContent=displayName()+(titleName(S.title)?" — “"+titleName(S.title)+"”":"");}
+ var row=$("bannerRow");if(!row||row.dataset.done)return;row.dataset.done="1";
+ BANNERS.forEach(function(bn){
+  var btn=document.createElement("button");btn.type="button";btn.className="skin"+(S.banner===bn.id?" on":"");
+  btn.innerHTML='<span style="display:block;height:26px;border-radius:8px;background:'+bn.css+'"></span>'+bn.name+"<small>"+(S.banner===bn.id?"Equipped ✔":"Tap to equip")+"</small>";
+  btn.addEventListener("click",function(){S.banner=bn.id;row.querySelectorAll(".skin").forEach(function(x){x.classList.remove("on");});btn.classList.add("on");renderStats();mpPublishProfile();markDirty();});
+  row.appendChild(btn);
+ });
 }
 function updateHint(){
  var el=$("hintLine");if(!el)return;
@@ -619,44 +1196,253 @@ function updateHint(){
 function renderAll(){renderStats();renderShop();}
 
 /* QoL toggles */
-function wireToggle(id,key,cb){$(id).addEventListener("click",function(){qol[key]=!qol[key];$(id).classList.toggle("on",qol[key]);$(id).textContent=qol[key]?"ON":"OFF";if(cb)cb();renderStats();});}
+function syncToggle(id,on){var b=$(id);b.classList.toggle("on",on);b.textContent=on?"ON":"OFF";}
+function wireToggle(id,key,cb){$(id).addEventListener("click",function(){qol[key]=!qol[key];syncToggle(id,qol[key]);if(cb)cb();renderStats();markDirty();});}
 wireToggle("qFmt","fmt",function(){renderAll();});
 wireToggle("qHold","hold");
 wireToggle("qHint","hint",function(){updateHint();});
 wireToggle("qToast","toasts");
-function wireChip(id,key,label){$(id).addEventListener("click",function(){qol[key]=!qol[key];$(id).classList.toggle("on",qol[key]);$(id).textContent=label+(qol[key]?"On":"Off");if(key==="anim")document.body.classList.toggle("no-anim",!qol[key]);});}
+function wireChip(id,key,label){$(id).addEventListener("click",function(){qol[key]=!qol[key];$(id).classList.toggle("on",qol[key]);$(id).textContent=label+(qol[key]?"On":"Off");if(key==="anim")document.body.classList.toggle("no-anim",!qol[key]);markDirty();});}
 wireChip("btnSound","sound","🔊 Sound: ");
 wireChip("btnVibe","vibe","📳 Vibration: ");
 wireChip("btnAnim","anim","✨ Effects: ");
 $("btnReset").addEventListener("click",function(){
- if($("btnReset").dataset.arm){S=freshState();combo=1;bestComboSeen=1;applySkin();renderAch();renderAll();toast("Run reset. Fresh pig, fresh dreams.");$("btnReset").textContent="🗑️ Hard reset run";delete $("btnReset").dataset.arm;mpPublishProfile();}
+ if($("btnReset").dataset.arm){S=freshState();combo=1;bestComboSeen=1;applySkin();renderAch();renderTree();renderAll();renderQuests();renderBp();toast("Run reset. Fresh pig, fresh dreams.");$("btnReset").textContent="🗑️ Hard reset run";delete $("btnReset").dataset.arm;mpPublishProfile();markDirty();}
  else{$("btnReset").dataset.arm="1";$("btnReset").textContent="⚠️ Tap again to confirm reset";setTimeout(function(){delete $("btnReset").dataset.arm;$("btnReset").textContent="🗑️ Hard reset run";},3000);}
 });
 
-/* ============================== MULTIPLAYER (MQTT) ============================== */
-function esc(t){var d=document.createElement("div");d.textContent=t==null?"":t;return d.innerHTML;}
-function displayName(){return profile.name||"Anonymous Pig";}
+/* ============================== NAV ============================== */
+function showView(v){
+ document.querySelectorAll(".view").forEach(function(x){x.classList.toggle("on",x.id==="view-"+v);});
+ document.querySelectorAll(".bottom-nav button").forEach(function(b){b.classList.toggle("on",b.dataset.view===v);});
+ window.scrollTo({top:0,behavior:"smooth"});
+ if(v==="ranks"){renderBp();renderQuests();}
+ if(v==="shop")renderTree();
+}
+document.querySelectorAll(".bottom-nav button").forEach(function(b){b.addEventListener("click",function(){showView(b.dataset.view);});});
+$("hudGear").addEventListener("click",function(){showView("profile");});
+$("hudAvatar").addEventListener("click",function(){showView("profile");});
+
+/* ============================== UPDATE LOG ============================== */
+function renderLog(){
+ var side=$("logSide");side.innerHTML="";
+ UPDATE_LOG.forEach(function(e,i){
+  var b=document.createElement("button");b.type="button";b.className=i===0?"on":"";
+  b.innerHTML=e.v+"<small>"+e.tag+"</small>";
+  b.addEventListener("click",function(){
+   side.querySelectorAll("button").forEach(function(x){x.classList.remove("on");});b.classList.add("on");
+   showLogEntry(e);
+  });
+  side.appendChild(b);
+ });
+ showLogEntry(UPDATE_LOG[0]);
+}
+function showLogEntry(e){
+ var body=$("logBody");
+ body.innerHTML="<h3>Pig Clicker "+e.v+" — "+e.tag+"</h3><div class='date'>"+e.date+"</div><ul>"+e.items.map(function(it){return "<li>"+it+"</li>";}).join("")+"</ul>";
+}
+
+/* ============================== QUESTS ============================== */
+function dayKey(){var d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();}
+function weekKey(){var d=new Date();var onejan=new Date(d.getFullYear(),0,1);var wk=Math.ceil((((d-onejan)/86400000)+onejan.getDay()+1)/7);return d.getFullYear()+"-W"+wk;}
+var DAILY_POOL=[
+ {stat:"taps",goal:300,name:"Tap 300 times",icon:"👆"},
+ {stat:"taps",goal:1500,name:"Tap 1,500 times",icon:"👆"},
+ {stat:"lifetime",goal:25000,name:"Earn 25,000 coins",icon:"💰"},
+ {stat:"lifetime",goal:250000,name:"Earn 250,000 coins",icon:"💰"},
+ {stat:"crits",goal:15,name:"Land 15 critical oinks",icon:"💥"},
+ {stat:"gensBought",goal:5,name:"Buy 5 auto-clickers",icon:"🤖"},
+ {stat:"goldenCaught",goal:1,name:"Catch a golden pig",icon:"✨"}
+];
+var WEEKLY_POOL=[
+ {stat:"taps",goal:20000,name:"Tap 20,000 times this week",icon:"👆"},
+ {stat:"lifetime",goal:5000000,name:"Earn 5,000,000 coins this week",icon:"💰"},
+ {stat:"crits",goal:300,name:"Land 300 critical oinks this week",icon:"💥"},
+ {stat:"gensBought",goal:40,name:"Buy 40 auto-clickers this week",icon:"🤖"},
+ {stat:"goldenCaught",goal:5,name:"Catch 5 golden pigs this week",icon:"✨"},
+ {stat:"raidDamage",goal:250000,name:"Deal 250,000 raid damage this week",icon:"🗡️"}
+];
+function snapStats(){return{taps:S.taps,lifetime:S.lifetime,crits:S.crits,gensBought:totalGens(),goldenCaught:S.goldenCaught,raidDamage:S.raidDamage||0};}
+function ensureQuests(){
+ var dk=dayKey(),wk=weekKey(),dirty=false;
+ if(!S.quests||S.quests.day!==dk){
+  var pool=DAILY_POOL.slice(),pick=[];
+  for(var i=0;i<3&&pool.length;i++){pick.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);}
+  S.quests=S.quests||{};S.quests.day=dk;S.quests.daily=pick.map(function(q){return{stat:q.stat,goal:q.goal,name:q.name,icon:q.icon,base:0,claimed:false};});
+  var snap=snapStats();S.quests.daily.forEach(function(q){q.base=snap[q.stat]||0;});
+  dirty=true;
+ }
+ if(S.quests.week!==wk){
+  var pool2=WEEKLY_POOL.slice(),pick2=[];
+  for(var j=0;j<3&&pool2.length;j++){pick2.push(pool2.splice(Math.floor(Math.random()*pool2.length),1)[0]);}
+  S.quests.week=wk;S.quests.weekly=pick2.map(function(q){return{stat:q.stat,goal:q.goal,name:q.name,icon:q.icon,base:0,claimed:false};});
+  var snap2=snapStats();S.quests.weekly.forEach(function(q){q.base=snap2[q.stat]||0;});
+  dirty=true;
+ }
+ if(dirty)markDirty();
+}
+var lastQuestRender=0;
+function questProgress(){ensureQuests();var now=Date.now();if(now-lastQuestRender>1500){lastQuestRender=now;renderQuests();}}
+function questCur(q){var snap=snapStats();return Math.max(0,(snap[q.stat]||0)-(q.base||0));}
+function renderQuests(){
+ ensureQuests();
+ renderQuestList($("questDaily"),S.quests.daily||[]);
+ renderQuestList($("questWeekly"),S.quests.weekly||[]);
+}
+function renderQuestList(el,list){
+ if(!el)return;el.innerHTML="";
+ list.forEach(function(q,idx){
+  var cur=questCur(q),done=cur>=q.goal;
+  var d=document.createElement("div");d.className="quest";
+  d.innerHTML='<div style="font-size:1.5rem">'+q.icon+'</div><div class="grow"><h3>'+esc(q.name)+'</h3><p>'+fmt(Math.min(cur,q.goal))+" / "+fmt(q.goal)+(done?" — complete!":"")+'</p><div class="qbar"><i style="width:'+Math.min(100,cur/q.goal*100)+'%"></i></div></div>';
+  var b=document.createElement("button");b.type="button";b.className="buy small";
+  var reward=q.goal>=1000?5000:1000;
+  if(q.claimed){b.textContent="Claimed ✔";b.disabled=true;b.classList.add("maxed");}
+  else if(done){b.textContent="Claim "+fmt(reward)+" 🪙";}
+  else{b.textContent=fmt(reward)+" 🪙";b.disabled=true;}
+  b.addEventListener("click",function(){
+   if(q.claimed||questCur(q)<q.goal)return;
+   q.claimed=true;S.coins+=reward;S.lifetime+=reward;addBpXp(25);sndGold();
+   toast("📜 Quest complete! +"+fmt(reward)+" 🪙");renderQuests();renderStats();markDirty();
+  });
+  d.appendChild(b);el.appendChild(d);
+ });
+}
+
+/* ============================== BATTLE PASS ============================== */
+var BP_TIERS=30, BP_XP_PER=100;
+function bpTier(){return Math.min(BP_TIERS,Math.floor((S.bpXp||0)/BP_XP_PER));}
+function addBpXp(n){
+ var before=bpTier();S.bpXp=(S.bpXp||0)+n;
+ if(bpTier()>before){toast("🎟️ Battle Pass tier "+bpTier()+" reached! Claim your rewards in Ranks.");sndGold();}
+ if($("view-ranks").classList.contains("on"))renderBp();
+}
+function bpReward(tier,premium){
+ if(premium){
+  if(tier%10===0)return{apples:5,label:"🍎 5 Golden Apples"};
+  if(tier%5===0)return{coins:tier*25000,label:"🪙 "+fmt(tier*25000)+" Pig Coins"};
+  return{coins:tier*8000,label:"🪙 "+fmt(tier*8000)+" Pig Coins"};
+ }
+ if(tier%10===0)return{apples:2,label:"🍎 2 Golden Apples"};
+ if(tier%5===0)return{coins:tier*10000,label:"🪙 "+fmt(tier*10000)+" Pig Coins"};
+ return{coins:tier*2500,label:"🪙 "+fmt(tier*2500)+" Pig Coins"};
+}
+function renderBp(){
+ var track=$("bpTrack");if(!track)return;
+ $("bpTierTxt").textContent=bpTier();
+ $("bpXpTxt").textContent=fmt(S.bpXp||0);
+ $("btnBpPremium").style.display=S.bpPremium?"none":"";
+ $("bpPremState").textContent=S.bpPremium?"👑 Premium ACTIVE — premium rewards unlocked!":"";
+ track.innerHTML="";
+ for(var t=1;t<=BP_TIERS;t++){
+  var unlocked=bpTier()>=t;
+  var row=document.createElement("div");row.className="bp-tier"+(unlocked?"":" locked");
+  var fr=bpReward(t,false),pr=bpReward(t,true);
+  var fc=!!S.bpClaimed[t],pc=!!S.bpClaimedP[t];
+  row.innerHTML='<div class="tn">Tier '+t+'</div><div class="rw">FREE: '+fr.label+'<small id="bpf'+t+'"></small></div><div class="rw">👑 PREMIUM: '+pr.label+'<small id="bpp'+t+'"></small></div>';
+  var fb=document.createElement("button");fb.type="button";fb.className="buy small";fb.textContent=fc?"✔ Got it":"Claim";
+  fb.disabled=!unlocked||fc;
+  (function(tier,btn,store){btn.addEventListener("click",function(){
+   if(bpTier()<tier||S[store][tier])return;
+   S[store][tier]=true;var r=bpReward(tier,store==="bpClaimedP");
+   if(r.coins){S.coins+=r.coins;S.lifetime+=r.coins;}
+   if(r.apples){S.apples+=r.apples;}
+   sndGold();toast("🎟️ Claimed: "+r.label);renderBp();renderStats();markDirty();
+  });})(t,fb,"bpClaimed");
+  var pb=document.createElement("button");pb.type="button";pb.className="buy small pink";pb.textContent=pc?"✔ Got it":(S.bpPremium?"Claim":"🔒 Premium");
+  pb.disabled=!unlocked||pc||!S.bpPremium;
+  (function(tier,btn){btn.addEventListener("click",function(){
+   if(bpTier()<tier||S.bpClaimedP[tier]||!S.bpPremium)return;
+   S.bpClaimedP[tier]=true;var r=bpReward(tier,true);
+   if(r.coins){S.coins+=r.coins;S.lifetime+=r.coins;}
+   if(r.apples){S.apples+=r.apples;}
+   sndGold();toast("🎟️ Premium claimed: "+r.label);renderBp();renderStats();markDirty();
+  });})(t,pb);
+  var wrap=document.createElement("div");wrap.style.display="flex";wrap.style.flexDirection="column";wrap.style.gap="5px";
+  wrap.appendChild(fb);wrap.appendChild(pb);row.appendChild(wrap);
+  track.appendChild(row);
+ }
+}
+$("btnBpPremium").addEventListener("click",function(){
+ if(S.bpPremium)return;
+ if(S.apples<25){sndErr();toast("Premium costs 25 🍎 — you have "+S.apples+". Prestige to earn more!");return;}
+ S.apples-=25;S.bpPremium=true;sndGold();toast("👑 Battle Pass Premium unlocked! Every tier now pays twice.");
+ renderBp();renderStats();markDirty();
+});
+
+/* ============================== DAILY LOGIN CALENDAR ============================== */
+var DAILY_REWARDS=[100,250,500,1000,2000,4000,0,8000,12000,18000,25000,35000,50000,0,75000,100000,140000,190000,250000,325000,375000,425000,550000,700000,900000,1150000,1450000,0];
+function dailyRewardFor(dayIdx){
+ var r=DAILY_REWARDS[dayIdx%28];
+ if(dayIdx%28===6)return{apples:1,label:"🍎 1 Golden Apple"};
+ if(dayIdx%28===13)return{apples:2,label:"🍎 2 Golden Apples"};
+ if(dayIdx%28===27)return{apples:5,label:"🍎 5 Golden Apples"};
+ return{coins:r*(1+Math.floor(dayIdx/28)),label:"🪙 "+fmt(r*(1+Math.floor(dayIdx/28)))+" Pig Coins"};
+}
+function renderDaily(){
+ $("dailyStreak").textContent=(S.dailyStreak||0)+" days";
+ var grid=$("calGrid");grid.innerHTML="";
+ var claimedToday=S.dailyLast===dayKey();
+ for(var i=0;i<28;i++){
+  var d=document.createElement("div");
+  var cls="cal-day";
+  if(i<S.dailyCount%28||(S.dailyCount>0&&S.dailyCount%28===0))cls+=" got";
+  if(i===S.dailyCount%28&&!claimedToday)cls+=" today";
+  if(i>S.dailyCount%28)cls+=" future";
+  d.className=cls;
+  var r=dailyRewardFor(i);
+  d.innerHTML="Day "+(i+1)+"<small>"+(r.apples?"🍎×"+r.apples:"🪙")+"</small>"+(r.apples?"":fmt(r.coins));
+  grid.appendChild(d);
+ }
+ var btn=$("btnDaily");
+ if(claimedToday){btn.disabled=true;btn.textContent="✅ Today's reward claimed — come back tomorrow!";$("chipDaily").textContent="claimed ✔";}
+ else{btn.disabled=false;btn.textContent="🎁 Claim Day "+((S.dailyCount%28)+1)+" reward";$("chipDaily").textContent="ready to claim!";}
+}
+$("btnDaily").addEventListener("click",function(){
+ if(S.dailyLast===dayKey()){sndErr();return;}
+ var yesterday=new Date(Date.now()-86400000);
+ var yk=yesterday.getFullYear()+"-"+(yesterday.getMonth()+1)+"-"+yesterday.getDate();
+ S.dailyStreak=(S.dailyLast===yk)?(S.dailyStreak||0)+1:1;
+ var idx=S.dailyCount;var r=dailyRewardFor(idx);
+ if(r.coins){S.coins+=r.coins;S.lifetime+=r.coins;}
+ if(r.apples){S.apples+=r.apples;}
+ S.dailyCount++;S.dailyLast=dayKey();addBpXp(15);
+ sndGold();toast("📅 Day "+S.dailyCount+" reward: "+r.label+"! Streak: "+S.dailyStreak+" 🔥");
+ feed("📅 "+displayName()+" claimed daily reward day "+S.dailyCount+"!",true);
+ renderDaily();renderStats();checkAch();markDirty();cloudSaveNow();
+});
+
+/* ============================== PROFILES / ROOM LEADERBOARD (MQTT) ============================== */
+function mySnapshot(){
+ var sk=SKINS.find(function(x){return x.id===S.skin;});
+ return {id:fbUser?fbUser.uid:myId,localId:myId,name:displayName(),username:profile.username||"",avatar:profile.avatar,avatarImg:profile.avatarImg||"",
+  title:titleName(S.title),vip:vipTier(S.taps).name,coins:S.coins,lifetime:S.lifetime,
+  pps:perSec(),taps:S.taps,bestCombo:Math.round((S.bestCombo||1)*10)/10,bestCps:S.bestCps||0,level:level(),apples:S.apples,
+  skin:sk?sk.name:"Classic",banner:S.banner,guild:S.guildName||"",ts:Date.now()};
+}
+function mpPublishProfile(){players[myId]=mySnapshot();renderPlayers();mpPublish("profile",mySnapshot());}
 var mpClient=null,mpConnected=false;
 function mpTopic(kind){return "pigclicker/v1/"+roomCode+"/"+kind;}
 function mpSetStatus(txt,cls){$("mpStatus").textContent=txt;$("mpDot").className="status-dot "+(cls||"");}
 function mpConnect(){
  $("roomCodeTxt").textContent=roomCode;
  players[myId]=mySnapshot();renderPlayers();
- if(typeof mqtt==="undefined"){mpSetStatus("Room "+roomCode+" is ready — the live network could not load in this browser, so you're solo for now. Your code still works where the network loads.","");return;}
+ if(typeof mqtt==="undefined"){mpSetStatus("Room "+roomCode+" is ready — the live network could not load in this browser, so you're solo for now. Your code still works where the network loads.","");updateOnlineStrip();return;}
  try{if(mpClient){try{mpClient.end(true);}catch(e){}mpClient=null;}}catch(e){}
  mpSetStatus("Connecting to room "+roomCode+"…","try");
  mpClient=mqtt.connect("wss://broker.emqx.io:8084/mqtt",{clientId:"pigclicker-"+myId,reconnectPeriod:4000,connectTimeout:8000});
  mpClient.on("connect",function(){
   mpConnected=true;mpSetStatus("Live in room "+roomCode+" — friends who join this code appear below.","on");
   mpClient.subscribe([mpTopic("profile"),mpTopic("chat"),mpTopic("feed")],function(){mpPublishProfile();});
+  updateOnlineStrip();
  });
  mpClient.on("reconnect",function(){mpSetStatus("Reconnecting to the farm network…","try");});
- mpClient.on("offline",function(){mpConnected=false;mpSetStatus("Offline — solo mode. Your pig still earns.","");});
+ mpClient.on("offline",function(){mpConnected=false;mpSetStatus("Offline — solo mode. Your pig still earns.","");updateOnlineStrip();});
  mpClient.on("error",function(){mpSetStatus("Connection hiccup — retrying…","try");});
  mpClient.on("message",function(topic,msg){
   var data;try{data=JSON.parse(msg.toString());}catch(e){return;}
-  if(!data||data.id===myId)return;
-  if(topic===mpTopic("profile")){players[data.id]=data;renderPlayers();}
+  if(!data||data.localId===myId||data.id===myId)return;
+  if(topic===mpTopic("profile")){players[data.localId||data.id]=data;renderPlayers();updateOnlineStrip();}
   else if(topic===mpTopic("chat")){feed("💬 "+data.name+": "+data.text);}
   else if(topic===mpTopic("feed")){if(data.text)feed(String(data.text));}
  });
@@ -665,44 +1451,68 @@ function mpPublish(kind,obj){
  if(!mpClient||!mpConnected)return;
  try{mpClient.publish(mpTopic(kind),JSON.stringify(obj));}catch(e){}
 }
-function mySnapshot(){
- var sk=SKINS.find(function(x){return x.id===S.skin;});
- return {id:myId,name:displayName(),avatar:profile.avatar,coins:S.coins,lifetime:S.lifetime,
-  pps:perSec(),taps:S.taps,level:level(),apples:S.apples,skin:sk?sk.name:"Classic",ts:Date.now()};
-}
-function mpPublishProfile(){players[myId]=mySnapshot();renderPlayers();mpPublish("profile",mySnapshot());}
 setInterval(function(){if(mpConnected)mpPublishProfile();},5000);
-setInterval(function(){ /* prune stale players */
+setInterval(function(){
  var now=Date.now(),changed=false;
  for(var id in players){if(id!==myId&&now-(players[id].ts||0)>20000){delete players[id];changed=true;}}
- if(changed)renderPlayers();
+ if(changed){renderPlayers();updateOnlineStrip();}
 },5000);
+function updateOnlineStrip(){
+ var roomN=Object.keys(players).length;
+ var cloudN=fbOnlineCount||0;
+ var n=Math.max(roomN,cloudN);
+ $("onlineStrip").textContent="🟢 Online: "+n+(cloudN>roomN?" (global)":" (in your room)");
+}
 
-/* profiles + search + leaderboard */
-var avatarRow=$("avatarPick");
-AVATARS.forEach(function(a){
- var b=document.createElement("button");b.type="button";b.textContent=a;if(a===profile.avatar)b.classList.add("on");
- b.addEventListener("click",function(){profile.avatar=a;avatarRow.querySelectorAll("button").forEach(function(x){x.classList.remove("on");});b.classList.add("on");mpPublishProfile();});
- avatarRow.appendChild(b);
+/* avatar pickers (room card + profile card, kept in sync) */
+function buildAvatarPick(el){
+ if(!el)return;el.innerHTML="";
+ AVATARS.forEach(function(a){
+  var b=document.createElement("button");b.type="button";b.textContent=a;if(a===profile.avatar&&!profile.avatarImg)b.classList.add("on");
+  b.addEventListener("click",function(){profile.avatar=a;profile.avatarImg="";refreshAvatarPicks();mpPublishProfile();renderStats();markDirty();});
+  el.appendChild(b);
+ });
+}
+function refreshAvatarPicks(){buildAvatarPick($("avatarPick"));buildAvatarPick($("avatarPick2"));}
+$("avatarFile").addEventListener("change",function(){
+ var f=this.files&&this.files[0];if(!f)return;
+ var rd=new FileReader();
+ rd.onload=function(){
+  var img=new Image();
+  img.onload=function(){
+   var c=document.createElement("canvas");c.width=96;c.height=96;
+   var ctx=c.getContext("2d");var s=Math.min(img.width,img.height);
+   ctx.drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,96,96);
+   profile.avatarImg=c.toDataURL("image/jpeg",0.82);
+   refreshAvatarPicks();renderStats();mpPublishProfile();markDirty();
+   toast("🖼️ Custom avatar set!");
+  };
+  img.src=rd.result;
+ };
+ rd.readAsDataURL(f);
 });
-$("btnSetName").addEventListener("click",function(){
- var v=$("nameInput").value.trim().slice(0,20);
- profile.name=v;$("farmName").textContent=(v?v+"'s":"Your")+" Pig Farm";
- toast(v?("👋 Profile set — welcome, "+v+"!"):"Profile cleared.");
- mpPublishProfile();
-});
+$("btnClearAvatarImg").addEventListener("click",function(){profile.avatarImg="";refreshAvatarPicks();renderStats();mpPublishProfile();markDirty();});
+function setNameFrom(v){
+ profile.name=String(v||"").trim().slice(0,20);
+ $("farmName").textContent=(profile.name?profile.name+"'s":"Your")+" Pig Farm";
+ $("nameInput").value=profile.name;$("nameInput2").value=profile.name;
+ toast(profile.name?("👋 Profile set — welcome, "+profile.name+"!"):"Profile cleared.");
+ mpPublishProfile();renderStats();markDirty();
+}
+$("btnSetName").addEventListener("click",function(){setNameFrom($("nameInput").value);});
+$("btnSetName2").addEventListener("click",function(){setNameFrom($("nameInput2").value);});
 $("playerSearch").addEventListener("input",renderPlayers);
 function renderPlayers(){
  var q=($("playerSearch").value||"").trim().toLowerCase();
  var arr=Object.keys(players).map(function(k){return players[k];});
  arr.sort(function(a,b){return (b.lifetime||0)-(a.lifetime||0);});
- var list=$("playerList");list.innerHTML="";
+ var list=$("playerList");if(!list)return;list.innerHTML="";
  var shown=0;
  arr.forEach(function(p,idx){
   if(q&&String(p.name||"").toLowerCase().indexOf(q)===-1)return;
   shown++;
   var b=document.createElement("button");b.type="button";b.className="player";
-  b.innerHTML='<span class="rank '+(idx===0?"top":"")+'">'+(idx===0?"👑":"#"+(idx+1))+'</span><span class="av">'+esc(p.avatar||"🐷")+'</span><span class="grow"><h3>'+esc(p.name||"Player")+(p.id===myId?'<span class="you-tag">YOU</span>':"")+'</h3><p>Lv '+p.level+" · "+fmt(p.lifetime||0)+' lifetime · '+fmt(p.pps||0)+'/sec</p></span><span style="font-family:Baloo 2;font-weight:800">🐷 '+fmt(p.coins||0)+'</span>';
+  b.innerHTML='<span class="rank '+(idx===0?"top":"")+'">'+(idx===0?"👑":"#"+(idx+1))+'</span><span class="av">'+avatarHTML(p,40)+'</span><span class="grow"><h3>'+esc(p.name||"Player")+((p.localId||p.id)===myId||p.id===(fbUser&&fbUser.uid)?'<span class="you-tag">YOU</span>':"")+(p.title?'<span class="title-tag">'+esc(p.title)+"</span>":"")+'</h3><p>Lv '+p.level+" · "+fmt(p.lifetime||0)+' lifetime · '+fmt(p.pps||0)+'/sec</p></span><span style="font-family:Baloo 2;font-weight:800">🐷 '+fmt(p.coins||0)+"</span>";
   b.addEventListener("click",function(){openProfile(p);});
   list.appendChild(b);
  });
@@ -713,14 +1523,20 @@ function renderPlayers(){
  }
 }
 function openProfile(p){
- $("pmAvatar").textContent=p.avatar||"🐷";$("pmName").textContent=p.name||"Player";
+ if(safeAvatarImg(p.avatarImg))$("pmAvatar").innerHTML='<img src="'+safeAvatarImg(p.avatarImg)+'" alt=""/>';else $("pmAvatar").textContent=p.avatar||"🐷";
+ $("pmName").textContent=p.name||"Player";
+ var bn=BANNERS.find(function(x){return x.id===p.banner;})||BANNERS[0];
+ $("pmBanner").style.background=bn.css;$("pmBanner").textContent=(p.guild?"🏰 "+p.guild+" · ":"")+(p.title?"“"+p.title+"”":"Pig Clicker player");
  $("pmCoins").textContent=fmt(p.coins||0);$("pmLife").textContent=fmt(p.lifetime||0);
  $("pmPps").textContent=fmt(p.pps||0);$("pmTaps").textContent=fmt(p.taps||0);
- $("pmLevel").textContent=p.level||1;$("pmApples").textContent=p.apples||0;$("pmSkin").textContent=p.skin||"Classic";
+ $("pmCombo").textContent="×"+(p.bestCombo||1).toFixed(1);$("pmCps").textContent=p.bestCps||0;
+ $("pmLevel").textContent=p.level||1;$("pmApples").textContent=p.apples||0;
+ $("pmTitle").textContent=p.title||"—";$("pmVip").textContent=p.vip||"—";$("pmSkin").textContent=p.skin||"Classic";
  $("profileModal").classList.add("open");
 }
 $("pmClose").addEventListener("click",function(){$("profileModal").classList.remove("open");});
 $("profileModal").addEventListener("click",function(e){if(e.target===this)this.classList.remove("open");});
+$("awayClose").addEventListener("click",function(){$("awayModal").classList.remove("open");});
 
 /* rooms */
 $("btnNewRoom").addEventListener("click",function(){
@@ -741,26 +1557,645 @@ $("btnCopyCode").addEventListener("click",function(){
 $("chatForm").addEventListener("submit",function(e){
  e.preventDefault();var v=$("chatInput").value.trim();if(!v)return;$("chatInput").value="";
  feed("💬 "+displayName()+": "+v);
- mpPublish("chat",{id:myId,name:displayName(),text:v});
+ mpPublish("chat",{id:myId,localId:myId,name:displayName(),text:v});
 });
-
-/* install help */
 $("btnInstall").addEventListener("click",function(){
  $("installNote").textContent="On Android Chrome: open the \u22ee menu and tap \u201CInstall app\u201D / \u201CAdd to Home screen\u201D. On iPhone Safari: tap Share, then \u201CAdd to Home Screen\u201D. Pig Clicker then opens full-screen from your home screen, icon and all.";
 });
 
+/* ============================== FIREBASE ============================== */
+var firebaseConfig = { apiKey: "AIzaSyAnX_888awH-Zo_mToAkHz_PmEogozV4ZM", authDomain: "pig-clicker-cb299.firebaseapp.com", projectId: "pig-clicker-cb299", storageBucket: "pig-clicker-cb299.firebasestorage.app", messagingSenderId: "284448526450", appId: "1:284448526450:web:f012cd3a0b850ea89372eb" };
+var fbApp=null, fbAuth=null, fbDb=null, fbUser=null;
+var fbReady=false, fbDenied=false, fbOnlineCount=0;
+var friendsCache=[], blockedCache=[], guildCache=null, topCache=[];
+var unsubscribers=[];
+function fbInit(){
+ try{
+  if(typeof firebase==="undefined"||!firebase.initializeApp)throw new Error("sdk");
+  fbApp=firebase.initializeApp(firebaseConfig);
+  fbAuth=firebase.auth(); fbDb=firebase.firestore();
+  fbReady=true;
+  fbAuth.onAuthStateChanged(function(u){
+   fbUser=u||null;
+   renderAuth();
+   if(u){onSignedIn(u);}else{teardownCloudListeners();renderCloudStrip();renderGlobalBoard();renderFriends();renderGuild();}
+  });
+ }catch(e){
+  fbReady=false;fbUser=null;renderAuth();renderCloudStrip();
+ }
+ renderAuth();
+}
+function fbErrText(code){
+ var map={
+  "auth/invalid-email":"That email doesn't look right — check it and try again.",
+  "auth/email-already-in-use":"That email already has a Pig Clicker account — try logging in instead.",
+  "auth/weak-password":"That password is too weak — use at least 6 characters.",
+  "auth/user-not-found":"No account found for that email — register first, or double-check the spelling.",
+  "auth/wrong-password":"Wrong password — try again. (Passwords are case-sensitive!)",
+  "auth/invalid-credential":"Email or password didn't match — check both and try again.",
+  "auth/too-many-requests":"Too many tries in a row — wait a minute and try again.",
+  "auth/network-request-failed":"Network hiccup — check your connection and try again.",
+  "auth/operation-not-allowed":"Email/password sign-in isn't switched on for this project yet."
+ };
+ if(map[code])return map[code];
+ if(code&&code.indexOf("permission-denied")>-1)return "The online database is locked right now — your progress is safe locally and will sync when it's open.";
+ return "Something went wrong ("+(code||"unknown")+"). Local play still works fine.";
+}
+function noteFbError(err,where){
+ if(err&&err.code==="permission-denied"||(err&&String(err.message||"").indexOf("permission")>-1)){
+  fbDenied=true;renderCloudStrip();
+ }
+ if(where)console.warn("PigClicker cloud:",where,err&&err.code);
+}
+function renderCloudStrip(){
+ var el=$("cloudStrip");if(!el)return;
+ if(fbUser&&fbDenied){el.textContent="☁️ Online save unavailable — check back soon (playing locally, all good)";el.className="warn";}
+ else if(fbUser){el.textContent="☁️ Signed in as "+(profile.username||fbUser.email)+" — cloud save on";el.className="";}
+ else if(!fbReady){el.textContent="☁️ Cloud unreachable here — guest mode, progress stays on this device";el.className="warn";}
+ else{el.textContent="☁️ Guest mode — sign in (Profile tab) to save to the cloud";el.className="";}
+}
+function renderAuth(){
+ var area=$("authArea");if(!area)return;
+ if(!fbReady){
+  area.innerHTML='<div class="auth-note">📴 The cloud service could not load in this browser, so accounts are paused here. <b>Guest play works 100%</b> — tap the pig, and your progress is kept on this device.</div><p class="sub">Tip: open the game in Chrome or Safari with a normal connection and sign-in will appear.</p>';
+  return;
+ }
+ if(fbUser){
+  area.innerHTML='<p class="sub" style="margin-bottom:6px">Signed in as <b>'+esc(profile.username||"")+'</b> ('+esc(fbUser.email||"")+')</p>'
+   +(fbDenied?'<div class="auth-note">☁️ <b>Online save unavailable — check back soon.</b> The cloud database is locked at the moment, so saves are being kept on this device and will sync automatically when it opens. Everything in the game still works.</div>':'<p class="auth-ok" id="authOk">☁️ Cloud save is ON — progress syncs to your account.</p>')
+   +'<div class="room-row"><button class="buy blue" id="btnSaveNow" type="button">☁️ Save now</button><button class="buy red" id="btnSignOut" type="button">Sign out</button></div>'
+   +'<p class="sub" style="margin-top:10px">Signing out keeps this device\'s local progress. Your cloud progress loads again on any device when you sign back in.</p>';
+  $("btnSaveNow").addEventListener("click",function(){cloudSaveNow(true);});
+  $("btnSignOut").addEventListener("click",function(){fbAuth.signOut();});
+  return;
+ }
+ area.innerHTML=
+  '<div class="auth-tabs" role="tablist"><button class="tab on" id="atLogin" type="button">Log in</button><button class="tab" id="atReg" type="button">Register</button><button class="tab" id="atGuest" type="button">👤 Guest</button></div>'
+  +'<div id="authForm">'
+  +'<input class="auth-input" id="authUser" maxlength="20" placeholder="Username (register only)" autocomplete="off" style="display:none;margin-bottom:8px"/>'
+  +'<input class="auth-input" id="authEmail" type="email" placeholder="Email" autocomplete="email" style="margin-bottom:8px"/>'
+  +'<input class="auth-input" id="authPass" type="password" placeholder="Password (6+ characters)" autocomplete="current-password" style="margin-bottom:8px"/>'
+  +'<div class="auth-err" id="authErr"></div>'
+  +'<button class="big-btn pink" id="btnAuthGo" type="button">Log in 🐷</button>'
+  +'<p class="sub" style="margin-top:8px">Email + password only — no Google, no Apple, no VR. Passwords are hashed by Firebase; the game never sees or stores yours.</p>'
+  +'</div>'
+  +'<div id="authGuestBox" style="display:none"><div class="auth-note">👤 <b>Guest play:</b> everything works, progress stays on this device only. Create an account any time to turn on cloud saves, the global leaderboard, friends, duels and guilds.</div></div>';
+ var mode="login";
+ function setMode(m){
+  mode=m;
+  $("atLogin").classList.toggle("on",m==="login");
+  $("atReg").classList.toggle("on",m==="register");
+  $("atGuest").classList.toggle("on",m==="guest");
+  $("authForm").style.display=m==="guest"?"none":"";
+  $("authGuestBox").style.display=m==="guest"?"":"none";
+  $("authUser").style.display=m==="register"?"":"none";
+  $("authPass").setAttribute("autocomplete",m==="register"?"new-password":"current-password");
+  $("btnAuthGo").textContent=m==="register"?"Create my account 🐷":"Log in 🐷";
+  $("authErr").textContent="";
+ }
+ $("atLogin").addEventListener("click",function(){setMode("login");});
+ $("atReg").addEventListener("click",function(){setMode("register");});
+ $("atGuest").addEventListener("click",function(){setMode("guest");});
+ $("btnAuthGo").addEventListener("click",function(){
+  var email=$("authEmail").value.trim(),pass=$("authPass").value;
+  var errEl=$("authErr");errEl.textContent="";
+  if(!email||!pass){errEl.textContent="Type your email and password first.";return;}
+  if(mode==="register"){
+   var uname=$("authUser").value.trim();
+   if(uname.length<3){errEl.textContent="Pick a username of at least 3 characters — it's how friends find you.";return;}
+   if(!/^[A-Za-z0-9_ ]+$/.test(uname)){errEl.textContent="Usernames can use letters, numbers, spaces and _ only.";return;}
+   $("btnAuthGo").disabled=true;
+   fbAuth.createUserWithEmailAndPassword(email,pass).then(function(cred){
+    profile.username=uname;profile.name=profile.name||uname;
+    return createUserDoc(cred.user,uname);
+   }).then(function(){
+    toast("🎉 Account created — welcome, "+uname+"! Cloud save is ON.");
+   }).catch(function(err){errEl.textContent=fbErrText(err.code);noteFbError(err,"register");$("btnAuthGo").disabled=false;});
+  }else{
+   $("btnAuthGo").disabled=true;
+   fbAuth.signInWithEmailAndPassword(email,pass).then(function(){
+    toast("👋 Welcome back!");
+   }).catch(function(err){errEl.textContent=fbErrText(err.code);noteFbError(err,"login");var b=$("btnAuthGo");if(b)b.disabled=false;});
+  }
+ });
+}
+function userDocPayload(){
+ return {
+  username:profile.username||"", name:displayName(), avatar:profile.avatar, avatarImg:profile.avatarImg||"",
+  title:S.title||"", banner:S.banner||"sunset", guildId:S.guildId||"", guildName:S.guildName||"",
+  coins:Math.floor(S.coins), lifetime:Math.floor(S.lifetime), taps:S.taps, pps:Math.round(perSec()*10)/10,
+  level:level(), apples:S.apples, prestiges:S.prestiges, bestCombo:Math.round((S.bestCombo||1)*10)/10, bestCps:S.bestCps||0,
+  vip:vipTier(S.taps).name, friends:friendsCache, blocked:blockedCache,
+  state:JSON.stringify(S), updatedAt:Date.now()
+ };
+}
+function createUserDoc(user,uname){
+ if(!fbDb)return Promise.resolve();
+ var payload=userDocPayload();payload.username=uname;payload.createdAt=Date.now();
+ return fbDb.collection("users").doc(user.uid).set(payload,{merge:true}).catch(function(err){noteFbError(err,"createDoc");});
+}
+var saveTimer=null;
+function cloudSaveNow(manual){
+ if(!fbReady||!fbUser||!fbDb)return;
+ var ref=fbDb.collection("users").doc(fbUser.uid);
+ ref.set(userDocPayload(),{merge:true}).then(function(){
+  cloudDirty=false;
+  if(fbDenied){fbDenied=false;renderAuth();}
+  renderCloudStrip();
+  if(manual)toast("☁️ Saved to the cloud!");
+ }).catch(function(err){
+  noteFbError(err,"save");
+  if(manual)toast("☁️ Save didn't go through — it'll retry automatically. Local progress is safe.");
+ });
+}
+function startSaveLoop(){
+ if(saveTimer)clearInterval(saveTimer);
+ saveTimer=setInterval(function(){if(cloudDirty)cloudSaveNow();},15000);
+}
+document.addEventListener("visibilitychange",function(){
+ S.lastSeen=Date.now();saveLocal();
+ if(document.visibilityState==="hidden"&&cloudDirty)cloudSaveNow();
+});
+window.addEventListener("online",function(){if(cloudDirty)cloudSaveNow();});
+function onSignedIn(user){
+ startSaveLoop();
+ var ref=fbDb.collection("users").doc(user.uid);
+ ref.get().then(function(doc){
+  if(doc.exists){
+   var d=doc.data();
+   profile.username=d.username||profile.username;
+   friendsCache=Array.isArray(d.friends)?d.friends:[];
+   blockedCache=Array.isArray(d.blocked)?d.blocked:[];
+   var cloudState=null;
+   try{cloudState=d.state?JSON.parse(d.state):null;}catch(e){}
+   var localAt=0;try{var lc=loadLocal();localAt=lc?lc.savedAt:0;}catch(e){}
+   if(cloudState&&(d.updatedAt||0)>=localAt-1000){
+    var base=freshState();for(var k in base){if(cloudState[k]===undefined)cloudState[k]=base[k];}
+    S=cloudState;bestComboSeen=S.bestCombo||1;
+    profile.name=d.name&&d.name!=="Anonymous Pig"?d.name:profile.name;
+    profile.avatar=d.avatar||profile.avatar;profile.avatarImg=d.avatarImg||"";
+    applySkin();refreshAvatarPicks();renderAch();renderTree();renderAll();renderDaily();renderQuests();renderBp();
+    toast("☁️ Cloud progress loaded — welcome back, "+displayName()+"!");
+   }else{
+    cloudDirty=true;cloudSaveNow();
+   }
+   if(d.name){$("farmName").textContent=d.name+"'s Pig Farm";$("nameInput").value=profile.name;$("nameInput2").value=profile.name;}
+  }else{
+   createUserDoc(user,profile.username||"").then(function(){cloudDirty=false;});
+  }
+  renderCloudStrip();renderStats();mpPublishProfile();
+  setupCloudListeners();
+ }).catch(function(err){
+  noteFbError(err,"load");
+  setupCloudListeners();
+  renderCloudStrip();
+ });
+}
+function teardownCloudListeners(){
+ unsubscribers.forEach(function(u){try{u();}catch(e){}});unsubscribers=[];
+ stopDuelListeners();
+}
+function setupCloudListeners(){
+ teardownCloudListeners();
+ if(!fbDb||!fbUser)return;
+ /* global leaderboard top 100 */
+ try{
+  var u1=fbDb.collection("users").orderBy("lifetime","desc").limit(100).onSnapshot(function(snap){
+   topCache=[];var online=0,now=Date.now();
+   snap.forEach(function(doc){var d=doc.data();d._uid=doc.id;topCache.push(d);if(now-(d.updatedAt||0)<180000)online++;});
+   fbOnlineCount=online;fbDenied=false;renderGlobalBoard();renderFriends();updateOnlineStrip();renderDuelPick();renderCloudStrip();
+  },function(err){noteFbError(err,"leaderboard");renderGlobalBoard();});
+  unsubscribers.push(u1);
+ }catch(e){renderGlobalBoard();}
+ /* my doc (friends / guild live) */
+ try{
+  var u2=fbDb.collection("users").doc(fbUser.uid).onSnapshot(function(doc){
+   if(!doc.exists)return;var d=doc.data();
+   if(Array.isArray(d.friends))friendsCache=d.friends;
+   if(Array.isArray(d.blocked))blockedCache=d.blocked;
+   renderFriends();renderDuelPick();
+   if(d.guildId){loadGuild(d.guildId);}else{S.guildId="";S.guildName="";guildCache=null;renderGuild();renderStats();}
+  },function(err){noteFbError(err,"mydoc");});
+  unsubscribers.push(u2);
+ }catch(e){}
+ setupGchatListener();setupRaidListener();setupGuildBoardListener();setupDuelListeners();
+}
+
+/* ============================== GLOBAL LEADERBOARD ============================== */
+var lbFilter="all";
+$("lbTabAll").addEventListener("click",function(){lbFilter="all";$("lbTabAll").classList.add("on");$("lbTabFriends").classList.remove("on");renderGlobalBoard();});
+$("lbTabFriends").addEventListener("click",function(){lbFilter="friends";$("lbTabFriends").classList.add("on");$("lbTabAll").classList.remove("on");renderGlobalBoard();});
+function renderGlobalBoard(){
+ var el=$("globalBoard");if(!el)return;
+ if(!fbReady){el.innerHTML='<div class="empty">The global leaderboard needs the cloud, which could not load in this browser. Your room leaderboard below still works! 🐷</div>';$("myRankLine").textContent="";return;}
+ if(fbDenied){el.innerHTML='<div class="empty">☁️ Online leaderboard unavailable — check back soon. The database is locked right now; your room leaderboard and local game are unaffected.</div>';$("myRankLine").textContent="";return;}
+ if(!fbUser){el.innerHTML='<div class="empty">Sign in (Profile tab) to join the global leaderboard — it\'s free and takes 20 seconds. Guests still rule their room leaderboard. 🐷</div>';$("myRankLine").textContent="";return;}
+ var arr=topCache.slice();
+ if(lbFilter==="friends"){
+  var fids={};friendsCache.forEach(function(f){fids[f.uid]=true;});fids[fbUser.uid]=true;
+  arr=arr.filter(function(d){return fids[d._uid];});
+ }
+ if(!arr.length){el.innerHTML='<div class="empty">'+(lbFilter==="friends"?"No friends on the board yet — add some by username in the Multiplayer tab!":"The board is empty — be the first legend. 🐷")+"</div>";}
+ else{
+  el.innerHTML="";
+  arr.forEach(function(d,idx){
+   var b=document.createElement("button");b.type="button";b.className="player";
+   var you=d._uid===fbUser.uid;
+   b.innerHTML='<span class="rank '+(idx===0?"top":"")+'">'+(idx===0?"👑":"#"+(idx+1))+'</span><span class="av">'+avatarHTML(d,40)+'</span><span class="grow"><h3>'+esc(d.name||d.username||"Player")+(you?'<span class="you-tag">YOU</span>':"")+(d.title?'<span class="title-tag">'+esc(titleName(d.title)||d.title)+"</span>":"")+'</h3><p>Lv '+(d.level||1)+" · "+fmt(d.lifetime||0)+' lifetime · '+fmt(d.taps||0)+' taps'+(d.guildName?" · 🏰 "+esc(d.guildName):"")+'</p></span><span style="font-family:Baloo 2;font-weight:800">🐷 '+fmt(d.coins||0)+"</span>";
+   b.addEventListener("click",function(){openProfile({avatar:d.avatar,avatarImg:d.avatarImg,name:d.name,coins:d.coins,lifetime:d.lifetime,pps:d.pps,taps:d.taps,bestCombo:d.bestCombo,bestCps:d.bestCps,level:d.level,apples:d.apples,title:titleName(d.title)||d.title,vip:d.vip,skin:"—",banner:d.banner,guild:d.guildName});});
+   el.appendChild(b);
+  });
+ }
+ var myIdx=-1;topCache.forEach(function(d,i){if(d._uid===fbUser.uid)myIdx=i;});
+ $("myRankLine").textContent=myIdx>-1?("🏅 You are #"+(myIdx+1)+" in the world right now. "+(myIdx===0?"THE TOP PIG. 👑":"Tap your way up!")):"You're not in the Top 100 yet — every tap counts. Your totals update from your cloud save.";
+}
+
+/* ============================== FRIENDS ============================== */
+function isOnline(ts){return ts&&(Date.now()-ts)<180000;}
+function renderFriends(){
+ var el=$("friendList");if(!el)return;
+ if(!fbUser){el.innerHTML='<div class="empty">Sign in to use the friends list — guests can still play rooms together. 🐷</div>';renderDuelPick();return;}
+ if(!friendsCache.length){el.innerHTML='<div class="empty">No friends yet. Type a friend\'s exact username above and hit Add — they need a Pig Clicker account.</div>';renderDuelPick();return;}
+ el.innerHTML="";
+ friendsCache.forEach(function(f){
+  var live=topCache.find(function(d){return d._uid===f.uid;});
+  var row=document.createElement("div");row.className="player";row.style.cursor="default";
+  row.innerHTML='<span class="av">'+avatarHTML(live||f,40)+'</span><span class="grow"><h3>'+esc(f.name||f.username)+'</h3><p><span class="pres '+(live&&isOnline(live.updatedAt)?"on":"off")+'">'+(live&&isOnline(live.updatedAt)?"🟢 Online now":"⚪ Offline")+"</span>"+(live?" · Lv "+(live.level||1)+" · "+fmt(live.lifetime||0)+" lifetime":"")+'</p></span>';
+  var db=document.createElement("button");db.type="button";db.className="buy small pink";db.textContent="⚔️ Duel";
+  db.addEventListener("click",function(){var sel=$("duelPick");sel.value=f.uid;showView("social");$("btnDuelSend").click();});
+  var rb=document.createElement("button");rb.type="button";rb.className="buy small";rb.textContent="Remove";
+  rb.addEventListener("click",function(){
+   friendsCache=friendsCache.filter(function(x){return x.uid!==f.uid;});
+   renderFriends();cloudSaveNow();toast("Removed "+(f.name||f.username)+" from friends.");
+  });
+  var bb=document.createElement("button");bb.type="button";bb.className="buy small red";bb.textContent="Block";
+  bb.addEventListener("click",function(){
+   if(!blockedCache.some(function(x){return x.uid===f.uid;}))blockedCache.push({uid:f.uid,username:f.username});
+   friendsCache=friendsCache.filter(function(x){return x.uid!==f.uid;});
+   renderFriends();cloudSaveNow();toast("Blocked "+(f.name||f.username)+". They can't be re-added while blocked.");
+  });
+  var wrap=document.createElement("div");wrap.style.display="flex";wrap.style.flexDirection="column";wrap.style.gap="5px";
+  wrap.appendChild(db);wrap.appendChild(rb);wrap.appendChild(bb);
+  row.appendChild(wrap);el.appendChild(row);
+ });
+ renderDuelPick();
+}
+$("btnAddFriend").addEventListener("click",function(){
+ var uname=$("friendInput").value.trim();
+ if(!fbUser||!fbDb){toast("Friends need an account — sign in first (Profile tab).");return;}
+ if(uname.length<3){sndErr();toast("Type your friend's exact username.");return;}
+ if(uname.toLowerCase()===(profile.username||"").toLowerCase()){sndErr();toast("That's you! You're already your own best friend. 🐷");return;}
+ if(blockedCache.some(function(x){return (x.username||"").toLowerCase()===uname.toLowerCase();})){sndErr();toast("That player is blocked on your account.");return;}
+ fbDb.collection("users").where("username","==",uname).limit(1).get().then(function(snap){
+  if(snap.empty){sndErr();toast("No Pig Clicker player with the username “"+uname+"”. Check the spelling — it's exact.");return;}
+  var doc=snap.docs[0],d=doc.data();
+  if(friendsCache.some(function(f){return f.uid===doc.id;})){toast("Already friends with "+uname+"!");return;}
+  friendsCache.push({uid:doc.id,username:d.username,name:d.name||d.username,avatar:d.avatar||"🐷"});
+  $("friendInput").value="";
+  renderFriends();cloudSaveNow();
+  toast("🐷 "+uname+" added to your friends!");
+ }).catch(function(err){noteFbError(err,"addFriend");toast(fbErrText(err.code||"permission-denied"));});
+});
+
+/* ============================== GLOBAL CHAT ============================== */
+var gchatReady=false;
+function setupGchatListener(){
+ var el=$("gchatList");if(!el)return;
+ if(!fbDb||!fbUser){el.innerHTML='<div class="empty">Sign in to join global chat.</div>';return;}
+ try{
+  var u=fbDb.collection("globalChat").orderBy("ts","desc").limit(30).onSnapshot(function(snap){
+   gchatReady=true;el.innerHTML="";
+   var docs=[];snap.forEach(function(d){var o=d.data();o._id=d.id;docs.push(o);});
+   docs.reverse();
+   if(!docs.length)el.innerHTML='<div class="empty">No messages yet — say the first oink. 🐷</div>';
+   docs.forEach(function(m){
+    var div=document.createElement("div");div.className="gmsg";
+    var when=m.ts&&m.ts.toDate?m.ts.toDate().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"";
+    div.innerHTML='<span class="who">'+avatarHTML(m,22)+" "+esc(m.name||"Pig")+'</span> <span style="color:var(--muted);font-weight:700;font-size:.75rem">'+when+'</span><div class="txt">'+esc(m.text||"")+'</div>';
+    var rr=document.createElement("div");rr.className="react-row";
+    ["👍","🔥","🐷","😂","❤️"].forEach(function(em){
+     var cnt=(m.reactions&&m.reactions[em])||0;
+     var mine=m.myReacts&&m.myReacts[fbUser.uid]===em;
+     var b=document.createElement("button");b.type="button";b.className="react"+(mine?" mine":"");
+     b.textContent=em+(cnt?" "+cnt:"");
+     b.addEventListener("click",function(){
+      if(!fbDb||!fbUser)return;
+      var upd={};upd["reactions."+em]=firebase.firestore.FieldValue.increment(1);upd["myReacts."+fbUser.uid]=em;
+      fbDb.collection("globalChat").doc(m._id).update(upd).catch(function(err){noteFbError(err,"react");});
+     });
+     rr.appendChild(b);
+    });
+    div.appendChild(rr);el.appendChild(div);
+   });
+   el.scrollTop=el.scrollHeight;
+  },function(err){noteFbError(err,"gchat");el.innerHTML='<div class="empty">☁️ Global chat unavailable — check back soon. Room chat still works!</div>';});
+  unsubscribers.push(u);
+ }catch(e){el.innerHTML='<div class="empty">Global chat could not start here.</div>';}
+}
+$("gchatForm").addEventListener("submit",function(e){
+ e.preventDefault();
+ var v=$("gchatInput").value.trim();if(!v)return;
+ if(!fbUser||!fbDb){toast("Global chat needs an account — sign in first (Profile tab).");return;}
+ $("gchatInput").value="";
+ fbDb.collection("globalChat").add({uid:fbUser.uid,name:displayName(),avatar:profile.avatar,avatarImg:profile.avatarImg||"",text:v.slice(0,200),reactions:{},ts:firebase.firestore.FieldValue.serverTimestamp()})
+  .catch(function(err){noteFbError(err,"gchatSend");toast(fbErrText(err.code||"permission-denied"));});
+});
+
+/* ============================== RAIDS ============================== */
+var RAID_NAMES=["👹 MEGA MUD GOLEM","🦖 TRUFFLESAURUS REX","👺 THE GOLDEN BOAR","🐲 MUDWYRM THE ANCIENT","🤖 MECHA-PIG 9000"];
+function raidId(){return "raid-"+Math.floor(Date.now()/(3*3600*1000));}
+function raidMaxHp(){var slot=Math.floor(Date.now()/(3*3600*1000));return 5000000+((slot*7919)%5)*2500000;}
+var raidDoc=null,raidMyDmgLocal=0,raidFlushAt=0,raidClaimedLocal=false;
+function setupRaidListener(){
+ if(!fbDb){renderRaid();return;}
+ try{
+  var u=fbDb.collection("raids").doc(raidId()).onSnapshot(function(doc){
+   raidDoc=doc.exists?doc.data():null;
+   if(!doc.exists&&fbUser){
+    fbDb.collection("raids").doc(raidId()).set({hp:raidMaxHp(),maxHp:raidMaxHp(),name:RAID_NAMES[Math.floor(Date.now()/(3*3600*1000))%RAID_NAMES.length],pool:10000000,createdAt:Date.now()},{merge:true}).catch(function(err){noteFbError(err,"raidCreate");});
+   }
+   renderRaid();
+  },function(err){noteFbError(err,"raid");renderRaid();});
+  unsubscribers.push(u);
+  if(fbUser){
+   var u2=fbDb.collection("raids").doc(raidId()).collection("hitters").doc(fbUser.uid).onSnapshot(function(d){
+    if(d.exists){raidMyDmgLocal=Math.max(raidMyDmgLocal,d.data().dmg||0);raidClaimedLocal=!!d.data().claimed;}
+    renderRaid();
+   },function(){});
+   unsubscribers.push(u2);
+  }
+ }catch(e){renderRaid();}
+}
+function renderRaid(){
+ var nameEl=$("raidName"),info=$("raidInfo"),fill=$("raidHpFill");
+ if(!fbReady||fbDenied){
+  nameEl.textContent="🗡️ Raid boss is resting";
+  info.textContent=fbDenied?"☁️ Raids need the cloud database, which is locked right now — check back soon. Your solo game is unaffected.":"The raid needs the cloud, which could not load here.";
+  fill.style.width="100%";$("raidMyDmg").textContent="";$("btnRaidClaim").style.display="none";
+  $("raidStrip").textContent="🗡️ Raid boss: offline";
+  return;
+ }
+ if(!raidDoc){info.textContent="Summoning the next raid boss…";$("raidStrip").textContent="🗡️ Raid boss: summoning…";return;}
+ var hp=Math.max(0,raidDoc.hp||0),max=raidDoc.maxHp||raidMaxHp(),pct=Math.round(hp/max*100);
+ nameEl.textContent=raidDoc.name||"👹 RAID BOSS";
+ fill.style.width=pct+"%";
+ $("raidStrip").textContent="🗡️ Raid: "+(raidDoc.name||"Boss")+" — "+pct+"% HP";
+ info.innerHTML=hp>0?("Boss HP: <b>"+fmt(hp)+" / "+fmt(max)+"</b> ("+pct+"%) · Prize pool: 🪙 "+fmt(raidDoc.pool||10000000)+" split by damage")
+  :"💀 <b>BOSS DOWN!</b> Great tapping, everyone. Claim your share of the 🪙 "+fmt(raidDoc.pool||10000000)+" pool below.";
+ $("raidMyDmg").textContent="Your damage: "+fmt(raidMyDmgLocal)+(hp<=0&&raidMyDmgLocal>0?" · your share: "+Math.max(1,Math.round(raidMyDmgLocal/Math.max(1,(raidDoc.totalDmg||raidMyDmgLocal))*(raidDoc.pool||10000000)))+" 🪙":"");
+ $("btnRaidClaim").style.display=(hp<=0&&raidMyDmgLocal>0&&!raidClaimedLocal)?"":"none";
+ $("btnRaidTap").disabled=hp<=0;
+}
+function onRaidTapGain(gain){
+ if(!raidDoc||(raidDoc.hp||0)<=0)return;
+ raidPending+=gain;
+ var now=Date.now();
+ if(now-raidFlushAt>2500)flushRaid();
+}
+var raidPending=0;
+function flushRaid(){
+ raidFlushAt=Date.now();
+ if(!raidPending||!fbDb||!fbUser||!raidDoc)return;
+ var amt=Math.floor(raidPending);raidPending=0;
+ if(amt<=0)return;
+ var ref=fbDb.collection("raids").doc(raidId());
+ ref.update({hp:firebase.firestore.FieldValue.increment(-amt),totalDmg:firebase.firestore.FieldValue.increment(amt)}).catch(function(err){noteFbError(err,"raidHit");});
+ ref.collection("hitters").doc(fbUser.uid).set({dmg:firebase.firestore.FieldValue.increment(amt),name:displayName()},{merge:true}).then(function(){
+  S.raidDamage=(S.raidDamage||0)+amt;questProgress();checkAch();checkTitles();
+ }).catch(function(err){noteFbError(err,"raidHitMe");});
+}
+$("btnRaidTap").addEventListener("click",function(){
+ if(!fbUser){toast("Raids need an account — sign in first (Profile tab). You can still watch the boss!");return;}
+ if(!raidDoc){toast("The boss is still being summoned…");return;}
+ if((raidDoc.hp||0)<=0){toast("Boss is down! Claim your reward.");return;}
+ var dmg=Math.max(1,Math.floor(perTap()*(0.9+Math.random()*0.2)));
+ raidMyDmgLocal+=dmg;onRaidTapGain(dmg);renderRaid();
+ if(qol.vibe&&navigator.vibrate)navigator.vibrate(12);
+});
+$("btnRaidClaim").addEventListener("click",function(){
+ if(!fbUser||!raidDoc||raidClaimedLocal)return;
+ var share=Math.max(1,Math.round(raidMyDmgLocal/Math.max(1,(raidDoc.totalDmg||raidMyDmgLocal))*(raidDoc.pool||10000000)));
+ fbDb.collection("raids").doc(raidId()).collection("hitters").doc(fbUser.uid).update({claimed:true}).then(function(){
+  raidClaimedLocal=true;S.coins+=share;S.lifetime+=share;addBpXp(40);sndGold();
+  toast("🎁 Raid reward claimed: +"+fmt(share)+" 🪙!");
+  feed("🗡️ "+displayName()+" claimed a raid reward of "+fmt(share)+" 🪙!",true);
+  renderRaid();renderStats();markDirty();
+ }).catch(function(err){noteFbError(err,"raidClaim");toast(fbErrText(err.code||"permission-denied"));});
+});
+setInterval(flushRaid,3000);
+
+/* ============================== DUELS ============================== */
+var duelDoc=null,duelUnsub=null,duelIncUnsub=null,duelScore={me:0,opp:0},duelEndsAt=0,duelFlushAt=0,duelRole="";
+function renderDuelPick(){
+ var sel=$("duelPick");if(!sel)return;
+ var cur=sel.value;sel.innerHTML="";
+ if(!fbUser){sel.innerHTML='<option value="">Sign in to duel</option>';return;}
+ if(!friendsCache.length){sel.innerHTML='<option value="">Add a friend first (below)</option>';return;}
+ friendsCache.forEach(function(f){var o=document.createElement("option");o.value=f.uid;o.textContent="⚔️ "+(f.name||f.username);sel.appendChild(o);});
+ if(cur)sel.value=cur;
+}
+function stopDuelListeners(){if(duelUnsub){try{duelUnsub();}catch(e){}duelUnsub=null;}if(duelIncUnsub){try{duelIncUnsub();}catch(e){}duelIncUnsub=null;}}
+function duelStatus(html){$("duelStatus").innerHTML=html;}
+function setupDuelListeners(){
+ stopDuelListeners();
+ if(!fbDb||!fbUser)return;
+ try{
+  duelIncUnsub=fbDb.collection("duels").where("b","==",fbUser.uid).where("state","==","open").onSnapshot(function(snap){
+   snap.forEach(function(doc){
+    var d=doc.data();
+    if(blockedCache.some(function(x){return x.uid===d.a;}))return;
+    duelStatus("⚔️ <b>"+esc(d.aName||"A rival")+"</b> challenged you to a 30-second tap duel! Prize pot: 🪙 "+fmt(d.prize||5000)+'<br><br><button class="buy pink" id="btnDuelAccept" type="button">ACCEPT &amp; FIGHT 🥊</button> <button class="buy" id="btnDuelDecline" type="button">Decline</button>');
+    $("btnDuelAccept").addEventListener("click",function(){acceptDuel(doc.id,d);});
+    $("btnDuelDecline").addEventListener("click",function(){
+     fbDb.collection("duels").doc(doc.id).update({state:"declined"}).catch(function(){});
+     duelStatus("You declined the duel. The pig respects your peace. 🕊️");
+    });
+   });
+  },function(err){noteFbError(err,"duelListen");});
+ }catch(e){}
+}
+$("btnDuelSend").addEventListener("click",function(){
+ if(!fbUser||!fbDb){toast("Duels need an account — sign in first (Profile tab).");return;}
+ var opp=$("duelPick").value;
+ if(!opp){sndErr();toast("Pick a friend to challenge first.");return;}
+ if(duelDoc){toast("You're already in a duel!");return;}
+ var f=friendsCache.find(function(x){return x.uid===opp;});
+ var prize=5000;
+ fbDb.collection("duels").add({a:fbUser.uid,b:opp,aName:displayName(),bName:f?(f.name||f.username):"Rival",aScore:0,bScore:0,state:"open",prize:prize,createdAt:Date.now()}).then(function(ref){
+  watchDuel(ref.id,"a");
+  duelStatus("⚔️ Challenge sent to <b>"+esc(f?(f.name||f.username):"your friend")+"</b>! Waiting for them to accept… (If they're not online, nothing happens — no coins lost.)");
+ }).catch(function(err){noteFbError(err,"duelSend");duelStatus("☁️ Duels unavailable — check back soon.");});
+});
+function acceptDuel(id,d){
+ fbDb.collection("duels").doc(id).update({state:"active",endsAt:Date.now()+30000}).then(function(){
+  watchDuel(id,"b");
+ }).catch(function(err){noteFbError(err,"duelAccept");});
+}
+function watchDuel(id,role){
+ if(duelUnsub)try{duelUnsub();}catch(e){}
+ duelRole=role;duelScore={me:0,opp:0};
+ duelUnsub=fbDb.collection("duels").doc(id).onSnapshot(function(doc){
+  if(!doc.exists)return;
+  var d=doc.data();duelDoc={id:id,data:d};
+  if(d.state==="active"){
+   duelEndsAt=d.endsAt||0;
+   duelScore.me=role==="a"?(d.aScore||0):(d.bScore||0);
+   duelScore.opp=role==="a"?(d.bScore||0):(d.aScore||0);
+   var left=Math.max(0,Math.ceil((duelEndsAt-Date.now())/1000));
+   duelStatus("🥊 <b>DUEL! Tap the big pig as fast as you can!</b><br>⏱️ "+left+"s left · You: <b>"+duelScore.me+"</b> taps · "+esc(role==="a"?d.bName:d.aName)+": <b>"+duelScore.opp+"</b> taps<br><small>Head to the Play tab and HAMMER that pig.</small>");
+   if(left<=0)finishDuel(id,d);
+  }else if(d.state==="done"){
+   var mine=role==="a"?(d.aScore||0):(d.bScore||0),theirs=role==="a"?(d.bScore||0):(d.aScore||0);
+   if(mine>theirs){
+    duelStatus("🏆 <b>YOU WIN THE DUEL!</b> "+mine+" taps vs "+theirs+". Prize: 🪙 "+fmt(d.prize||5000)+" — added to your coins!");
+    if(!duelDoc.paid){duelDoc.paid=true;S.coins+=d.prize||5000;S.lifetime+=d.prize||5000;S.duelWins=(S.duelWins||0)+1;addBpXp(30);sndGold();feed("🥊 "+displayName()+" won a click duel!",true);checkAch();checkTitles();renderStats();markDirty();}
+   }else if(mine<theirs){
+    duelStatus("💀 You lost the duel, "+mine+" taps vs "+theirs+". The pig believes in your comeback arc. 🥲");
+    if(!duelDoc.paid){duelDoc.paid=true;sndErr();}
+   }else{
+    duelStatus("🤝 A perfect tie at "+mine+" taps each! Nobody pays. The pig is impressed.");
+    if(!duelDoc.paid)duelDoc.paid=true;
+   }
+   duelDoc=null;
+   if(duelUnsub){try{duelUnsub();}catch(e){}duelUnsub=null;}
+  }else if(d.state==="declined"){
+   duelStatus("Your challenge was declined. Try another rival! 🐷");
+   duelDoc=null;if(duelUnsub){try{duelUnsub();}catch(e){}duelUnsub=null;}
+  }
+ },function(err){noteFbError(err,"duelWatch");});
+}
+function finishDuel(id,d){
+ fbDb.collection("duels").doc(id).update({state:"done"}).catch(function(){});
+}
+function onDuelTap(){
+ if(!duelDoc||!duelDoc.data||duelDoc.data.state!=="active")return;
+ duelScore.me++;
+ var now=Date.now();
+ if(now-duelFlushAt>800){
+  duelFlushAt=now;
+  var upd={};upd[duelRole==="a"?"aScore":"bScore"]=duelScore.me;
+  fbDb.collection("duels").doc(duelDoc.id).update(upd).catch(function(){});
+ }
+}
+
+/* ============================== GUILDS ============================== */
+function loadGuild(gid){
+ if(!fbDb||!gid)return;
+ fbDb.collection("guilds").doc(gid).get().then(function(doc){
+  if(doc.exists){guildCache=doc.data();guildCache.id=gid;renderGuild();renderStats();}
+ }).catch(function(err){noteFbError(err,"guildLoad");});
+}
+function renderGuild(){
+ var el=$("guildBody");if(!el)return;
+ if(!fbUser){el.innerHTML='<div class="empty">Sign in to join a guild — guilds live in the cloud. 🐷</div>';return;}
+ if(fbDenied){el.innerHTML='<div class="empty">☁️ Guilds unavailable — check back soon (database locked). Your solo game is fine!</div>';return;}
+ if(!S.guildId){
+  el.innerHTML='<div class="room-row" style="margin-bottom:10px"><input class="room-input" id="guildNameInput" maxlength="24" placeholder="New guild name…" style="flex:1"/><button class="send-btn" id="btnGuildCreate" type="button">Create guild</button></div>'
+   +'<div class="room-row"><input class="room-input" id="guildJoinInput" maxlength="40" placeholder="Guild ID from a friend…" style="flex:1"/><button class="send-btn" id="btnGuildJoin" type="button" style="background:var(--blue)">Join guild</button></div>'
+   +'<p class="sub" style="margin-top:8px">Or tap any guild in the leaderboard below to join it.</p>';
+  $("btnGuildCreate").addEventListener("click",function(){
+   var name=$("guildNameInput").value.trim();
+   if(name.length<3){sndErr();toast("Guild names need at least 3 characters.");return;}
+   fbDb.collection("guilds").add({name:name,owner:fbUser.uid,members:1,bank:0,level:0,createdAt:Date.now()}).then(function(ref){
+    S.guildId=ref.id;S.guildName=name;guildCache={id:ref.id,name:name,members:1,bank:0,level:0};
+    toast("🏰 Guild “"+name+"” founded! Your Guild ID is "+ref.id+" — share it to recruit.");
+    renderGuild();renderStats();checkTitles();markDirty();cloudSaveNow();
+   }).catch(function(err){noteFbError(err,"guildCreate");toast(fbErrText(err.code||"permission-denied"));});
+  });
+  $("btnGuildJoin").addEventListener("click",function(){joinGuild($("guildJoinInput").value.trim());});
+  return;
+ }
+ var g=guildCache||{name:S.guildName,bank:0,level:0,members:1};
+ var buff=(g.level||0)*2;
+ el.innerHTML='<div class="player" style="cursor:default"><span class="av">🏰</span><span class="grow"><h3>'+esc(g.name||S.guildName)+'</h3><p>Guild ID: '+esc(S.guildId)+'<br>Members: '+(g.members||1)+' · Bank: 🪙 '+fmt(g.bank||0)+' · Level '+(g.level||0)+' → <b>+'+buff+'% to everything</b> for all members</p></span></div>'
+  +'<div class="room-row"><input class="room-input" id="guildDonate" type="number" min="1" placeholder="Donate coins to the guild bank…" style="flex:1"/><button class="send-btn" id="btnGuildDonate" type="button">Donate</button><button class="buy red" id="btnGuildLeave" type="button">Leave</button></div>'
+  +'<p class="sub" style="margin-top:8px">Every 1,000,000 🪙 in the bank = +1 guild level (max +20%). Donations are forever — choose wisely, pig.</p>';
+ $("btnGuildDonate").addEventListener("click",function(){
+  var amt=Math.floor(Number($("guildDonate").value)||0);
+  if(amt<1){sndErr();toast("Type how many coins to donate.");return;}
+  if(S.coins<amt){sndErr();toast("You don't have that many coins!");return;}
+  S.coins-=amt;renderStats();
+  fbDb.collection("guilds").doc(S.guildId).update({bank:firebase.firestore.FieldValue.increment(amt)}).then(function(){
+   return fbDb.collection("guilds").doc(S.guildId).get();
+  }).then(function(doc){
+   if(doc.exists){var d=doc.data();var nl=Math.min(10,Math.floor((d.bank||0)/1000000));if(nl!==(d.level||0))fbDb.collection("guilds").doc(S.guildId).update({level:nl}).catch(function(){});guildCache=d;guildCache.id=S.guildId;}
+   toast("🏰 Donated "+fmt(amt)+" 🪙 to the guild bank!");renderGuild();renderStats();markDirty();
+  }).catch(function(err){noteFbError(err,"guildDonate");S.coins+=amt;renderStats();toast("Donation didn't go through — coins refunded.");});
+ });
+ $("btnGuildLeave").addEventListener("click",function(){
+  var gid=S.guildId;S.guildId="";S.guildName="";guildCache=null;
+  if(gid)fbDb.collection("guilds").doc(gid).update({members:firebase.firestore.FieldValue.increment(-1)}).catch(function(){});
+  renderGuild();renderStats();markDirty();cloudSaveNow();toast("You left the guild. The pig waves sadly. 👋");
+ });
+}
+function joinGuild(gid){
+ if(!gid||!fbUser||!fbDb){toast("Paste a Guild ID first (sign-in required).");return;}
+ fbDb.collection("guilds").doc(gid).get().then(function(doc){
+  if(!doc.exists){sndErr();toast("No guild with that ID — check it and try again.");return;}
+  var d=doc.data();
+  S.guildId=gid;S.guildName=d.name;guildCache=d;guildCache.id=gid;
+  fbDb.collection("guilds").doc(gid).update({members:firebase.firestore.FieldValue.increment(1)}).catch(function(){});
+  toast("🏰 You joined “"+d.name+"”! Guild buff active: +"+((d.level||0)*2)+"% to everything.");
+  renderGuild();renderStats();checkTitles();markDirty();cloudSaveNow();
+ }).catch(function(err){noteFbError(err,"guildJoin");toast(fbErrText(err.code||"permission-denied"));});
+}
+function setupGuildBoardListener(){
+ var el=$("guildBoard");if(!el)return;
+ if(!fbDb){el.innerHTML='<div class="empty">Guilds need the cloud.</div>';return;}
+ try{
+  var u=fbDb.collection("guilds").orderBy("bank","desc").limit(20).onSnapshot(function(snap){
+   el.innerHTML="";
+   if(snap.empty){el.innerHTML='<div class="empty">No guilds yet — found the first one above! 🏰</div>';return;}
+   var idx=0;
+   snap.forEach(function(doc){
+    idx++;var d=doc.data();
+    var b=document.createElement("button");b.type="button";b.className="player";
+    b.innerHTML='<span class="rank '+(idx===1?"top":"")+'">'+(idx===1?"👑":"#"+idx)+'</span><span class="av">🏰</span><span class="grow"><h3>'+esc(d.name||"Guild")+(S.guildId===doc.id?'<span class="you-tag">YOUR GUILD</span>':"")+'</h3><p>'+(d.members||1)+' members · Level '+(d.level||0)+' · Bank 🪙 '+fmt(d.bank||0)+'</p></span><span style="font-weight:900;color:var(--muted)">'+(S.guildId===doc.id?"":"Tap to join")+"</span>";
+    b.addEventListener("click",function(){if(S.guildId!==doc.id)joinGuild(doc.id);});
+    el.appendChild(b);
+   });
+  },function(err){noteFbError(err,"guildBoard");el.innerHTML='<div class="empty">☁️ Guild board unavailable — check back soon.</div>';});
+  unsubscribers.push(u);
+ }catch(e){el.innerHTML='<div class="empty">Guild board could not start here.</div>';}
+}
+
 /* ============================== LOOPS / INIT ============================== */
 setInterval(function(){var gain=perSec()/10;if(gain>0){S.coins+=gain;S.lifetime+=gain;}renderStats();},100);
-/* refresh shop affordability without full re-render churn */
-setInterval(function(){
- document.querySelectorAll("#shopList .buy").forEach(function(){}); /* cheap no-op guard */
-},1000);
 setInterval(renderShop,4000);
-applySkin();renderAch();renderAll();renderPlayers();
-feed("🐷 Welcome to Pig Clicker! Tap the pig, buy auto-clickers, and prestige for Golden Apples.");
+setInterval(saveLocal,5000);
+setInterval(function(){ensureQuests();},30000);
+
+/* load local cache, apply offline earnings */
+var savedData=loadLocal();
+if(savedData){
+ S=savedData.S;bestComboSeen=S.bestCombo||1;
+ for(var qk in qol){if(savedData.qol&&savedData.qol[qk]!==undefined)qol[qk]=savedData.qol[qk];}
+ if(savedData.profile){profile.name=savedData.profile.name||"";profile.avatar=savedData.profile.avatar||"🐷";profile.avatarImg=savedData.profile.avatarImg||"";profile.username=savedData.profile.username||"";}
+ if(savedData.roomCode)roomCode=savedData.roomCode;
+ var awaySecs=Math.min(8*3600,Math.max(0,(Date.now()-(S.lastSeen||Date.now()))/1000));
+ var awayRate=0.5*(1+skillLvl("vault")*0.25);
+ var awayGain=perSec()*awaySecs*awayRate;
+ if(awayGain>=100&&totalGens()>0){
+  S.coins+=awayGain;S.lifetime+=awayGain;
+  $("awayText").innerHTML="Your auto-clickers banked <b>"+fmt(awayGain)+" 🪙</b> while you were away ("+Math.floor(awaySecs/60)+" min, capped at 8 hours at 50% rate).";
+  $("awayModal").classList.add("open");
+ }
+}
+/* sync QoL toggle UI to loaded settings */
+syncToggle("qFmt",qol.fmt);syncToggle("qHold",qol.hold);syncToggle("qHint",qol.hint);syncToggle("qToast",qol.toasts);
+$("btnSound").classList.toggle("on",qol.sound);$("btnSound").textContent="🔊 Sound: "+(qol.sound?"On":"Off");
+$("btnVibe").classList.toggle("on",qol.vibe);$("btnVibe").textContent="📳 Vibration: "+(qol.vibe?"On":"Off");
+$("btnAnim").classList.toggle("on",qol.anim);$("btnAnim").textContent="✨ Effects: "+(qol.anim?"On":"Off");
+document.body.classList.toggle("no-anim",!qol.anim);
+if(profile.name){$("farmName").textContent=profile.name+"'s Pig Farm";$("nameInput").value=profile.name;$("nameInput2").value=profile.name;}
+
+applySkin();refreshAvatarPicks();renderAch();renderTree();renderAll();renderPlayers();renderDaily();ensureQuests();renderQuests();renderBp();renderLog();renderCloudStrip();renderGlobalBoard();renderFriends();renderGuild();renderRaid();renderDuelPick();
+checkTitles();
+feed("🐷 Welcome to Pig Clicker v2.0! Tap the pig, raid the boss, and check the Update Log in your Profile.");
 mpConnect();scheduleGolden();
+fbInit();
 setTimeout(function(){toast("🐷 Tap the pig to start earning!");},600);
 </script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}</script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});}</script>
 </body>
 </html>
