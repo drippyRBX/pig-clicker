@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#ff6b9d"/>
+<meta name="color-scheme" content="light dark"/>
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png"/>
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png"/>
+<link rel="apple-touch-icon" href="icon-512.png"/>
+<link rel="manifest" href="manifest.json"/>
+<title>Pig Clicker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
+<style>
+:root{
+  --bg:#fff6ec; --bg2:#ffeef5; --card:#ffffff; --card2:#fff9f0; --ink:#2b1a12; --muted:#7a5c4d;
+  --line:#f0d9c8; --pink:#ff6b9d; --pink-d:#e94f83; --pig:#ffb3c8; --pig-d:#ff8fab; --snout:#ff7aa2;
+  --green:#37b24d; --green-d:#2b8a3e; --gold:#f5b301; --brown:#8d5a3a; --mud:#b08968;
+  --red:#e03131; --shadow:0 10px 30px rgba(120,53,15,.14); --radius:20px;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#1d1218; --bg2:#24161d; --card:#2c1c24; --card2:#34222c; --ink:#ffeef5; --muted:#d8b4c2;
+  --line:#4a2f3c; --shadow:0 10px 30px rgba(0,0,0,.4); }
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;font-family:"Nunito",system-ui,sans-serif;background:linear-gradient(180deg,var(--bg2),var(--bg) 340px);color:var(--ink);-webkit-tap-highlight-color:transparent}
+h1,h2,h3,.baloo{font-family:"Baloo 2","Nunito",sans-serif}
+button,input,select{font:inherit} button{cursor:pointer}
+.wrap{max-width:1180px;margin:0 auto;padding:14px 14px 90px}
+
+/* ---------- top stats ---------- */
+.stats{position:sticky;top:8px;z-index:40;display:grid;grid-template-columns:1.5fr repeat(3,1fr);gap:8px}
+.stat{background:var(--card);border:2px solid var(--line);border-radius:16px;padding:8px 12px;box-shadow:var(--shadow)}
+.stat small{display:block;color:var(--muted);font-weight:800;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase}
+.stat b{font-size:1.25rem;font-family:"Baloo 2";line-height:1.1}
+.stat.main b{color:var(--pink-d);font-size:1.55rem}
+@media(max-width:640px){.stats{grid-template-columns:1fr 1fr}.stat b{font-size:1.05rem}.stat.main b{font-size:1.3rem}}
+
+/* ---------- layout ---------- */
+.layout{display:grid;grid-template-columns:minmax(320px,1.05fr) minmax(340px,1fr);gap:16px;margin-top:16px;align-items:start}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+.card{background:var(--card);border:2px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px}
+.card h2{margin:0 0 4px;font-size:1.35rem}
+.sub{color:var(--muted);font-weight:700;font-size:.9rem;margin:0 0 12px}
+
+/* ---------- pig stage ---------- */
+.stage{position:relative;text-align:center;overflow:hidden;background:
+ radial-gradient(circle at 20% 15%,rgba(255,214,102,.5),transparent 42%),
+ linear-gradient(180deg,#bfe8ff 0 55%,#8fd07a 55% 82%,#a9744f 82% 100%)}
+@media (prefers-color-scheme: dark){.stage{background:radial-gradient(circle at 20% 15%,rgba(245,179,1,.25),transparent 42%),linear-gradient(180deg,#23384d 0 55%,#2e5230 55% 82%,#5f4128 82% 100%)}}
+.farm-name{font-family:"Baloo 2";font-weight:800;font-size:1.5rem;margin:2px 0 0}
+.level-line{font-weight:900;color:var(--muted);font-size:.85rem}
+.xpbar{height:10px;background:rgba(0,0,0,.15);border-radius:99px;overflow:hidden;margin:8px auto 4px;max-width:340px}
+.xpbar i{display:block;height:100%;background:var(--gold);width:0%;transition:width .3s}
+#pigBtn{background:none;border:none;padding:6px;margin:6px auto;display:block;position:relative;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+#pigBtn svg{width:min(290px,72vw);height:auto;display:block;filter:drop-shadow(0 14px 14px rgba(90,40,10,.28));transition:transform .07s}
+#pigBtn:active svg,#pigBtn.squish svg{transform:scale(.93) rotate(-1.5deg)}
+#pigBtn:focus-visible{outline:4px solid var(--gold);border-radius:50%}
+.combo-wrap{max-width:340px;margin:4px auto 0}
+.combo-label{font-weight:900;font-size:.8rem;color:#7a3b12}
+@media (prefers-color-scheme: dark){.combo-label{color:#ffd8a8}}
+.combobar{height:12px;background:rgba(0,0,0,.18);border-radius:99px;overflow:hidden}
+.combobar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--gold),#ff7b54);transition:width .12s}
+.tap-hint{font-weight:900;margin:8px 0 2px}
+.crit-flash{position:absolute;inset:auto 0 12px;font-family:"Baloo 2";font-weight:800;color:var(--gold);font-size:1.3rem;text-shadow:0 2px 0 rgba(0,0,0,.25);opacity:0;pointer-events:none}
+.crit-flash.show{opacity:1;transition:opacity .15s}
+.floaty{position:absolute;font-family:"Baloo 2";font-weight:800;color:#fff;text-shadow:0 2px 0 rgba(160,40,80,.65),0 0 12px rgba(255,107,157,.6);pointer-events:none;animation:floatUp 0.95s ease-out forwards;z-index:5;font-size:1.25rem}
+.floaty.crit{color:var(--gold);font-size:1.7rem}
+@keyframes floatUp{from{transform:translateY(0) scale(1);opacity:1}to{transform:translateY(-110px) scale(1.15) rotate(-4deg);opacity:0}}
+#goldenPig{position:absolute;z-index:6;border:3px solid #ffe066;background:linear-gradient(180deg,#ffe98a,#ffc93c);border-radius:999px;padding:8px 14px;font-weight:900;font-family:"Baloo 2";box-shadow:0 8px 22px rgba(180,120,0,.45);display:none;animation:bob 0.7s ease-in-out infinite alternate}
+@keyframes bob{from{transform:translateY(0) rotate(-3deg)}to{transform:translateY(-10px) rotate(3deg)}}
+.stage-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+.chip-btn{border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:8px 14px;font-weight:900}
+.chip-btn.on{background:var(--pink);border-color:var(--pink-d);color:#fff}
+
+/* ---------- shop ---------- */
+.buy-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.buy-row span{font-weight:900;color:var(--muted);font-size:.85rem}
+.buy-amt{border:2px solid var(--line);background:var(--card2);color:var(--ink);border-radius:10px;padding:6px 12px;font-weight:900}
+.buy-amt.on{background:var(--brown);color:#fff;border-color:var(--brown)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tab{border:none;background:var(--card2);border:2px solid var(--line);color:var(--ink);padding:8px 13px;border-radius:999px;font-weight:900}
+.tab.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.item{display:flex;gap:12px;align-items:center;border:2px solid var(--line);background:var(--card2);border-radius:16px;padding:11px 12px;margin-bottom:9px}
+.item .ic{font-size:1.9rem;width:52px;height:52px;flex:0 0 52px;display:grid;place-items:center;background:var(--card);border-radius:14px;border:2px solid var(--line)}
+.item .grow{flex:1;min-width:0}
+.item h3{margin:0;font-size:1.02rem}
+.item p{margin:1px 0 0;color:var(--muted);font-weight:700;font-size:.82rem}
+.item .owned{font-weight:900;color:var(--green-d);font-size:.8rem}
+.buy{border:none;border-radius:12px;padding:10px 13px;font-weight:900;font-family:"Baloo 2";background:var(--green);color:#fff;min-width:104px;line-height:1.15}
+.buy small{display:block;font-weight:800;font-size:.75rem;opacity:.92}
+.buy:disabled{background:#c9b8ad;color:#fff;cursor:not-allowed;opacity:.75}
+.buy.maxed{background:var(--gold);color:#4a2f00}
+.prestige-box{border:2px dashed var(--gold);background:linear-gradient(180deg,rgba(245,179,1,.12),transparent);border-radius:16px;padding:13px;margin-top:6px}
+.big-btn{border:none;border-radius:14px;padding:12px 16px;font-weight:800;font-family:"Baloo 2";font-size:1.05rem;background:var(--gold);color:#4a2f00;width:100%}
+.big-btn:disabled{opacity:.5;cursor:not-allowed}
+.skin-row{display:flex;gap:8px;flex-wrap:wrap}
+.skin{border:3px solid var(--line);background:var(--card2);border-radius:14px;padding:8px 10px;font-weight:900;text-align:center;min-width:86px}
+.skin.on{border-color:var(--pink)}
+.skin small{display:block;color:var(--muted);font-weight:800}
+.skin:disabled{opacity:.55}
+
+/* ---------- multiplayer ---------- */
+.mp-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;align-items:start}
+@media(max-width:900px){.mp-grid{grid-template-columns:1fr}}
+.status-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#adb5bd;vertical-align:middle;margin-right:6px}
+.status-dot.on{background:var(--green)} .status-dot.try{background:var(--gold)}
+.profile-form{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:10px}
+.profile-form input,.search-input,.chat-input,.room-input{border:2px solid var(--line);background:var(--card2);color:var(--ink);border-radius:12px;padding:10px 12px;font-weight:800;width:100%;min-width:0}
+.avatar-pick{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.avatar-pick button{border:2px solid var(--line);background:var(--card2);border-radius:12px;font-size:1.35rem;padding:5px 9px}
+.avatar-pick button.on{border-color:var(--pink);background:var(--bg2)}
+.room-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.room-code{font-family:"Baloo 2";font-weight:800;font-size:1.3rem;letter-spacing:.12em;background:var(--card2);border:2px dashed var(--mud);border-radius:12px;padding:6px 14px}
+.player{display:flex;gap:11px;align-items:center;width:100%;text-align:left;border:2px solid var(--line);background:var(--card2);border-radius:14px;padding:9px 11px;margin-bottom:8px;color:var(--ink)}
+.player:hover{border-color:var(--pink)}
+.player .av{font-size:1.8rem}
+.player .grow{flex:1;min-width:0}
+.player h3{margin:0;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.player p{margin:0;color:var(--muted);font-weight:700;font-size:.8rem}
+.rank{font-family:"Baloo 2";font-weight:800;font-size:1.15rem;color:var(--muted);width:30px;text-align:center}
+.rank.top{color:var(--gold)}
+.you-tag{background:var(--pink);color:#fff;border-radius:99px;font-size:.65rem;padding:2px 8px;font-weight:900;vertical-align:middle;margin-left:5px}
+.empty{border:2px dashed var(--line);border-radius:14px;padding:16px;text-align:center;color:var(--muted);font-weight:800}
+.feed{max-height:240px;overflow:auto;display:flex;flex-direction:column;gap:6px}
+.feed div{background:var(--card2);border:2px solid var(--line);border-radius:11px;padding:7px 10px;font-weight:700;font-size:.88rem}
+.feed b{font-family:"Baloo 2"}
+.chat-form{display:flex;gap:8px;margin-top:10px}
+.send-btn{border:none;background:var(--pink);color:#fff;border-radius:12px;padding:10px 16px;font-weight:900}
+
+/* ---------- misc ---------- */
+.ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.ach{border:2px solid var(--line);background:var(--card2);border-radius:14px;padding:10px;font-weight:800;font-size:.88rem}
+.ach small{display:block;color:var(--muted);font-weight:700}
+.ach.done{border-color:var(--gold);background:linear-gradient(180deg,rgba(245,179,1,.16),transparent)}
+.ach:not(.done){opacity:.65}
+.qol-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:520px){.qol-grid{grid-template-columns:1fr}}
+.toggle{display:flex;justify-content:space-between;align-items:center;gap:10px;border:2px solid var(--line);background:var(--card2);border-radius:13px;padding:10px 12px;font-weight:900}
+.toggle button{border:none;border-radius:99px;padding:6px 14px;font-weight:900;background:#ced4da;color:#333}
+.toggle button.on{background:var(--green);color:#fff}
+.stat-table{width:100%;border-collapse:collapse;font-weight:800}
+.stat-table td{padding:7px 4px;border-bottom:1px solid var(--line)}
+.stat-table td:last-child{text-align:right;font-family:"Baloo 2"}
+#toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:99;display:flex;flex-direction:column;gap:8px;align-items:center;width:min(92vw,430px);pointer-events:none}
+.toast{background:var(--ink);color:var(--bg);border-radius:14px;padding:11px 16px;font-weight:900;box-shadow:var(--shadow);text-align:center;animation:toastIn .25s ease-out;width:100%}
+@keyframes toastIn{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
+.modal-bg{position:fixed;inset:0;background:rgba(20,8,14,.55);z-index:80;display:none;place-items:center;padding:16px}
+.modal-bg.open{display:grid}
+.modal{background:var(--card);border-radius:22px;max-width:420px;width:100%;padding:20px;border:2px solid var(--line);max-height:88vh;overflow:auto}
+.modal .big-av{font-size:3.4rem;text-align:center}
+.modal h2{text-align:center;margin:4px 0 12px}
+.close-btn{width:100%;margin-top:12px}
+.foot{color:var(--muted);font-weight:700;text-align:center;margin-top:20px;font-size:.88rem}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+body.no-anim .floaty{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- STATS -->
+  <div class="stats" role="region" aria-label="Your piggy bank stats">
+    <div class="stat main"><small>🐷 Pig Coins</small><b id="stCoins">0</b></div>
+    <div class="stat"><small>Per tap</small><b id="stPerTap">1</b></div>
+    <div class="stat"><small>Per second</small><b id="stPerSec">0</b></div>
+    <div class="stat"><small>🍎 Golden Apples</small><b id="stApples">0</b></div>
+  </div>
+
+  <div class="layout">
+    <!-- CLICK STAGE -->
+    <section class="card stage" aria-label="Click the pig">
+      <div class="farm-name" id="farmName">Your Pig Farm</div>
+      <div class="level-line">Level <span id="lvlNum">1</span> · <span id="lvlTitle">Piglet Keeper</span></div>
+      <div class="xpbar"><i id="xpFill"></i></div>
+      <div class="level-line" id="xpText">0 / 100 XP to next level</div>
+
+      <button id="pigBtn" aria-label="Tap the pig to earn Pig Coins">
+        <svg id="pigSvg" viewBox="0 0 300 260" role="img" aria-label="A big pink pig">
+          <ellipse cx="150" cy="238" rx="105" ry="12" fill="rgba(90,50,20,.25)"/>
+          <path d="M52 62 Q30 18 74 26 Q96 30 92 58 Z" fill="var(--pig-d)"/>
+          <path d="M248 62 Q270 18 226 26 Q204 30 208 58 Z" fill="var(--pig-d)"/>
+          <path d="M60 66 Q48 34 76 38 Q90 41 86 60 Z" fill="#ffd6e3"/>
+          <path d="M240 66 Q252 34 224 38 Q210 41 214 60 Z" fill="#ffd6e3"/>
+          <ellipse cx="150" cy="140" rx="118" ry="102" fill="var(--pig)"/>
+          <circle cx="104" cy="118" r="13" fill="#2b1a12"/>
+          <circle cx="196" cy="118" r="13" fill="#2b1a12"/>
+          <circle cx="108" cy="113" r="4.5" fill="#fff"/>
+          <circle cx="200" cy="113" r="4.5" fill="#fff"/>
+          <ellipse cx="150" cy="168" rx="46" ry="34" fill="var(--snout)"/>
+          <ellipse cx="133" cy="168" rx="8" ry="12" fill="#c94f78"/>
+          <ellipse cx="167" cy="168" rx="8" ry="12" fill="#c94f78"/>
+          <path d="M118 210 Q150 228 182 210" stroke="#c94f78" stroke-width="6" fill="none" stroke-linecap="round"/>
+          <circle cx="76" cy="168" r="13" fill="#ff8fab" opacity=".55"/>
+          <circle cx="224" cy="168" r="13" fill="#ff8fab" opacity=".55"/>
+          <path id="pigHat" d="" fill="#f5b301"/>
+        </svg>
+      </button>
+      <button id="goldenPig" type="button">✨ GOLDEN PIG! Tap it! ✨</button>
+      <div class="crit-flash" id="critFlash">💥 CRITICAL OINK! ×10</div>
+
+      <div class="combo-wrap">
+        <div class="combo-label">COMBO <span id="comboTxt">×1.0</span> — tap fast to build it!</div>
+        <div class="combobar"><i id="comboFill"></i></div>
+      </div>
+      <p class="tap-hint">Tap the pig. Every tap = coins. No mercy. 🐽</p>
+      <div class="stage-actions">
+        <button class="chip-btn on" id="btnSound" type="button">🔊 Sound: On</button>
+        <button class="chip-btn on" id="btnVibe" type="button">📳 Vibration: On</button>
+        <button class="chip-btn on" id="btnAnim" type="button">✨ Effects: On</button>
+      </div>
+    </section>
+
+    <!-- SHOP -->
+    <section class="card" aria-label="Shop and upgrades">
+      <h2>🛒 Pig Shop</h2>
+      <p class="sub">Upgrades, auto-clickers, skins and prestige — everything that makes the pig richer.</p>
+      <div class="buy-row"><span>Buy amount:</span>
+        <button class="buy-amt on" data-amt="1" type="button">×1</button>
+        <button class="buy-amt" data-amt="10" type="button">×10</button>
+        <button class="buy-amt" data-amt="100" type="button">×100</button>
+        <button class="buy-amt" data-amt="max" type="button">MAX</button>
+      </div>
+      <div class="tabs" role="tablist">
+        <button class="tab on" data-tab="auto" type="button">🤖 Auto-Clickers</button>
+        <button class="tab" data-tab="tap" type="button">👆 Tap Power</button>
+        <button class="tab" data-tab="skins" type="button">🎨 Skins</button>
+        <button class="tab" data-tab="prestige" type="button">🍎 Prestige</button>
+      </div>
+      <div id="shopList"></div>
+      <div id="prestigeBox" class="prestige-box" style="display:none">
+        <h3 style="margin:0 0 4px">🍎 Pig Prestige</h3>
+        <p class="sub" style="margin-bottom:8px">Reset your coins and buildings to earn Golden Apples. Each apple = <b>+10% to ALL earnings, forever</b> (until you prestige again — apples stack).</p>
+        <p style="font-weight:800;margin:0 0 10px">Prestige now for <b id="prestigeGain">0 🍎</b> <span style="color:var(--muted)">(needs 1,000,000 lifetime coins)</span></p>
+        <button class="big-btn" id="btnPrestige" type="button">PRESTIGE 🍎</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- MULTIPLAYER -->
+  <div class="mp-grid">
+    <section class="card" aria-label="Multiplayer room and leaderboard">
+      <h2>🌍 Multiplayer Farm</h2>
+      <p class="sub"><span class="status-dot" id="mpDot"></span><span id="mpStatus">Connecting to the farm network…</span></p>
+
+      <div class="profile-form">
+        <input id="nameInput" maxlength="20" placeholder="Your farmer name" autocomplete="off"/>
+        <button class="send-btn" id="btnSetName" type="button">Set Profile</button>
+      </div>
+      <div class="avatar-pick" id="avatarPick" aria-label="Pick your avatar"></div>
+
+      <div class="room-row" style="margin-bottom:6px">
+        <span style="font-weight:900;color:var(--muted)">ROOM CODE</span>
+        <span class="room-code" id="roomCodeTxt">—</span>
+        <button class="chip-btn" id="btnCopyCode" type="button">📋 Copy code</button>
+        <button class="chip-btn" id="btnNewRoom" type="button">🎲 New room</button>
+      </div>
+      <div class="room-row">
+        <input class="room-input" id="joinInput" maxlength="10" placeholder="Friend's room code…" style="flex:1" autocomplete="off"/>
+        <button class="send-btn" id="btnJoin" type="button">Join Room</button>
+      </div>
+      <p class="sub" style="margin-top:10px">Send your code to your friends — when they join the same room, you all show up on each other's leaderboard <b>live</b>. Race to the richest pig. 🏆</p>
+
+      <input class="search-input" id="playerSearch" placeholder="🔎 Search players by name…" autocomplete="off" style="margin-bottom:12px"/>
+      <div id="playerList"></div>
+    </section>
+
+    <div>
+      <section class="card" aria-label="Farm feed and chat" style="margin-bottom:16px">
+        <h2>💬 Farm Feed &amp; Chat</h2>
+        <p class="sub">Big buys, prestiges and golden pigs get announced here. Say hi to your room.</p>
+        <div class="feed" id="feed"></div>
+        <form class="chat-form" id="chatForm">
+          <input class="chat-input" id="chatInput" maxlength="120" placeholder="Message your room…" autocomplete="off"/>
+          <button class="send-btn" type="submit">Send</button>
+        </form>
+      </section>
+
+      <section class="card" aria-label="Achievements" style="margin-bottom:16px">
+        <h2>🏅 Achievements</h2>
+        <p class="sub" id="achCount">0 of 12 unlocked</p>
+        <div class="ach-grid" id="achGrid"></div>
+      </section>
+
+      <section class="card" aria-label="Your stats and quality of life">
+        <h2>📊 Stats &amp; QoL</h2>
+        <table class="stat-table">
+          <tr><td>Total taps</td><td id="qTaps">0</td></tr>
+          <tr><td>Lifetime coins earned</td><td id="qLife">0</td></tr>
+          <tr><td>Critical oinks</td><td id="qCrits">0</td></tr>
+          <tr><td>Golden pigs caught</td><td id="qGold">0</td></tr>
+          <tr><td>Prestiges</td><td id="qPrest">0</td></tr>
+          <tr><td>Play time</td><td id="qTime">0:00</td></tr>
+        </table>
+        <h3 style="margin:16px 0 8px">Quality of life</h3>
+        <div class="qol-grid">
+          <div class="toggle"><span>🔢 Short numbers (1.2M)</span><button id="qFmt" class="on" type="button">ON</button></div>
+          <div class="toggle"><span>⚡ Hold-to-tap (press &amp; hold pig)</span><button id="qHold" class="on" type="button">ON</button></div>
+          <div class="toggle"><span>🎯 Show best next buy hint</span><button id="qHint" class="on" type="button">ON</button></div>
+          <div class="toggle"><span>🔔 Milestone toasts</span><button id="qToast" class="on" type="button">ON</button></div>
+        </div>
+        <p class="sub" id="hintLine" style="margin-top:12px"></p>
+        <button class="chip-btn" id="btnReset" type="button" style="color:var(--red);border-color:var(--red)">🗑️ Hard reset run</button>
+      </section>
+    </div>
+  </div>
+
+  <section class="card" aria-label="Get the app on your phone" style="margin-top:16px">
+    <h2>📱 Get Pig Clicker as an App</h2>
+    <p class="sub">This game ships with an app manifest, so it installs like a real app — full screen, its own icon, no browser bars.</p>
+    <button class="big-btn" id="btnInstall" type="button">📲 Install Pig Clicker</button>
+    <div class="qol-grid" style="margin-top:12px">
+      <div class="ach"><b>🤖 Android (Chrome)</b><small>Tap Install above — or open the ⋮ menu and choose “Install app” / “Add to Home screen”. To turn it into a shareable APK file for friends, run this page's address through PWABuilder (free) and send them the APK it builds.</small></div>
+      <div class="ach"><b>🍎 iPhone (Safari)</b><small>Tap the Share button, then “Add to Home Screen”. Pig Clicker lands on your home screen and opens full-screen like an app.</small></div>
+    </div>
+    <p class="sub" id="installNote" style="margin-top:10px"></p>
+  </section>
+
+  <p class="foot">🐷 Pig Clicker — tap, upgrade, prestige, and out-earn your friends in the same room. Progress lives in this session; keep the tab open for long runs.</p>
+</div>
+
+<!-- PROFILE MODAL -->
+<div class="modal-bg" id="profileModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Player profile">
+    <div class="big-av" id="pmAvatar">🐷</div>
+    <h2 id="pmName">Player</h2>
+    <table class="stat-table">
+      <tr><td>Pig Coins</td><td id="pmCoins">0</td></tr>
+      <tr><td>Lifetime earned</td><td id="pmLife">0</td></tr>
+      <tr><td>Per second</td><td id="pmPps">0</td></tr>
+      <tr><td>Total taps</td><td id="pmTaps">0</td></tr>
+      <tr><td>Level</td><td id="pmLevel">1</td></tr>
+      <tr><td>Golden Apples</td><td id="pmApples">0</td></tr>
+      <tr><td>Skin</td><td id="pmSkin">Classic</td></tr>
+    </table>
+    <button class="big-btn close-btn" id="pmClose" type="button">Close</button>
+  </div>
+</div>
+
+<div id="toasts" aria-live="polite"></div>
+
+<script>
+"use strict";
+/* ============================== DATA ============================== */
+var GENERATORS=[
+ {id:"piglet", emoji:"🐽", name:"Piglet Helper", desc:"A baby pig oinking for coins.", base:15, pps:0.2},
+ {id:"farmer", emoji:"🧑‍🌾", name:"Pig Farmer", desc:"Feeds the pig. The pig pays rent.", base:100, pps:1},
+ {id:"mud", emoji:"🛁", name:"Luxury Mud Bath", desc:"Happy pig, happy profits.", base:600, pps:5},
+ {id:"barn", emoji:"🏚️", name:"Pig Barn", desc:"Houses 20 professional pigs.", base:3000, pps:22},
+ {id:"truffle", emoji:"🍄", name:"Truffle Hunter Pig", desc:"Finds truffles. Sells truffles.", base:15000, pps:95},
+ {id:"farm", emoji:"🚜", name:"Mega Pig Farm", desc:"An entire farm of money pigs.", base:80000, pps:420},
+ {id:"trough", emoji:"🥇", name:"Golden Trough", desc:"Pigs eat gold. Somehow profit.", base:450000, pps:2000},
+ {id:"factory", emoji:"🏭", name:"Oink Factory", desc:"Industrial-grade oinking.", base:2600000, pps:9500},
+ {id:"kingdom", emoji:"👑", name:"Pig Kingdom", desc:"Every pig pays taxes. To you.", base:16000000, pps:46000},
+ {id:"rocket", emoji:"🚀", name:"Pig Space Program", desc:"Pigs on the moon. Moon coins.", base:120000000, pps:230000},
+ {id:"portal", emoji:"🌀", name:"Pig Dimension Portal", desc:"Infinite pigs. Infinite coins.", base:900000000, pps:1200000}
+];
+var TAP_UPGRADES=[
+ {id:"tap1", emoji:"👆", name:"Stronger Finger", desc:"Tap power ×2.", mult:2, cost:500},
+ {id:"tap2", emoji:"🥊", name:"Boxing Glove", desc:"Tap power ×2.", mult:2, cost:8000},
+ {id:"tap3", emoji:"💎", name:"Diamond Hoof Polish", desc:"Tap power ×2.", mult:2, cost:120000},
+ {id:"tap4", emoji:"⚡", name:"Lightning Tapper", desc:"Tap power ×3.", mult:3, cost:2000000},
+ {id:"tap5", emoji:"🔨", name:"Oink Hammer 3000", desc:"Tap power ×3.", mult:3, cost:35000000},
+ {id:"tap6", emoji:"🌟", name:"Cosmic Tap", desc:"Tap power ×5.", mult:5, cost:600000000}
+];
+var SKINS=[
+ {id:"classic", name:"Classic Pink", cost:0, pig:"#ffb3c8", pigD:"#ff8fab", snout:"#ff7aa2", hat:""},
+ {id:"golden", name:"Golden Pig", cost:50000, pig:"#ffd94d", pigD:"#f5b301", snout:"#ffb703", hat:""},
+ {id:"mint", name:"Minty Pig", cost:250000, pig:"#9bf0c0", pigD:"#51cf66", snout:"#69db7c", hat:""},
+ {id:"bubblegum", name:"Bubblegum", cost:1500000, pig:"#f783e8", pigD:"#e649c8", snout:"#f065d8", hat:""},
+ {id:"king", name:"Pig King", cost:20000000, pig:"#ffb3c8", pigD:"#ff8fab", snout:"#ff7aa2", hat:"M96 44 L112 16 L128 40 L144 12 L160 40 L176 16 L192 44 L186 58 L102 58 Z"},
+ {id:"galaxy", name:"Galaxy Pig", cost:250000000, pig:"#b197fc", pigD:"#8f6fe8", snout:"#a678f0", hat:""}
+];
+var AVATARS=["🐷","🐽","🧑‍🌾","👑","😎","🤠","🦸","🐖","🥓","🍎"];
+var ACHIEVEMENTS=[
+ {id:"a1", icon:"👆", name:"First Oink", desc:"Tap the pig once.", test:function(s){return s.taps>=1}},
+ {id:"a2", icon:"💪", name:"Finger Workout", desc:"1,000 total taps.", test:function(s){return s.taps>=1000}},
+ {id:"a3", icon:"💰", name:"Pig Rich", desc:"Earn 10,000 lifetime coins.", test:function(s){return s.lifetime>=10000}},
+ {id:"a4", icon:"🏦", name:"Pig Banker", desc:"Earn 1,000,000 lifetime coins.", test:function(s){return s.lifetime>=1e6}},
+ {id:"a5", icon:"🌌", name:"Pig Tycoon", desc:"Earn 1,000,000,000 lifetime coins.", test:function(s){return s.lifetime>=1e9}},
+ {id:"a6", icon:"🤖", name:"Automation Nation", desc:"Own 25 auto-clickers.", test:function(s){return totalGens()>=25}},
+ {id:"a7", icon:"🏭", name:"Pig Empire", desc:"Own 75 auto-clickers.", test:function(s){return totalGens()>=75}},
+ {id:"a8", icon:"💥", name:"Crit Happens", desc:"Land 25 critical oinks.", test:function(s){return s.crits>=25}},
+ {id:"a9", icon:"✨", name:"Golden Touch", desc:"Catch 3 golden pigs.", test:function(s){return s.goldenCaught>=3}},
+ {id:"a10", icon:"🍎", name:"Reborn Pig", desc:"Prestige once.", test:function(s){return s.prestiges>=1}},
+ {id:"a11", icon:"🔥", name:"Combo Master", desc:"Reach a ×2.0 combo.", test:function(s){return s.bestCombo>=2}},
+ {id:"a12", icon:"🎨", name:"Fashion Pig", desc:"Own 3 skins.", test:function(s){return Object.keys(s.skinsOwned).length>=3}}
+];
+var LEVEL_TITLES=["Piglet Keeper","Mud Rookie","Oink Apprentice","Pig Whisperer","Barn Boss","Truffle Baron","Oink Manager","Pig Tycoon","Kingdom Ruler","Oink Legend","Pig God"];
+
+/* ============================== STATE ============================== */
+function freshState(){
+ return {coins:0,lifetime:0,taps:0,crits:0,goldenCaught:0,prestiges:0,apples:0,
+  gens:{},tapOwned:{},skinsOwned:{classic:true},skin:"classic",achDone:{},startedAt:Date.now()};
+}
+var S=freshState();
+var combo=1, comboTimer=null, bestComboSeen=1;
+var buyAmt=1, activeTab="auto";
+var qol={fmt:true,hold:true,hint:true,toasts:true,sound:true,vibe:true,anim:true};
+var profile={name:"",avatar:"🐷"};
+var myId="p"+Math.random().toString(36).slice(2,10);
+var roomCode=makeCode();
+var players={}; /* id -> profile snapshot */
+var startTime=Date.now();
+
+function makeCode(){var c="ABCDEFGHJKMNPQRSTUVWXYZ23456789",o="";for(var i=0;i<6;i++)o+=c[Math.floor(Math.random()*c.length)];return o;}
+function $(id){return document.getElementById(id);}
+function fmt(n){
+ if(!qol.fmt) return Math.floor(n).toLocaleString("en-US");
+ if(n<1000) return Math.floor(n).toString();
+ var units=["K","M","B","T","Qa","Qi","Sx","Sp"],v=n,u=-1;
+ while(v>=1000&&u<units.length-1){v/=1000;u++;}
+ return (v>=100?Math.floor(v):v.toFixed(1)).toString().replace(/\.0$/,"")+units[u];
+}
+function fmtRate(n){if(n<100&&n%1!==0)return n.toFixed(1);return fmt(n);}
+function totalGens(){var t=0;for(var k in S.gens)t+=S.gens[k];return t;}
+function appleMult(){return 1+S.apples*0.10;}
+function perSec(){var t=0;GENERATORS.forEach(function(g){t+=(S.gens[g.id]||0)*g.pps;});return t*appleMult();}
+function perTap(){var m=1;TAP_UPGRADES.forEach(function(u){if(S.tapOwned[u.id])m*=u.mult;});return m*appleMult()*combo;}
+function level(){return Math.min(50,Math.floor(Math.sqrt(Math.max(0,S.lifetime)/100))+1);}
+function xpInfo(){var lv=level();if(lv>=50)return{p:1,txt:"MAX LEVEL"};var cur=Math.pow(lv-1,2)*100,nxt=Math.pow(lv,2)*100;var p=(S.lifetime-cur)/(nxt-cur);return{p:Math.max(0,Math.min(1,p)),txt:fmt(S.lifetime-cur)+" / "+fmt(nxt-cur)+" XP to next level"};}
+function genCost(g,owned){return Math.ceil(g.base*Math.pow(1.15,owned));}
+function bulkCost(g,owned,n){var t=0;for(var i=0;i<n;i++)t+=genCost(g,owned+i);return t;}
+function maxAffordable(g,owned){var n=0,c=S.coins;while(n<500){var cost=genCost(g,owned+n);if(cost>c)break;c-=cost;n++;}return n;}
+
+/* ============================== AUDIO ============================== */
+var AC=null;
+function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}if(AC&&AC.state==="suspended")AC.resume();return AC;}
+function tone(f0,f1,dur,type,vol){if(!qol.sound)return;var ctx=ac();if(!ctx)return;var o=ctx.createOscillator(),g=ctx.createGain();o.type=type||"sine";o.frequency.setValueAtTime(f0,ctx.currentTime);o.frequency.exponentialRampToValueAtTime(Math.max(30,f1),ctx.currentTime+dur);g.gain.setValueAtTime(vol||0.15,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);o.connect(g);g.connect(ctx.destination);o.start();o.stop(ctx.currentTime+dur);}
+function sndOink(){tone(420,140,0.16,"square",0.10);setTimeout(function(){tone(500,180,0.12,"square",0.08);},55);}
+function sndBuy(){tone(660,660,0.07,"sine",0.12);setTimeout(function(){tone(990,990,0.12,"sine",0.12);},70);}
+function sndCrit(){tone(200,900,0.22,"sawtooth",0.10);}
+function sndGold(){[523,659,784,1046].forEach(function(f,i){setTimeout(function(){tone(f,f,0.14,"triangle",0.13);},i*80);});}
+function sndErr(){tone(160,90,0.18,"sawtooth",0.10);}
+
+/* ============================== UI HELPERS ============================== */
+function toast(msg){if(!qol.toasts)return;var t=document.createElement("div");t.className="toast";t.textContent=msg;$("toasts").appendChild(t);setTimeout(function(){t.style.opacity="0";t.style.transition="opacity .3s";setTimeout(function(){t.remove();},320);},2600);}
+function feed(text,alsoSend){
+ var d=document.createElement("div");d.textContent=text;$("feed").prepend(d);
+ while($("feed").children.length>30)$("feed").lastChild.remove();
+ if(alsoSend)mpPublish("feed",{text:text});
+}
+
+/* ============================== CLICKING ============================== */
+var pigBtn=$("pigBtn");
+function doTap(x,y){
+ var crit=Math.random()<0.05;
+ var gain=perTap()*(crit?10:1);
+ S.coins+=gain;S.lifetime+=gain;S.taps++;if(crit){S.crits++;sndCrit();flashCrit();}else sndOink();
+ combo=Math.min(2,combo+0.04); if(combo>bestComboSeen)bestComboSeen=combo; S.bestCombo=bestComboSeen;
+ clearTimeout(comboTimer);comboTimer=setTimeout(function(){combo=1;renderStats();},1600);
+ pigBtn.classList.add("squish");setTimeout(function(){pigBtn.classList.remove("squish");},80);
+ if(qol.vibe&&navigator.vibrate)navigator.vibrate(crit?30:8);
+ spawnFloat(gain,crit,x,y);
+ checkAch();renderStats();
+}
+function flashCrit(){var f=$("critFlash");f.classList.add("show");setTimeout(function(){f.classList.remove("show");},700);}
+function spawnFloat(gain,crit,x,y){
+ if(!qol.anim)return;
+ var stage=document.querySelector(".stage"),r=stage.getBoundingClientRect();
+ var el=document.createElement("div");el.className="floaty"+(crit?" crit":"");
+ el.textContent="+"+fmt(gain)+(crit?" CRIT!":"");
+ var px=(x!=null?x-r.left:r.width/2)+(Math.random()*60-30), py=(y!=null?y-r.top:r.height/2);
+ el.style.left=px+"px";el.style.top=py+"px";stage.appendChild(el);
+ setTimeout(function(){el.remove();},980);
+}
+pigBtn.addEventListener("pointerdown",function(e){doTap(e.clientX,e.clientY);});
+/* hold-to-tap */
+var holdInt=null;
+pigBtn.addEventListener("pointerdown",function(){if(!qol.hold)return;clearInterval(holdInt);holdInt=setInterval(function(){doTap();},180);});
+["pointerup","pointerleave","pointercancel"].forEach(function(ev){pigBtn.addEventListener(ev,function(){clearInterval(holdInt);});});
+
+/* golden pig event */
+var goldenTimer=null,goldenHide=null;
+function scheduleGolden(){
+ clearTimeout(goldenTimer);
+ goldenTimer=setTimeout(showGolden,35000+Math.random()*45000);
+}
+function showGolden(){
+ var b=$("goldenPig"),stage=document.querySelector(".stage");
+ b.style.left=(8+Math.random()*55)+"%";b.style.top=(10+Math.random()*40)+"%";b.style.display="block";
+ clearTimeout(goldenHide);goldenHide=setTimeout(function(){b.style.display="none";scheduleGolden();},7000);
+}
+$("goldenPig").addEventListener("click",function(){
+ var bonus=Math.max(perTap()*50,perSec()*60,100);
+ S.coins+=bonus;S.lifetime+=bonus;S.goldenCaught++;
+ $("goldenPig").style.display="none";sndGold();
+ toast("✨ Golden pig caught! +"+fmt(bonus)+" coins!");
+ feed("✨ "+displayName()+" caught a Golden Pig! +"+fmt(bonus)+" 🐷",true);
+ checkAch();renderStats();scheduleGolden();mpPublishProfile();
+});
+
+/* ============================== SHOP ============================== */
+document.querySelectorAll(".buy-amt").forEach(function(b){b.addEventListener("click",function(){
+ document.querySelectorAll(".buy-amt").forEach(function(x){x.classList.remove("on");});b.classList.add("on");
+ buyAmt=b.dataset.amt==="max"?"max":parseInt(b.dataset.amt,10);renderShop();
+});});
+document.querySelectorAll(".tab").forEach(function(t){t.addEventListener("click",function(){
+ document.querySelectorAll(".tab").forEach(function(x){x.classList.remove("on");});t.classList.add("on");
+ activeTab=t.dataset.tab;renderShop();
+});});
+
+function renderShop(){
+ var list=$("shopList");list.innerHTML="";
+ $("prestigeBox").style.display=activeTab==="prestige"?"block":"none";
+ if(activeTab==="auto"){
+  GENERATORS.forEach(function(g){
+   var owned=S.gens[g.id]||0;
+   var n=buyAmt==="max"?Math.max(1,maxAffordable(g,owned)):buyAmt;
+   var cost=bulkCost(g,owned,n);
+   var item=document.createElement("div");item.className="item";
+   item.innerHTML='<div class="ic">'+g.emoji+'</div><div class="grow"><h3>'+g.name+' <span class="owned">· owned '+owned+'</span></h3><p>'+g.desc+'<br>Each: +'+fmtRate(g.pps)+' /sec</p></div>';
+   var btn=document.createElement("button");btn.className="buy";btn.type="button";
+   btn.innerHTML="Buy ×"+n+"<small>🪙 "+fmt(cost)+"</small>";
+   btn.disabled=S.coins<cost;
+   btn.addEventListener("click",function(){
+    if(S.coins<bulkCost(g,S.gens[g.id]||0,n)){sndErr();return;}
+    var o=S.gens[g.id]||0,c=bulkCost(g,o,n);S.coins-=c;S.gens[g.id]=o+n;sndBuy();
+    if(n>=10||g.base>=450000)feed("🛒 "+displayName()+" bought ×"+n+" "+g.name+"!",true);
+    checkAch();renderAll();mpPublishProfile();
+   });
+   item.appendChild(btn);list.appendChild(item);
+  });
+ } else if(activeTab==="tap"){
+  TAP_UPGRADES.forEach(function(u){
+   var owned=!!S.tapOwned[u.id];
+   var item=document.createElement("div");item.className="item";
+   item.innerHTML='<div class="ic">'+u.emoji+'</div><div class="grow"><h3>'+u.name+'</h3><p>'+u.desc+' (one-time)</p></div>';
+   var btn=document.createElement("button");btn.className="buy"+(owned?" maxed":"");btn.type="button";
+   btn.innerHTML=owned?"OWNED ✔":"Buy<small>🪙 "+fmt(u.cost)+"</small>";
+   btn.disabled=owned||S.coins<u.cost;
+   btn.addEventListener("click",function(){
+    if(S.tapOwned[u.id]||S.coins<u.cost){sndErr();return;}
+    S.coins-=u.cost;S.tapOwned[u.id]=true;sndBuy();toast("👆 "+u.name+" — tap power up!");
+    feed("👆 "+displayName()+" unlocked "+u.name+"!",true);
+    renderAll();mpPublishProfile();
+   });
+   item.appendChild(btn);list.appendChild(item);
+  });
+ } else if(activeTab==="skins"){
+  var row=document.createElement("div");row.className="skin-row";
+  SKINS.forEach(function(sk){
+   var owned=!!S.skinsOwned[sk.id],on=S.skin===sk.id;
+   var b=document.createElement("button");b.type="button";b.className="skin"+(on?" on":"");
+   b.innerHTML='<span style="font-size:1.6rem">🐷</span><br>'+sk.name+'<small>'+(owned?(on?"Equipped ✔":"Tap to equip"):"🪙 "+fmt(sk.cost))+'</small>';
+   b.addEventListener("click",function(){
+    if(S.skinsOwned[sk.id]){S.skin=sk.id;applySkin();sndBuy();renderShop();mpPublishProfile();return;}
+    if(S.coins<sk.cost){sndErr();toast("Not enough coins for "+sk.name);return;}
+    S.coins-=sk.cost;S.skinsOwned[sk.id]=true;S.skin=sk.id;applySkin();sndBuy();
+    toast("🎨 New skin: "+sk.name+"!");feed("🎨 "+displayName()+" is now rocking the "+sk.name+" skin!",true);
+    checkAch();renderAll();mpPublishProfile();
+   });
+   row.appendChild(b);
+  });
+  list.appendChild(row);
+ } else if(activeTab==="prestige"){
+  var gain=prestigeGain();
+  $("prestigeGain").textContent=gain+" 🍎";
+  $("btnPrestige").disabled=gain<1;
+ }
+ updateHint();
+}
+function prestigeGain(){return S.lifetime>=1e6?Math.floor(Math.pow(S.lifetime/1e6,0.5)*10):0;}
+$("btnPrestige").addEventListener("click",function(){
+ var gain=prestigeGain();if(gain<1){sndErr();return;}
+ var keepApples=S.apples+gain,keepPrest=S.prestiges+1,keepLife=S.lifetime,keepTaps=S.taps,keepCrits=S.crits,keepGold=S.goldenCaught,keepSkins=S.skinsOwned,keepAch=S.achDone,keepStart=S.startedAt;
+ S=freshState();S.apples=keepApples;S.prestiges=keepPrest;S.lifetime=keepLife;S.taps=keepTaps;S.crits=keepCrits;S.goldenCaught=keepGold;S.skinsOwned=keepSkins;S.achDone=keepAch;S.startedAt=keepStart;S.bestCombo=bestComboSeen;
+ combo=1;sndGold();toast("🍎 PRESTIGE! +"+gain+" Golden Apples — everything earns +10% each, forever!");
+ feed("🍎 "+displayName()+" PRESTIGED for +"+gain+" Golden Apples!",true);
+ checkAch();renderAll();mpPublishProfile();
+});
+function applySkin(){
+ var sk=SKINS.find(function(x){return x.id===S.skin;})||SKINS[0];
+ document.documentElement.style.setProperty("--pig",sk.pig);
+ document.documentElement.style.setProperty("--pig-d",sk.pigD);
+ document.documentElement.style.setProperty("--snout",sk.snout);
+ $("pigHat").setAttribute("d",sk.hat||"");
+}
+
+/* ============================== ACHIEVEMENTS / STATS ============================== */
+function checkAch(){
+ ACHIEVEMENTS.forEach(function(a){
+  if(!S.achDone[a.id]&&a.test(S)){S.achDone[a.id]=true;toast("🏅 Achievement: "+a.name+"!");feed("🏅 "+displayName()+" unlocked “"+a.name+"”",true);sndGold();renderAch();}
+ });
+}
+function renderAch(){
+ var done=0,grid=$("achGrid");grid.innerHTML="";
+ ACHIEVEMENTS.forEach(function(a){
+  var d=!!S.achDone[a.id];if(d)done++;
+  var el=document.createElement("div");el.className="ach"+(d?" done":"");
+  el.innerHTML=a.icon+" "+a.name+"<small>"+a.desc+"</small>";grid.appendChild(el);
+ });
+ $("achCount").textContent=done+" of "+ACHIEVEMENTS.length+" unlocked";
+}
+function renderStats(){
+ $("stCoins").textContent=fmt(S.coins);
+ $("stPerTap").textContent=fmt(perTap());
+ $("stPerSec").textContent=fmtRate(perSec());
+ $("stApples").textContent=S.apples+" (×"+appleMult().toFixed(1)+")";
+ var lv=level(),xp=xpInfo();
+ $("lvlNum").textContent=lv;$("lvlTitle").textContent=LEVEL_TITLES[Math.min(LEVEL_TITLES.length-1,Math.floor((lv-1)/5))];
+ $("xpFill").style.width=(xp.p*100)+"%";$("xpText").textContent=xp.txt;
+ $("comboTxt").textContent="×"+combo.toFixed(1);
+ $("comboFill").style.width=((combo-1)/1*100)+"%";
+ $("qTaps").textContent=fmt(S.taps);$("qLife").textContent=fmt(S.lifetime);
+ $("qCrits").textContent=fmt(S.crits);$("qGold").textContent=S.goldenCaught;$("qPrest").textContent=S.prestiges;
+ var secs=Math.floor((Date.now()-startTime)/1000);
+ $("qTime").textContent=Math.floor(secs/60)+":"+("0"+(secs%60)).slice(-2);
+}
+function updateHint(){
+ var el=$("hintLine");if(!el)return;
+ if(activeTab!=="auto"||!qol.hint){el.textContent="";return;}
+ var best=null,bestRatio=0;
+ GENERATORS.forEach(function(g){var o=S.gens[g.id]||0,c=genCost(g,o),r=g.pps/c;if(r>bestRatio){bestRatio=r;best=g;}});
+ el.textContent=best?("💡 Best value next buy: "+best.name+" ("+fmt(genCost(best,S.gens[best.id]||0))+" 🪙)"):"";
+}
+function renderAll(){renderStats();renderShop();}
+
+/* QoL toggles */
+function wireToggle(id,key,cb){$(id).addEventListener("click",function(){qol[key]=!qol[key];$(id).classList.toggle("on",qol[key]);$(id).textContent=qol[key]?"ON":"OFF";if(cb)cb();renderStats();});}
+wireToggle("qFmt","fmt",function(){renderAll();});
+wireToggle("qHold","hold");
+wireToggle("qHint","hint",function(){updateHint();});
+wireToggle("qToast","toasts");
+function wireChip(id,key,label){$(id).addEventListener("click",function(){qol[key]=!qol[key];$(id).classList.toggle("on",qol[key]);$(id).textContent=label+(qol[key]?"On":"Off");if(key==="anim")document.body.classList.toggle("no-anim",!qol[key]);});}
+wireChip("btnSound","sound","🔊 Sound: ");
+wireChip("btnVibe","vibe","📳 Vibration: ");
+wireChip("btnAnim","anim","✨ Effects: ");
+$("btnReset").addEventListener("click",function(){
+ if($("btnReset").dataset.arm){S=freshState();combo=1;bestComboSeen=1;applySkin();renderAch();renderAll();toast("Run reset. Fresh pig, fresh dreams.");$("btnReset").textContent="🗑️ Hard reset run";delete $("btnReset").dataset.arm;mpPublishProfile();}
+ else{$("btnReset").dataset.arm="1";$("btnReset").textContent="⚠️ Tap again to confirm reset";setTimeout(function(){delete $("btnReset").dataset.arm;$("btnReset").textContent="🗑️ Hard reset run";},3000);}
+});
+
+/* ============================== MULTIPLAYER (MQTT) ============================== */
+function esc(t){var d=document.createElement("div");d.textContent=t==null?"":t;return d.innerHTML;}
+function displayName(){return profile.name||"Anonymous Pig";}
+var mpClient=null,mpConnected=false;
+function mpTopic(kind){return "pigclicker/v1/"+roomCode+"/"+kind;}
+function mpSetStatus(txt,cls){$("mpStatus").textContent=txt;$("mpDot").className="status-dot "+(cls||"");}
+function mpConnect(){
+ $("roomCodeTxt").textContent=roomCode;
+ players[myId]=mySnapshot();renderPlayers();
+ if(typeof mqtt==="undefined"){mpSetStatus("Room "+roomCode+" is ready — the live network could not load in this browser, so you're solo for now. Your code still works where the network loads.","");return;}
+ try{if(mpClient){try{mpClient.end(true);}catch(e){}mpClient=null;}}catch(e){}
+ mpSetStatus("Connecting to room "+roomCode+"…","try");
+ mpClient=mqtt.connect("wss://broker.emqx.io:8084/mqtt",{clientId:"pigclicker-"+myId,reconnectPeriod:4000,connectTimeout:8000});
+ mpClient.on("connect",function(){
+  mpConnected=true;mpSetStatus("Live in room "+roomCode+" — friends who join this code appear below.","on");
+  mpClient.subscribe([mpTopic("profile"),mpTopic("chat"),mpTopic("feed")],function(){mpPublishProfile();});
+ });
+ mpClient.on("reconnect",function(){mpSetStatus("Reconnecting to the farm network…","try");});
+ mpClient.on("offline",function(){mpConnected=false;mpSetStatus("Offline — solo mode. Your pig still earns.","");});
+ mpClient.on("error",function(){mpSetStatus("Connection hiccup — retrying…","try");});
+ mpClient.on("message",function(topic,msg){
+  var data;try{data=JSON.parse(msg.toString());}catch(e){return;}
+  if(!data||data.id===myId)return;
+  if(topic===mpTopic("profile")){players[data.id]=data;renderPlayers();}
+  else if(topic===mpTopic("chat")){feed("💬 "+data.name+": "+data.text);}
+  else if(topic===mpTopic("feed")){if(data.text)feed(String(data.text));}
+ });
+}
+function mpPublish(kind,obj){
+ if(!mpClient||!mpConnected)return;
+ try{mpClient.publish(mpTopic(kind),JSON.stringify(obj));}catch(e){}
+}
+function mySnapshot(){
+ var sk=SKINS.find(function(x){return x.id===S.skin;});
+ return {id:myId,name:displayName(),avatar:profile.avatar,coins:S.coins,lifetime:S.lifetime,
+  pps:perSec(),taps:S.taps,level:level(),apples:S.apples,skin:sk?sk.name:"Classic",ts:Date.now()};
+}
+function mpPublishProfile(){players[myId]=mySnapshot();renderPlayers();mpPublish("profile",mySnapshot());}
+setInterval(function(){if(mpConnected)mpPublishProfile();},5000);
+setInterval(function(){ /* prune stale players */
+ var now=Date.now(),changed=false;
+ for(var id in players){if(id!==myId&&now-(players[id].ts||0)>20000){delete players[id];changed=true;}}
+ if(changed)renderPlayers();
+},5000);
+
+/* profiles + search + leaderboard */
+var avatarRow=$("avatarPick");
+AVATARS.forEach(function(a){
+ var b=document.createElement("button");b.type="button";b.textContent=a;if(a===profile.avatar)b.classList.add("on");
+ b.addEventListener("click",function(){profile.avatar=a;avatarRow.querySelectorAll("button").forEach(function(x){x.classList.remove("on");});b.classList.add("on");mpPublishProfile();});
+ avatarRow.appendChild(b);
+});
+$("btnSetName").addEventListener("click",function(){
+ var v=$("nameInput").value.trim().slice(0,20);
+ profile.name=v;$("farmName").textContent=(v?v+"'s":"Your")+" Pig Farm";
+ toast(v?("👋 Profile set — welcome, "+v+"!"):"Profile cleared.");
+ mpPublishProfile();
+});
+$("playerSearch").addEventListener("input",renderPlayers);
+function renderPlayers(){
+ var q=($("playerSearch").value||"").trim().toLowerCase();
+ var arr=Object.keys(players).map(function(k){return players[k];});
+ arr.sort(function(a,b){return (b.lifetime||0)-(a.lifetime||0);});
+ var list=$("playerList");list.innerHTML="";
+ var shown=0;
+ arr.forEach(function(p,idx){
+  if(q&&String(p.name||"").toLowerCase().indexOf(q)===-1)return;
+  shown++;
+  var b=document.createElement("button");b.type="button";b.className="player";
+  b.innerHTML='<span class="rank '+(idx===0?"top":"")+'">'+(idx===0?"👑":"#"+(idx+1))+'</span><span class="av">'+esc(p.avatar||"🐷")+'</span><span class="grow"><h3>'+esc(p.name||"Player")+(p.id===myId?'<span class="you-tag">YOU</span>':"")+'</h3><p>Lv '+p.level+" · "+fmt(p.lifetime||0)+' lifetime · '+fmt(p.pps||0)+'/sec</p></span><span style="font-family:Baloo 2;font-weight:800">🐷 '+fmt(p.coins||0)+'</span>';
+  b.addEventListener("click",function(){openProfile(p);});
+  list.appendChild(b);
+ });
+ if(!shown){
+  var e=document.createElement("div");e.className="empty";
+  e.textContent=q?("No players match “"+q+"”. Try another name."):"Just you so far — send your room code to a friend and they'll pop up here live. 🐷";
+  list.appendChild(e);
+ }
+}
+function openProfile(p){
+ $("pmAvatar").textContent=p.avatar||"🐷";$("pmName").textContent=p.name||"Player";
+ $("pmCoins").textContent=fmt(p.coins||0);$("pmLife").textContent=fmt(p.lifetime||0);
+ $("pmPps").textContent=fmt(p.pps||0);$("pmTaps").textContent=fmt(p.taps||0);
+ $("pmLevel").textContent=p.level||1;$("pmApples").textContent=p.apples||0;$("pmSkin").textContent=p.skin||"Classic";
+ $("profileModal").classList.add("open");
+}
+$("pmClose").addEventListener("click",function(){$("profileModal").classList.remove("open");});
+$("profileModal").addEventListener("click",function(e){if(e.target===this)this.classList.remove("open");});
+
+/* rooms */
+$("btnNewRoom").addEventListener("click",function(){
+ roomCode=makeCode();players={};players[myId]=mySnapshot();mpConnect();renderPlayers();
+ toast("🎲 New room created: "+roomCode);
+});
+$("btnJoin").addEventListener("click",function(){
+ var v=$("joinInput").value.trim().toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8);
+ if(v.length<4){sndErr();toast("That code looks too short — check it and try again.");return;}
+ roomCode=v;players={};players[myId]=mySnapshot();mpConnect();renderPlayers();
+ toast("🚪 Joining room "+roomCode+"…");
+});
+$("btnCopyCode").addEventListener("click",function(){
+ var done=function(){toast("📋 Room code copied: "+roomCode+" — send it to your friends!");};
+ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(roomCode).then(done,function(){toast("Your room code is "+roomCode);});
+ else toast("Your room code is "+roomCode);
+});
+$("chatForm").addEventListener("submit",function(e){
+ e.preventDefault();var v=$("chatInput").value.trim();if(!v)return;$("chatInput").value="";
+ feed("💬 "+displayName()+": "+v);
+ mpPublish("chat",{id:myId,name:displayName(),text:v});
+});
+
+/* install help */
+$("btnInstall").addEventListener("click",function(){
+ $("installNote").textContent="On Android Chrome: open the \u22ee menu and tap \u201CInstall app\u201D / \u201CAdd to Home screen\u201D. On iPhone Safari: tap Share, then \u201CAdd to Home Screen\u201D. Pig Clicker then opens full-screen from your home screen, icon and all.";
+});
+
+/* ============================== LOOPS / INIT ============================== */
+setInterval(function(){var gain=perSec()/10;if(gain>0){S.coins+=gain;S.lifetime+=gain;}renderStats();},100);
+/* refresh shop affordability without full re-render churn */
+setInterval(function(){
+ document.querySelectorAll("#shopList .buy").forEach(function(){}); /* cheap no-op guard */
+},1000);
+setInterval(renderShop,4000);
+applySkin();renderAch();renderAll();renderPlayers();
+feed("🐷 Welcome to Pig Clicker! Tap the pig, buy auto-clickers, and prestige for Golden Apples.");
+mpConnect();scheduleGolden();
+setTimeout(function(){toast("🐷 Tap the pig to start earning!");},600);
+</script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}</script>
+</body>
+</html>
