@@ -751,7 +751,7 @@ button,input,select{font:inherit} button{cursor:pointer}
       <p class="sub" id="installNote" style="margin-top:10px"></p>
     </section>
 
-    <p class="foot">🐷 Pig Clicker v2.4 — tap, upgrade, prestige, raid and duel. Sign in to play — email optional, progress saves to the cloud.</p>
+    <p class="foot">🐷 Pig Clicker v2.4.1 — tap, upgrade, prestige, raid and duel. Sign in to play — email optional, progress saves to the cloud.</p>
   </main>
 </div>
 
@@ -978,8 +978,11 @@ var ACHIEVEMENTS=[
  {id:"b47", icon:"⚔️", name:"Raid Veteran", desc:"Deal 1,000,000 raid damage.", test:function(s){return (s.raidDamage||0)>=1e6}},
  {id:"b48", icon:"🥊", name:"First Blood", desc:"Win 1 click duel.", test:function(s){return (s.duelWins||0)>=1}}
 ];
-var CURRENT_VERSION="v2.4";
+var CURRENT_VERSION="v2.4.1";
 var UPDATE_LOG=[
+ {v:"v2.4.1", tag:"CUSTOM BAN LENGTHS", date:"November 7, 2026", items:[
+  "⏱️ Custom ban lengths: type any amount of time (minutes / hours / days / weeks / years) instead of only picking a preset — up to 999,999,999 of any unit, so yes, 999,999,999 years is a valid ban length. The banned screen shows the exact number you typed."
+ ]},
  {v:"v2.4", tag:"HARD BANS, GUEST-FREE ACCOUNTS & PROFILES", date:"November 7, 2026", items:[
   "🔨 Hard Ban: a second ban button in the Owner and Admin panels — bans the account AND the device, so a banned player can't just make a new account to dodge it. Unbanning lifts both.",
   "⏱️ Ban duration + reason: every ban now asks how long (1 hour, 6 hours, 24 hours, 7 days, 30 days, or Permanent) and what it's for. Temp bans lift themselves when the time runs out, and the banned screen shows the reason and the time left.",
@@ -2351,13 +2354,13 @@ function onSignedIn(user){
  /* v2.4: device-ban check FIRST — a banned device locks out even a
     brand-new account made to dodge the ban. */
  checkDeviceBan().then(function(devBan){
-  if(devBan){enforceBan({reason:devBan.reason||"This device is banned.",until:devBan.bannedUntil||null,device:true});return null;}
+  if(devBan){enforceBan({reason:devBan.reason||"This device is banned.",until:devBan.bannedUntil||null,device:true,label:devBan.banLengthLabel||""});return null;}
   return ref.get();
  }).then(function(doc){
   if(!doc)return; /* device ban already handled above */
   if(doc.exists){
    var d=doc.data();
-   if(isBanActive(d)){enforceBan({reason:d.banReason||"",until:d.bannedUntil||null});return;}
+   if(isBanActive(d)){enforceBan({reason:d.banReason||"",until:d.bannedUntil||null,label:d.banLengthLabel||""});return;}
    if(!S.powers)S.powers=[];
    if(Array.isArray(d.powers))d.powers.forEach(function(pid){if(S.powers.indexOf(pid)===-1)S.powers.push(pid);});
    cloudCoinsSeen=(typeof d.coins==="number")?d.coins:null;
@@ -2418,7 +2421,11 @@ function isBanActive(d){
  var u=banUntilMs(d.bannedUntil);
  return u===null||u>Date.now();
 }
+/* v2.4.1: a stored banLengthLabel (e.g. "999,999,999 years") wins over the
+   computed countdown — the stored timestamp is clamped to 9999-12-31, so
+   computing from it would show a wrong number. */
 function banRemainingText(d){
+ if(d&&d.banLengthLabel)return "Banned for "+d.banLengthLabel;
  var u=banUntilMs(d.bannedUntil);
  if(u===null)return "Permanent ban";
  var ms=u-Date.now();
@@ -2471,7 +2478,7 @@ function setupCloudListeners(){
  try{
   var u2=fbDb.collection("users").doc(fbUser.uid).onSnapshot(function(doc){
    if(!doc.exists)return;var d=doc.data();
-   if(isBanActive(d)){enforceBan({reason:d.banReason||"",until:d.bannedUntil||null});return;}
+   if(isBanActive(d)){enforceBan({reason:d.banReason||"",until:d.bannedUntil||null,label:d.banLengthLabel||""});return;}
    /* v2.3 Bug A: banned flipped back to false while we still carry the ban
       flags (e.g. the sign-out in enforceBan failed) — restore full access.
       v2.4: an expired temp ban restores access the same way. */
@@ -3137,7 +3144,7 @@ function refreshRole(){
 var banLock=false, lastBanCheck=0, banWatchUnsub=null, banInfo=null, banCountInt=null;
 function updateBanCountdown(){
  var el=$("banLeftLine");if(!el||!banInfo)return;
- el.textContent="⏱️ "+banRemainingText({bannedUntil:banInfo.until});
+ el.textContent="⏱️ "+banRemainingText({bannedUntil:banInfo.until,banLengthLabel:(banInfo&&banInfo.label)||""});
 }
 function showAuthGate(){
  var g=$("authGate"),b=$("bannedScreen");
@@ -3153,7 +3160,7 @@ function showBannedScreen(){
  /* v2.4: show what the ban is for and how long is left (live countdown). */
  var r=$("banReasonLine"),l=$("banLeftLine");
  if(r){if(banInfo&&banInfo.reason){r.textContent="🔨 Banned for: "+banInfo.reason;r.style.display="";}else{r.style.display="none";}}
- if(l){if(banInfo){l.textContent="⏱️ "+banRemainingText({bannedUntil:banInfo.until});l.style.display="";}else{l.style.display="none";}}
+ if(l){if(banInfo){l.textContent="⏱️ "+banRemainingText({bannedUntil:banInfo.until,banLengthLabel:(banInfo&&banInfo.label)||""});l.style.display="";}else{l.style.display="none";}}
  if(banCountInt)clearInterval(banCountInt);
  banCountInt=setInterval(updateBanCountdown,30000);
 }
@@ -3210,10 +3217,10 @@ function recheckBan(){
  if(!fbReady||!fbUser||!fbDb||banLock)return;
  var now=Date.now();if(now-lastBanCheck<10000)return;lastBanCheck=now;
  fbDb.collection("users").doc(fbUser.uid).get().then(function(doc){
-  if(doc.exists&&doc.data()&&isBanActive(doc.data())){var d=doc.data();enforceBan({reason:d.banReason||"",until:d.bannedUntil||null});return;}
+  if(doc.exists&&doc.data()&&isBanActive(doc.data())){var d=doc.data();enforceBan({reason:d.banReason||"",until:d.bannedUntil||null,label:d.banLengthLabel||""});return;}
   return checkDeviceBan();
  }).then(function(devBan){
-  if(devBan)enforceBan({reason:devBan.reason||"This device is banned.",until:devBan.bannedUntil||null,device:true});
+  if(devBan)enforceBan({reason:devBan.reason||"This device is banned.",until:devBan.bannedUntil||null,device:true,label:devBan.banLengthLabel||""});
  }).catch(function(){});
 }
 /* v2.4: shared auth flows — used by the gate form AND the Profile-tab form.
@@ -3319,6 +3326,7 @@ function auditGrant(action,target,extra){
  if(extra&&extra.amount!=null)doc.amount=extra.amount;
  if(extra&&extra.powerId)doc.powerId=extra.powerId;
  if(extra&&extra.reason)doc.reason=extra.reason;
+ if(extra&&extra.duration)doc.duration=extra.duration;
  fbDb.collection("grants").add(doc).catch(function(err){noteFbError(err,"audit");});
 }
 function actorLabel(){return myRole==="owner"?"👑 Owner":"🛡️ Admin";}
@@ -3491,6 +3499,28 @@ function panelGivePower(p,powerId){
 }
 /* v2.4: ban durations — null = Permanent. */
 var BAN_DURATIONS=[{label:"1 hour",ms:3600000},{label:"6 hours",ms:21600000},{label:"24 hours",ms:86400000},{label:"7 days",ms:604800000},{label:"30 days",ms:2592000000},{label:"Permanent",ms:null}];
+/* v2.4.1: custom ban lengths — Rizz wants to type absurd lengths (e.g.
+   999,999,999 years) as a troll. Min 1, max 999,999,999 in any unit, no
+   practical cap. Firestore Timestamps max out at 9999-12-31, so a computed
+   bannedUntil past that is clamped to 9999-12-31T23:59:59Z and the typed
+   label is stored in banLengthLabel so the troll number still shows. */
+var BAN_CUSTOM_UNITS=[{label:"Minutes",ms:60000},{label:"Hours",ms:3600000},{label:"Days",ms:86400000},{label:"Weeks",ms:604800000},{label:"Years",ms:31557600000}];
+var BAN_MAX_TS_MS=Date.UTC(9999,11,31,23,59,59);
+function fmtBanLabel(n,unit){var s=Number(n).toLocaleString("en-US");var base=unit.toLowerCase().replace(/s$/,"");return s+" "+base+(Number(n)===1?"":"s");}
+function customBanDuration(inNum,inUnit){
+ var raw=String(inNum.value||"").trim();
+ if(!raw){sndErr();toast("Type how long the ban is first.");return null;}
+ var n=Number(raw);
+ if(!isFinite(n)||isNaN(n)||n<=0){sndErr();toast("Ban length must be a number above 0.");return null;}
+ if(n>999999999){sndErr();toast("Ban length maxes out at 999,999,999.");return null;}
+ var unit=BAN_CUSTOM_UNITS[parseInt(inUnit.value,10)||0];
+ return {ms:n*unit.ms,label:fmtBanLabel(n,unit.label)};
+}
+function resolveBanDuration(selDur,inNum,inUnit){
+ if(selDur.value==="custom")return customBanDuration(inNum,inUnit);
+ var dur=BAN_DURATIONS[parseInt(selDur.value,10)||0];
+ return {ms:dur.ms,label:""};
+}
 function panelSetBan(p,ban,opts){
  opts=opts||{};
  if(!fbDb||!fbUser||(myRole!=="owner"&&myRole!=="admin"))return;
@@ -3503,18 +3533,22 @@ function panelSetBan(p,ban,opts){
  }
  var hard=!!opts.hard;
  var reason=String(opts.reason||"").trim().slice(0,120);
+ var label=String(opts.durationLabel||"").slice(0,40);
  var untilTs=null;
- if(ban&&opts.durationMs){try{untilTs=firebase.firestore.Timestamp.fromMillis(Date.now()+opts.durationMs);}catch(e){untilTs=null;}}
- /* v2.4: an unban clears ALL FIVE ban fields together — leaving any of
+ /* v2.4.1: clamp to Firestore's max Timestamp (9999-12-31) — a troll ban
+    of 999,999,999 years would otherwise be an out-of-range write that
+    fails. The typed label is stored separately so the number still shows. */
+ if(ban&&opts.durationMs){try{var targetMs=Date.now()+opts.durationMs;if(targetMs>BAN_MAX_TS_MS)targetMs=BAN_MAX_TS_MS;untilTs=firebase.firestore.Timestamp.fromMillis(targetMs);}catch(e){untilTs=null;}}
+ /* v2.4: an unban clears ALL SIX ban fields together — leaving any of
     them set made later unbans fail and left stale ban tags. A hard ban
     also writes deviceBan docs for every device the player has used, and
     an unban deletes them again — otherwise the player stays device-locked. */
- var upd=ban?{banned:true,bannedBy:fbUser.uid,bannedByOwner:myRole==="owner",bannedUntil:untilTs,banReason:reason,hardBanned:hard}
-           :{banned:false,bannedBy:"",bannedByOwner:false,bannedUntil:null,banReason:"",hardBanned:false};
+ var upd=ban?{banned:true,bannedBy:fbUser.uid,bannedByOwner:myRole==="owner",bannedUntil:untilTs,banReason:reason,hardBanned:hard,banLengthLabel:label}
+           :{banned:false,bannedBy:"",bannedByOwner:false,bannedUntil:null,banReason:"",hardBanned:false,banLengthLabel:""};
  var jobs=[fbDb.collection("users").doc(p._uid).update(upd)];
  if(ban&&hard&&(p.deviceIds||[]).length){
   p.deviceIds.forEach(function(dev){
-   jobs.push(fbDb.collection("deviceBans").doc(dev).set({deviceId:dev,bannedUid:p._uid,bannedBy:fbUser.uid,bannedAt:firebase.firestore.FieldValue.serverTimestamp(),bannedUntil:untilTs,reason:reason}).catch(function(){}));
+   jobs.push(fbDb.collection("deviceBans").doc(dev).set({deviceId:dev,bannedUid:p._uid,bannedBy:fbUser.uid,bannedAt:firebase.firestore.FieldValue.serverTimestamp(),bannedUntil:untilTs,reason:reason,banLengthLabel:label}).catch(function(){}));
   });
  }
  if(!ban&&(p.deviceIds||[]).length){
@@ -3523,10 +3557,10 @@ function panelSetBan(p,ban,opts){
   });
  }
  Promise.all(jobs).then(function(){
-  p.banned=ban;p.bannedUntil=untilTs;p.banReason=reason;p.hardBanned=ban&&hard;
+  p.banned=ban;p.bannedUntil=untilTs;p.banReason=reason;p.hardBanned=ban&&hard;p.banLengthLabel=ban?label:"";
   if(ban){p.bannedBy=fbUser.uid;p.bannedByOwner=myRole==="owner";}else{p.bannedBy="";p.bannedByOwner=false;}
-  auditGrant(ban?(hard?"hard_ban":"ban"):"unban",p,{reason:reason});
-  var durTxt=ban?(untilTs?" for "+banRemainingText({bannedUntil:untilTs}):" permanently"):"";
+  var durTxt=ban?(label?(" for "+label):(untilTs?" for "+banRemainingText({bannedUntil:untilTs}):" permanently")):"";
+  auditGrant(ban?(hard?"hard_ban":"ban"):"unban",p,{reason:reason,duration:ban?(label||(untilTs?banRemainingText({bannedUntil:untilTs}):"Permanent")):""});
   systemChat(ban?("🔨 "+actorLabel()+(hard?" HARD-banned ":" banned ")+(p.name||p.username)+durTxt+(reason?" — "+reason:"")):("🔓 "+actorLabel()+" unbanned "+(p.name||p.username)));
   toast(ban?((hard?"🔨 Hard-banned ":"🔨 Banned ")+(p.name||p.username)+durTxt+(hard&&!(p.deviceIds||[]).length?" (No device recorded yet — account ban only for now.)":"")+"."):("🔓 Unbanned "+(p.name||p.username)+"."));
   renderPanelList();
@@ -3788,17 +3822,27 @@ function buildPlayerTools(container,p,role,isMe){
  else if(myRole==="admin"&&isBanActive(p)&&p.bannedByOwner){banBlocked="ownerban";banWhy="Only the Owner can lift an Owner ban.";}
  var bannedNow=isBanActive(p);
  var c19=toolCard(bannedNow?"Unban player":"Ban player",banBlocked?banWhy:(bannedNow?"Lift the ban — they can play again.":"Ban them: signed out on the spot, game locked."));
- var selDur=toolSelect(BAN_DURATIONS.map(function(d,i){return{value:String(i),label:"⏱️ "+d.label};}));
+ var durOpts=BAN_DURATIONS.map(function(d,i){return{value:String(i),label:"⏱️ "+d.label};});
+ durOpts.push({value:"custom",label:"⏱️ Custom…"});
+ var selDur=toolSelect(durOpts);
  var inReason=toolInput("Reason for ban (optional)",true);
+ /* v2.4.1: custom length — number + unit, each in its own space. */
+ var customRow=document.createElement("div");
+ customRow.style.cssText="display:none;flex-direction:column;gap:8px;margin-top:8px;";
+ var inCustomNum=toolInput("How long?");
+ var selCustomUnit=toolSelect(BAN_CUSTOM_UNITS.map(function(u,i){return{value:String(i),label:u.label};}));
+ customRow.appendChild(inCustomNum);customRow.appendChild(selCustomUnit);
+ selDur.addEventListener("change",function(){customRow.style.display=selDur.value==="custom"?"flex":"none";});
  var bB=toolBtn(bannedNow?"🔓 Unban":"🔨 Ban",bannedNow?"blue":"red");
  if(banBlocked){bB.disabled=true;bB.title=banWhy;}
  bB.addEventListener("click",function(){
   if(banBlocked){toast(banWhy);return;}
   if(bannedNow){panelSetBan(p,false);return;}
-  var dur=BAN_DURATIONS[parseInt(selDur.value,10)||0];
-  panelSetBan(p,true,{durationMs:dur.ms,reason:inReason.value});
+  var dur=resolveBanDuration(selDur,inCustomNum,selCustomUnit);
+  if(!dur)return;
+  panelSetBan(p,true,{durationMs:dur.ms,durationLabel:dur.label,reason:inReason.value});
  });
- if(!bannedNow){c19.appendChild(selDur);c19.appendChild(inReason);}
+ if(!bannedNow){c19.appendChild(selDur);c19.appendChild(customRow);c19.appendChild(inReason);}
  c19.appendChild(bB);g6.appendChild(c19);
  /* v2.4: Hard Ban — account + device, so a new account can't dodge it. */
  if(!bannedNow){
@@ -3807,10 +3851,11 @@ function buildPlayerTools(container,p,role,isMe){
   if(banBlocked){bHB.disabled=true;bHB.title=banWhy;}
   bHB.addEventListener("click",function(){
    if(banBlocked){toast(banWhy);return;}
-   var dur2=BAN_DURATIONS[parseInt(selDur.value,10)||0];
+   var dur2=resolveBanDuration(selDur,inCustomNum,selCustomUnit);
+   if(!dur2)return;
    if(!bHB.dataset.arm){armConfirm(bHB,"⚠️ Tap again to HARD BAN");return;}
    delete bHB.dataset.arm;bHB.textContent="🔨 Hard Ban";
-   panelSetBan(p,true,{hard:true,durationMs:dur2.ms,reason:inReason.value});
+   panelSetBan(p,true,{hard:true,durationMs:dur2.ms,durationLabel:dur2.label,reason:inReason.value});
   });
   c19h.appendChild(bHB);g6.appendChild(c19h);
  }
@@ -4164,7 +4209,7 @@ if(profile.name){$("farmName").textContent=profile.name+"'s Pig Farm";$("nameInp
 buildStaffFloat();
 applySkin();refreshAvatarPicks();renderAch();renderTree();renderAll();renderPlayers();renderDaily();ensureQuests();renderQuests();renderBp();renderLog();renderCloudStrip();renderGlobalBoard();renderFriends();renderGuild();renderRaid();renderDuelPick();renderRolePanel();renderRequests();renderDmList();renderEventStrip();
 checkTitles();
-feed("🐷 Welcome to Pig Clicker v2.4! Sign in, tap the pig, raid the boss, and check the Update Log in your Profile.");
+feed("🐷 Welcome to Pig Clicker v2.4.1! Sign in, tap the pig, raid the boss, and check the Update Log in your Profile.");
 mpConnect();scheduleGolden();
 fbInit();
 initGateAuth();
