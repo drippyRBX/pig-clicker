@@ -290,6 +290,16 @@ button,input,select{font:inherit} button{cursor:pointer}
 .bottom-nav button{border:none;background:none;color:var(--muted);font-weight:900;font-size:.72rem;padding:7px 2px;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:1px}
 .bottom-nav button .bi{font-size:1.35rem;line-height:1}
 .bottom-nav button.on{color:var(--pink-d);background:var(--bg2)}
+/* v2.4: profile screen, tutorial, what's-new, badges, gate choice */
+.profile-screen{position:fixed;inset:0;z-index:70;background:var(--bg);overflow:auto;padding:16px 14px calc(90px + env(safe-area-inset-bottom))}
+.profile-screen-inner{max-width:560px;margin:0 auto}
+.profile-screen .stat-table{width:100%}
+.new-badge{display:inline-block;background:var(--red);color:#fff;font-size:.68rem;font-weight:900;border-radius:999px;padding:2px 8px;vertical-align:middle;animation:bob .7s ease-in-out infinite alternate}
+.nav-dot{position:absolute;top:6px;right:16px;width:9px;height:9px;border-radius:50%;background:var(--red);border:2px solid var(--card)}
+.bottom-nav button{position:relative}
+.gate-choice{display:flex;gap:6px}
+.gate-choice .tab{flex:1}
+.pp-action{width:100%;text-align:center}
 @media(max-width:640px){
  #pigBtn svg{width:min(178px,52vw)}
  .stage{padding:10px 12px}
@@ -308,20 +318,24 @@ button,input,select{font:inherit} button{cursor:pointer}
 </style>
 </head>
 <body class="gated">
-<!-- v2.3: auth gate — nobody sees or touches the game until signed in with an email account -->
+<!-- v2.4: auth gate — email optional: play with an email, or just a username + password -->
 <div id="authGate" class="gate-screen">
   <div class="gate-card">
     <div class="gate-pig">🐷</div>
     <h1>Pig Clicker</h1>
-    <p class="sub">You need an email account to play. Sign in or make one — it takes 20 seconds.</p>
+    <p class="sub">Play with an email, or just a username + password — your choice. Either way your progress saves to the cloud.</p>
     <div class="auth-tabs" role="tablist"><button class="tab on" id="gAtLogin" type="button">Log in</button><button class="tab" id="gAtReg" type="button">Register</button></div>
     <div id="gAuthForm">
-      <input class="auth-input" id="gAuthUser" maxlength="20" placeholder="Username (register only)" autocomplete="off" style="display:none;margin-bottom:8px"/>
+      <input class="auth-input" id="gAuthUser" maxlength="20" placeholder="Username" autocomplete="off" style="margin-bottom:8px"/>
+      <div class="gate-choice" id="gEmailChoice" style="display:none;margin-bottom:8px">
+        <button class="tab on" id="gChoiceEmail" type="button">📧 With email</button>
+        <button class="tab" id="gChoiceNoEmail" type="button">🐷 Username only</button>
+      </div>
       <input class="auth-input" id="gAuthEmail" type="email" placeholder="Email" autocomplete="email" style="margin-bottom:8px"/>
       <input class="auth-input" id="gAuthPass" type="password" placeholder="Password (6+ characters)" autocomplete="current-password" style="margin-bottom:8px"/>
       <div class="auth-err" id="gAuthErr"></div>
       <button class="big-btn pink" id="gBtnAuthGo" type="button">Log in 🐷</button>
-      <p class="sub" style="margin-top:8px">Email + password only — no Google, no Apple, no VR. Passwords are hashed by Firebase; the game never sees or stores yours.</p>
+      <p class="sub" style="margin-top:8px">Email is optional — you only need it for password recovery and the ✉️ Verified badge. Passwords are hashed by Firebase; the game never sees or stores yours.</p>
       <p class="sub" id="gVerifyNote" style="display:none">📧 Verification email sent — you can play right away, just confirm it when it arrives.</p>
     </div>
     <div id="gAuthDown" style="display:none"><div class="auth-note">📴 The sign-in service couldn't load — check your connection and reload the page.</div></div>
@@ -333,6 +347,8 @@ button,input,select{font:inherit} button{cursor:pointer}
     <div class="gate-pig">🔨</div>
     <h1>You have been banned</h1>
     <p class="sub">This account was banned by the Owner or an Admin. You can't play Pig Clicker on this account — your local progress on this device has been cleared.</p>
+    <p class="sub" id="banReasonLine" style="display:none;font-weight:900"></p>
+    <p class="sub" id="banLeftLine" style="display:none;font-weight:900"></p>
     <button class="big-btn pink" id="btnBannedOther" type="button">Sign in again</button>
     <p class="sub" style="margin-top:8px">If the Owner unbanned this account, signing in again takes you straight back into the game. Otherwise use a different account.</p>
   </div>
@@ -698,11 +714,25 @@ button,input,select{font:inherit} button{cursor:pointer}
         <div class="toggle"><span>🔔 Milestone toasts</span><button id="qToast" class="on" type="button">ON</button></div>
       </div>
       <p class="sub" id="hintLine" style="margin-top:12px"></p>
-      <button class="chip-btn" id="btnReset" type="button" style="color:var(--red);border-color:var(--red)">🗑️ Hard reset run</button>
+      <div class="room-row" style="margin-top:10px">
+        <button class="chip-btn" id="btnReplayTut" type="button">🎓 Replay tutorial</button>
+        <button class="chip-btn" id="btnReset" type="button" style="color:var(--red);border-color:var(--red)">🗑️ Hard reset run</button>
+      </div>
+    </section>
+
+    <section class="card" id="emailCard" aria-label="Email and account recovery">
+      <h2>✉️ Email &amp; Account Recovery</h2>
+      <p class="sub" id="emailCardText">Add a real email to unlock password recovery and the ✉️ Verified badge. Your account works fine without one.</p>
+      <div class="profile-form" id="emailCardForm">
+        <input id="emailAddInput" type="email" placeholder="Your real email" autocomplete="email"/>
+        <input id="emailAddPass" type="password" placeholder="Current password" autocomplete="current-password"/>
+        <button class="send-btn" id="btnAddEmail" type="button">Add email</button>
+      </div>
+      <p class="sub" id="emailCardErr" style="color:var(--red);font-weight:800"></p>
     </section>
 
     <section class="card" aria-label="Update log">
-      <h2>📜 Update Log</h2>
+      <h2>📜 Update Log <span id="logNewBadge" class="new-badge" style="display:none">🆕 NEW</span></h2>
       <p class="sub">Every version of Pig Clicker. Tap a version on the side to see what it added.</p>
       <div class="log-wrap">
         <div class="log-side" id="logSide" role="tablist" aria-label="Versions"></div>
@@ -721,7 +751,7 @@ button,input,select{font:inherit} button{cursor:pointer}
       <p class="sub" id="installNote" style="margin-top:10px"></p>
     </section>
 
-    <p class="foot">🐷 Pig Clicker v2.3 — tap, upgrade, prestige, raid and duel. Sign in with your email to play — progress saves to the cloud.</p>
+    <p class="foot">🐷 Pig Clicker v2.4 — tap, upgrade, prestige, raid and duel. Sign in to play — email optional, progress saves to the cloud.</p>
   </main>
 </div>
 
@@ -732,29 +762,48 @@ button,input,select{font:inherit} button{cursor:pointer}
   <button type="button" data-view="social"><span class="bi">🌍</span>Multiplayer</button>
   <button type="button" data-view="friends"><span class="bi">🤝</span>Friends</button>
   <button type="button" data-view="ranks"><span class="bi">🏆</span>Ranks</button>
-  <button type="button" data-view="profile"><span class="bi">🎨</span>Profile</button>
+  <button type="button" data-view="profile"><span class="bi">🎨</span>Profile<span id="navNewDot" class="nav-dot" style="display:none"></span></button>
 </nav>
 
-<!-- PROFILE MODAL -->
-<div class="modal-bg" id="profileModal">
-  <div class="modal" role="dialog" aria-modal="true" aria-label="Player profile">
-    <div class="big-av" id="pmAvatar">🐷</div>
-    <h2 id="pmName">Player</h2>
-    <div id="pmBanner" style="border-radius:12px;padding:10px;text-align:center;font-weight:900;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.35);margin-bottom:10px"></div>
-    <table class="stat-table">
-      <tr><td>Pig Coins</td><td id="pmCoins">0</td></tr>
-      <tr><td>Lifetime earned</td><td id="pmLife">0</td></tr>
-      <tr><td>Per second</td><td id="pmPps">0</td></tr>
-      <tr><td>Total taps</td><td id="pmTaps">0</td></tr>
-      <tr><td>Biggest combo</td><td id="pmCombo">×1.0</td></tr>
-      <tr><td>Best CPS</td><td id="pmCps">0</td></tr>
-      <tr><td>Level</td><td id="pmLevel">1</td></tr>
-      <tr><td>Golden Apples</td><td id="pmApples">0</td></tr>
-      <tr><td>Title</td><td id="pmTitle">—</td></tr>
-      <tr><td>VIP tier</td><td id="pmVip">—</td></tr>
-      <tr><td>Skin</td><td id="pmSkin">Classic</td></tr>
-    </table>
-    <button class="big-btn close-btn" id="pmClose" type="button">Close</button>
+<!-- v2.4: FULL PLAYER PROFILE — its own screen, not a cramped popup -->
+<div id="playerProfile" class="profile-screen" style="display:none">
+  <div class="profile-screen-inner">
+    <button class="big-btn" id="ppBack" type="button" style="margin-bottom:12px">← Back</button>
+    <div id="ppBanner" style="border-radius:14px;padding:18px;text-align:center;font-weight:900;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.35);margin-bottom:12px"></div>
+    <div style="text-align:center;margin-bottom:12px">
+      <div class="big-av" id="ppAvatar" style="margin:0 auto">🐷</div>
+      <h2 id="ppName" style="margin:8px 0 2px">Player</h2>
+      <div id="ppTags"></div>
+      <p class="sub" id="ppJoined" style="margin-top:4px"></p>
+      <p class="sub" id="ppOnline" style="margin-top:2px"></p>
+    </div>
+    <table class="stat-table" id="ppStats"></table>
+    <div id="ppBadges" style="margin:12px 0"></div>
+    <div id="ppPowers" style="margin:12px 0"></div>
+    <div id="ppActions" style="display:flex;flex-direction:column;gap:8px;margin-top:14px"></div>
+  </div>
+</div>
+
+<!-- v2.4: FIRST-JOIN TUTORIAL — one step at a time, skippable -->
+<div class="modal-bg" id="tutorialOverlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="How to play">
+    <div class="big-av" id="tutIcon">🐷</div>
+    <h2 id="tutTitle">Welcome to Pig Clicker!</h2>
+    <p style="text-align:center;font-weight:800" id="tutText"></p>
+    <p class="sub" style="text-align:center" id="tutStep"></p>
+    <button class="big-btn pink" id="tutNext" type="button">Next →</button>
+    <button class="big-btn" id="tutSkip" type="button" style="margin-top:8px">Skip tutorial</button>
+  </div>
+</div>
+
+<!-- v2.4: WHAT'S NEW — shows once per version after an update ships -->
+<div class="modal-bg" id="whatsNewModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="What's new">
+    <div class="big-av">🆕</div>
+    <h2 id="wnTitle">What's new!</h2>
+    <ul id="wnList" style="text-align:left;font-weight:700;line-height:1.5"></ul>
+    <button class="big-btn pink" id="wnGotIt" type="button">Got it 👍</button>
+    <button class="big-btn" id="wnSeeAll" type="button" style="margin-top:8px">See all updates 📜</button>
   </div>
 </div>
 
@@ -929,7 +978,19 @@ var ACHIEVEMENTS=[
  {id:"b47", icon:"⚔️", name:"Raid Veteran", desc:"Deal 1,000,000 raid damage.", test:function(s){return (s.raidDamage||0)>=1e6}},
  {id:"b48", icon:"🥊", name:"First Blood", desc:"Win 1 click duel.", test:function(s){return (s.duelWins||0)>=1}}
 ];
+var CURRENT_VERSION="v2.4";
 var UPDATE_LOG=[
+ {v:"v2.4", tag:"HARD BANS, GUEST-FREE ACCOUNTS & PROFILES", date:"November 7, 2026", items:[
+  "🔨 Hard Ban: a second ban button in the Owner and Admin panels — bans the account AND the device, so a banned player can't just make a new account to dodge it. Unbanning lifts both.",
+  "⏱️ Ban duration + reason: every ban now asks how long (1 hour, 6 hours, 24 hours, 7 days, 30 days, or Permanent) and what it's for. Temp bans lift themselves when the time runs out, and the banned screen shows the reason and the time left.",
+  "📈 Staff levels past the cap: the Owner and Admins can now set levels all the way up to 99999 — including on themselves. Normal play still caps at level 50.",
+  "♾️ INF coins fixed: typing inf in give-coins now always grants the max (999,999,999,999,999) — the confirm can no longer be lost when the panel refreshes, and the toast shows the exact amount granted.",
+  "🚫 Username filter: rude, hateful, explicit and impersonating names (including leetspeak tricks like sh1t) are blocked at sign-up and whenever you change your name. That name isn't allowed — pick another one.",
+  "👤 Profiles, rebuilt: tap any player to open their full profile — join date, level, coins, taps, biggest win, badges, Goku powers, guild, friends, online status — with DM, Add friend, Block and staff actions right there.",
+  "🎓 First-join tutorial: brand-new players get a short step-by-step tour (tap the pig, shop, leaderboard, friends, rewards, prestige) — one step at a time, skippable, with a Replay button in the Profile tab.",
+  "🆕 What's New: after every update, the first sign-in shows a popup with the headline changes, and the Update Log wears a NEW badge until you've seen it.",
+  "🔓 No-email accounts: email is now optional — sign up with just a username + password and you get the FULL game (leaderboard, friends, DMs, chat, duels, raids, guilds, Battle Pass, cloud saves). Only password recovery, the verification email, and the ✉️ Verified badge need a real email — you can add one later from the Profile tab."
+ ]},
  {v:"v2.3", tag:"EMAIL REQUIRED & REAL BANS", date:"November 6, 2026", items:[
   "🔐 Email required to play: no more guest play — everybody signs in with an email account before they can tap the pig, see the leaderboard, or touch anything in the game.",
   "📧 Verification email: new accounts get a Firebase verification email right after registering. You can play straight away — just confirm it when it lands in your inbox.",
@@ -1006,13 +1067,13 @@ function freshState(){
   skillPts:0,skills:{},title:"",bpXp:0,bpPremium:false,bpClaimed:{},bpClaimedP:{},
   dailyLast:"",dailyStreak:0,dailyCount:0,lastLevelReward:1,burstsUsed:0,raidDamage:0,duelWins:0,
   guildId:"",guildName:"",quests:null,banner:"sunset",lastSeen:Date.now(),powers:[],equippedPower:"",
-  grantedTitles:[],vipGranted:""};
+  grantedTitles:[],vipGranted:"",grantedLevel:0,biggestWin:0};
 }
 var S=freshState();
 var combo=1, comboTimer=null, bestComboSeen=1;
 var buyAmt=1, activeTab="auto";
 var qol={fmt:true,hold:true,hint:true,toasts:true,sound:true,vibe:true,anim:true};
-var profile={name:"",avatar:"🐷",avatarImg:"",username:""};
+var profile={name:"",avatar:"🐷",avatarImg:"",username:"",email:""};
 var myId="p"+Math.random().toString(36).slice(2,10);
 var roomCode=makeCode();
 var players={};
@@ -1040,8 +1101,11 @@ function guildBuff(){return 1+(guildCache&&guildCache.id===S.guildId?(guildCache
 function perSec(){var t=0;GENERATORS.forEach(function(g){t+=(S.gens[g.id]||0)*g.pps;});return t*appleMult()*(1+skillLvl("army")*0.20)*guildBuff();}
 function critChance(){return 0.05+skillLvl("crit")*0.02;}
 function perTap(){var m=1;TAP_UPGRADES.forEach(function(u){if(S.tapOwned[u.id])m*=u.mult;});var v=m*appleMult()*combo*(1+skillLvl("might")*0.25)*guildBuff()*powerMult();if(Date.now()<burstUntil)v*=3;return v;}
-function level(){return Math.min(50,Math.floor(Math.sqrt(Math.max(0,S.lifetime)/100))+1);}
-function xpInfo(){var lv=level();if(lv>=50)return{p:1,txt:"MAX LEVEL"};var cur=Math.pow(lv-1,2)*100,nxt=Math.pow(lv,2)*100;var p=(S.lifetime-cur)/(nxt-cur);return{p:Math.max(0,Math.min(1,p)),txt:fmt(S.lifetime-cur)+" / "+fmt(nxt-cur)+" XP to next level"};}
+/* v2.4: effective level = XP level (max 50) OR staff-granted level (max 99999).
+   Normal play can never pass 50 — only Owner/Admin grants set grantedLevel. */
+function level(){var xpLv=Math.min(50,Math.floor(Math.sqrt(Math.max(0,S.lifetime)/100))+1);var g=Math.max(0,Math.min(99999,Math.floor(S.grantedLevel||0)));return Math.max(xpLv,g);}
+function xpInfo(){var lv=Math.min(50,level());if(lv>=50)return{p:1,txt:"MAX LEVEL"};var cur=Math.pow(lv-1,2)*100,nxt=Math.pow(lv,2)*100;var p=(S.lifetime-cur)/(nxt-cur);return{p:Math.max(0,Math.min(1,p)),txt:fmt(S.lifetime-cur)+" / "+fmt(nxt-cur)+" XP to next level"};}
+function noteWin(n){n=Math.floor(n||0);if(n>(S.biggestWin||0)){S.biggestWin=n;}}
 function genCost(g,owned){return Math.ceil(g.base*Math.pow(1.15,owned));}
 function bulkCost(g,owned,n){var t=0;for(var i=0;i<n;i++)t+=genCost(g,owned+i);return t;}
 function maxAffordable(g,owned){var n=0,c=S.coins;while(n<500){var cost=genCost(g,owned+n);if(cost>c)break;c-=cost;n++;}return n;}
@@ -1066,6 +1130,92 @@ function loadLocal(){
   return d;}catch(e){return null;}
 }
 
+/* ============================== v2.4: DEVICE ID (hard bans) ==============================
+   A random per-device id, stored redundantly in localStorage + a long-lived
+   cookie + IndexedDB, so clearing any ONE store doesn't evade a device ban.
+   It is a random string, not personal data — no IP, no email, nothing else. */
+var deviceId="";
+function genDeviceId(){var s="";try{var a=new Uint8Array(16);(window.crypto||{}).getRandomValues?crypto.getRandomValues(a):a.forEach(function(_,i){a[i]=Math.floor(Math.random()*256);});for(var i=0;i<16;i++)s+=("0"+a[i].toString(16)).slice(-2);}catch(e){for(var j=0;j<32;j++)s+="0123456789abcdef"[Math.floor(Math.random()*16)];}return s;}
+function idbPutDevice(id){try{var rq=indexedDB.open("pigclicker",1);rq.onupgradeneeded=function(){try{rq.result.createObjectStore("kv");}catch(e){}};rq.onsuccess=function(){try{var tx=rq.result.transaction("kv","readwrite");tx.objectStore("kv").put(id,"device");}catch(e){}};}catch(e){}}
+function idbGetDevice(cb){try{var rq=indexedDB.open("pigclicker",1);rq.onsuccess=function(){try{var tx=rq.result.transaction("kv","readonly");var g=tx.objectStore("kv").get("device");g.onsuccess=function(){cb(g.result||"");};g.onerror=function(){cb("");};}catch(e){cb("");}};rq.onerror=function(){cb("");};}catch(e){cb("");}}
+function getDeviceId(){
+ if(deviceId)return deviceId;
+ var id="";
+ try{id=localStorage.getItem("pigclicker.v2.device")||"";}catch(e){}
+ if(!id){var m=document.cookie.match(/(?:^|; )pc_device=([0-9a-f]{32})/);if(m)id=m[1];}
+ if(!id){
+  id=genDeviceId();
+  /* IndexedDB may still hold an older id (e.g. localStorage was cleared) —
+     adopt it if it arrives before first use; otherwise keep the new one. */
+  idbGetDevice(function(old){if(old&&old!==deviceId){deviceId=old;try{localStorage.setItem("pigclicker.v2.device",old);}catch(e){}try{document.cookie="pc_device="+old+"; max-age=31536000; path=/; SameSite=Lax";}catch(e){}}});
+ }
+ deviceId=id;
+ try{localStorage.setItem("pigclicker.v2.device",id);}catch(e){}
+ try{document.cookie="pc_device="+id+"; max-age=31536000; path=/; SameSite=Lax";}catch(e){}
+ idbPutDevice(id);
+ return id;
+}
+
+/* ============================== v2.4: USERNAME FILTER ==============================
+   Blocklist-based, checked on signup AND on every display-name change.
+   Normalizes leetspeak (0→o, 1→i, 3→e, 4→a, 5→s, 7→t, $→s, @→a) and
+   collapses repeated letters, so "sh1t" and "shiiiit" get caught too.
+   Rejects outright — never auto-censors with asterisks. */
+var BAD_NAME_WORDS=["fuck","fuk","shit","bitch","cunt","whore","slut","pussy","dick","cock","penis","vagina","porn","xxx","hentai","nigger","nigga","faggot","fagot","retard","boob","tits","jizz","wank","horny","nude","rape","rapist","molest","kike","chink","spic","dyke","tranny","orgasm","masturb","kys","kill yourself","suicide","nazi","hitler","isis","terrorist","pedo","pedophile","groomer","motherfucker","bastard","damn","asshole","dildo","vibrator","fetish","blowjob","handjob","rimjob","creampie","gangbang","incest","bestiality"];
+var NAME_RESERVED=["admin","owner","moderator","mod","system","drippy","pigclicker"];
+function normalizeNameCheck(s,collapse){
+ s=String(s||"").toLowerCase();
+ var leet={"0":"o","1":"i","3":"e","4":"a","5":"s","7":"t","$":"s","@":"a","!":"i","|":"i"};
+ s=s.split("").map(function(c){return leet[c]||c;}).join("");
+ /* collapse repeated letters: shiiiit -> shit. Optional — the uncollapsed
+    form is checked too, because collapsing would hide "drippy" (dripy)
+    and "pussy" (pusy) from the blocklist. */
+ if(collapse!==false)s=s.replace(/(.)\1+/g,"$1");
+ s=s.replace(/[^a-z]/g,""); /* strip spaces, dots, underscores for the check */
+ return s;
+}
+function isNameAllowed(name,opts){
+ opts=opts||{};
+ var raw=String(name||"").trim();
+ if(raw.length<3)return{ok:false,why:"Pick a name of at least 3 characters."};
+ if(raw.length>20)return{ok:false,why:"Keep your name to 20 characters or fewer."};
+ if(!/^[A-Za-z0-9_ ]+$/.test(raw))return{ok:false,why:"Names can use letters, numbers, spaces and _ only."};
+ if(!/[A-Za-z]/.test(raw))return{ok:false,why:"Your name needs at least one letter — not just numbers or symbols."};
+ if(/@.+\./.test(raw))return{ok:false,why:"That looks like an email address — pick a name instead."};
+ var norm=normalizeNameCheck(raw);
+ var normFull=normalizeNameCheck(raw,false); /* uncollapsed — see above */
+ /* collapsed forms that are legit names on their own ("Bob", any name with
+    an x) — never use the collapsed check for those, only the full form. */
+ var COLLAPSE_SKIP=["bob","x"];
+ var i, w, wCol;
+ for(i=0;i<BAD_NAME_WORDS.length;i++){
+  w=BAD_NAME_WORDS[i].replace(/[^a-z]/g,"");
+  wCol=normalizeNameCheck(w);
+  if(w&&(normFull.indexOf(w)>-1||(COLLAPSE_SKIP.indexOf(wCol)===-1&&norm.indexOf(wCol)>-1)))return{ok:false,why:"That name isn't allowed — pick another one."};
+ }
+ /* reserved / impersonation words: substring on the normalized name. The real
+    Owner is exempt for "drippy" only (their own name); everyone else is not. */
+ for(i=0;i<NAME_RESERVED.length;i++){
+  w=NAME_RESERVED[i];
+  wCol=normalizeNameCheck(w);
+  if(normFull.indexOf(w)>-1||(COLLAPSE_SKIP.indexOf(wCol)===-1&&norm.indexOf(wCol)>-1)){
+   if(w==="drippy"&&opts.allowDrippy)continue;
+   return{ok:false,why:"That name isn't allowed — pick another one."};
+  }
+ }
+ return{ok:true};
+}
+/* v2.4: no-email accounts sign in with a placeholder email derived from the
+   username. Never shown to the player, never mailed. */
+function placeholderEmail(uname){
+ return String(uname||"").toLowerCase().replace(/[^a-z0-9_]/g,"")+"@pig-clicker.local";
+}
+function resolveLoginEmail(ident){
+ ident=String(ident||"").trim();
+ if(ident.indexOf("@")>-1)return ident; /* they typed an email */
+ return placeholderEmail(ident);
+}
+
 /* ============================== AUDIO ============================== */
 var AC=null;
 function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}if(AC&&AC.state==="suspended")AC.resume();return AC;}
@@ -1082,6 +1232,20 @@ function feed(text,alsoSend){
  var d=document.createElement("div");d.textContent=text;$("feed").prepend(d);
  while($("feed").children.length>30)$("feed").lastChild.remove();
  if(alsoSend)mpPublish("feed",{text:text});
+}
+/* v2.4: chat messages render the sender's name as a tappable span that
+   opens their full profile (room snapshot by localId, full doc by uid). */
+function feedChat(name,text,pid){
+ var d=document.createElement("div");
+ var nm=document.createElement("span");nm.textContent="💬 "+name;nm.style.fontWeight="800";nm.style.cursor="pointer";nm.style.textDecoration="underline";
+ nm.addEventListener("click",function(){
+  var snap=pid&&typeof players!=="undefined"?players[pid]:null;
+  if(snap)openProfile(snap);
+  else openProfile({name:name});
+ });
+ d.appendChild(nm);d.appendChild(document.createTextNode(": "+text));
+ $("feed").prepend(d);
+ while($("feed").children.length>30)$("feed").lastChild.remove();
 }
 function safeAvatarImg(v){
  /* Only allow strict base64 image data URLs (what the in-page uploader produces).
@@ -1109,7 +1273,7 @@ function doTap(x,y,quiet){
  var crit=Math.random()<critChance();
  var gain=perTap()*(crit?10:1);
  var coinGain=gain*eventCoinMult(), xpGain=gain*eventXpMult();
- S.coins+=coinGain;S.lifetime+=xpGain;S.taps++;sessionTaps++;
+ S.coins+=coinGain;S.lifetime+=xpGain;S.taps++;sessionTaps++;noteWin(coinGain);
  addBpXp(0.1);
  if(crit){S.crits++;sndCrit();flashCrit();}else if(!quiet)sndOink();
  combo=Math.min(2,combo+0.04); if(combo>bestComboSeen)bestComboSeen=combo; S.bestCombo=Math.max(S.bestCombo||1,bestComboSeen);
@@ -1151,7 +1315,7 @@ $("goldenPig").addEventListener("click",function(){
  if(isBanned){toast("🚫 You are banned — game actions are disabled.");return;}
  var bonus=Math.max(perTap()*50,perSec()*60,100)*(1+skillLvl("magnet")*0.5);
  var coinBonus=bonus*eventCoinMult(), xpBonus=bonus*eventXpMult();
- S.coins+=coinBonus;S.lifetime+=xpBonus;S.goldenCaught++;
+ S.coins+=coinBonus;S.lifetime+=xpBonus;S.goldenCaught++;noteWin(coinBonus);
  $("goldenPig").style.display="none";sndGold();
  toast("✨ Golden pig caught! +"+fmt(coinBonus)+" coins!");
  feed("✨ "+displayName()+" caught a Golden Pig! +"+fmt(coinBonus)+" 🐷",true);
@@ -1352,7 +1516,9 @@ $("titleSelect").addEventListener("change",function(){
  S.title=v;toast(v?("🏷️ Title equipped: "+titleName(v)):"Title removed.");renderStats();mpPublishProfile();markDirty();
 });
 function checkLevelRewards(){
- var lv=level();
+ /* v2.4: milestones only exist up to level 50 — a staff-granted level of
+    99999 must never spin this loop ~20,000 times with toasts + feeds. */
+ var lv=Math.min(50,level());
  while(S.lastLevelReward<lv){
   S.lastLevelReward++;
   if(S.lastLevelReward%5===0){
@@ -1461,11 +1627,100 @@ function renderLog(){
   side.appendChild(b);
  });
  showLogEntry(UPDATE_LOG[0]);
+ updateNewBadge(); /* v2.4: NEW badge on the log until the player has seen the latest version */
 }
 function showLogEntry(e){
  var body=$("logBody");
  body.innerHTML="<h3>Pig Clicker "+e.v+" — "+e.tag+"</h3><div class='date'>"+e.date+"</div><ul>"+e.items.map(function(it){return "<li>"+it+"</li>";}).join("")+"</ul>";
 }
+
+/* ============================== v2.4: TUTORIAL + WHAT'S NEW ============================== */
+var TUTORIAL_STEPS=[
+ {icon:"🐷",title:"Welcome to Pig Clicker!",text:"Tap the pig to earn Pig Coins. That's the whole game — and the whole addiction."},
+ {icon:"🛒",title:"Spend your coins",text:"Buy auto-clickers and tap power in the Upgrades tab — they earn while you tap, and while you're away."},
+ {icon:"🏆",title:"Climb the board",text:"Check the Leaderboard in the Ranks tab to see where you stand in the world."},
+ {icon:"🤝",title:"Play with friends",text:"Add friends in the Friends tab and DM them — duels, raids and guilds are all better together."},
+ {icon:"🎁",title:"Free stuff every day",text:"Daily rewards, quests and the Battle Pass live in their own tabs — claim them or they go to waste."},
+ {icon:"🍎",title:"Prestige when you're ready",text:"Spend Golden Apples to prestige: reset your run for a permanent multiplier. Big numbers, bigger numbers."},
+ {icon:"🐷",title:"You're in! Have fun 🐷",text:"That's everything. Tap the pig, get rich — and don't get banned. 😉"}
+];
+var tutIdx=0, tutReplay=false;
+function renderTutStep(){
+ var s=TUTORIAL_STEPS[tutIdx];
+ $("tutIcon").textContent=s.icon;$("tutTitle").textContent=s.title;$("tutText").textContent=s.text;
+ $("tutStep").textContent="Step "+(tutIdx+1)+" of "+TUTORIAL_STEPS.length;
+ $("tutNext").textContent=tutIdx===TUTORIAL_STEPS.length-1?"Start Playing 🐷":"Next →";
+}
+function startTutorial(replay){
+ /* first-join only, or an explicit Replay from the Profile tab */
+ tutReplay=!!replay;tutIdx=0;renderTutStep();
+ $("tutorialOverlay").classList.add("open");
+}
+function finishTutorial(){
+ $("tutorialOverlay").classList.remove("open");
+ if(!tutReplay)markTutorialDone();
+}
+function markTutorialDone(){
+ if(!fbDb||!fbUser)return;
+ fbDb.collection("users").doc(fbUser.uid).update({tutorialDone:true}).catch(function(){});
+}
+function maybeShowWhatsNew(){
+ updateNewBadge();
+ if(!myLastSeenVersion||myLastSeenVersion===CURRENT_VERSION)return;
+ showWhatsNew();
+}
+function showWhatsNew(){
+ var e=UPDATE_LOG[0];
+ $("wnTitle").textContent="What's new in "+e.v+"!";
+ $("wnList").innerHTML=e.items.slice(0,6).map(function(it){return "<li>"+it+"</li>";}).join("");
+ $("whatsNewModal").classList.add("open");
+}
+function markVersionSeen(){
+ myLastSeenVersion=CURRENT_VERSION;
+ if(fbDb&&fbUser)fbDb.collection("users").doc(fbUser.uid).update({lastSeenVersion:CURRENT_VERSION}).catch(function(){});
+ updateNewBadge();
+}
+function updateNewBadge(){
+ var isNew=!!myLastSeenVersion&&myLastSeenVersion!==CURRENT_VERSION;
+ var badge=$("logNewBadge");if(badge)badge.style.display=isNew?"":"none";
+ var dot=$("navNewDot");if(dot)dot.style.display=isNew?"":"none";
+}
+/* v2.4: the email card in the Profile tab — add a real email later to
+   unlock password recovery + the ✉️ Verified badge. (renderEmailCard was
+   called by onSignedIn in v2.3 but never defined — the call threw and the
+   sign-in .catch had to recover. It exists now.) */
+function renderEmailCard(){
+ var card=$("emailCard");if(!card)return;
+ var has=!!profile.email;
+ var txt=$("emailCardText");
+ if(txt)txt.textContent=has?("Email on file: "+profile.email+(fbUser&&fbUser.emailVerified?" — ✉️ Verified!":" — check your inbox for the verification email.")):"Add a real email to unlock password recovery and the ✉️ Verified badge. Your account works fine without one.";
+ var form=$("emailCardForm");
+ if(form)form.style.display=has?"none":"";
+}
+$("btnReplayTut").addEventListener("click",function(){startTutorial(true);});
+$("tutNext").addEventListener("click",function(){if(tutIdx<TUTORIAL_STEPS.length-1){tutIdx++;renderTutStep();}else finishTutorial();});
+$("tutSkip").addEventListener("click",finishTutorial);
+$("wnGotIt").addEventListener("click",function(){$("whatsNewModal").classList.remove("open");markVersionSeen();});
+$("wnSeeAll").addEventListener("click",function(){$("whatsNewModal").classList.remove("open");markVersionSeen();showView("profile");});
+$("btnAddEmail").addEventListener("click",function(){
+ var em=$("emailAddInput").value.trim(),pw=$("emailAddPass").value;
+ var errEl=$("emailCardErr");errEl.textContent="";
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){errEl.textContent="That email doesn't look right.";return;}
+ if(!pw){errEl.textContent="Type your current password so we know it's you.";return;}
+ if(!fbUser){errEl.textContent="Sign in first.";return;}
+ /* no-email accounts sign in with the placeholder email derived from the
+    username — reauthenticate with it, then swap in the real email. */
+ var cred=firebase.auth.EmailAuthProvider.credential(placeholderEmail(profile.username||""),pw);
+ fbUser.reauthenticateWithCredential(cred).then(function(){
+  return fbUser.updateEmail(em);
+ }).then(function(){
+  profile.email=em;
+  if(fbDb)fbDb.collection("users").doc(fbUser.uid).update({email:em,hasRealEmail:true}).catch(function(){});
+  try{if(fbUser.sendEmailVerification)fbUser.sendEmailVerification().catch(function(){});}catch(e){}
+  renderEmailCard();renderAuth();
+  toast("✉️ Email added! A verification email is on its way.");
+ }).catch(function(err){errEl.textContent=fbErrText(err.code||"");noteFbError(err,"addEmail");});
+});
 
 /* ============================== QUESTS ============================== */
 function dayKey(){var d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();}
@@ -1668,7 +1923,7 @@ function mpConnect(){
   var data;try{data=JSON.parse(msg.toString());}catch(e){return;}
   if(!data||data.localId===myId||data.id===myId)return;
   if(topic===mpTopic("profile")){players[data.localId||data.id]=data;renderPlayers();updateOnlineStrip();}
-  else if(topic===mpTopic("chat")){feed("💬 "+data.name+": "+data.text);}
+  else if(topic===mpTopic("chat")){feedChat(data.name,data.text,data.localId||data.id);}
   else if(topic===mpTopic("feed")){if(data.text)feed(String(data.text));}
  });
 }
@@ -1718,11 +1973,26 @@ $("avatarFile").addEventListener("change",function(){
 });
 $("btnClearAvatarImg").addEventListener("click",function(){profile.avatarImg="";refreshAvatarPicks();renderStats();mpPublishProfile();markDirty();});
 function setNameFrom(v){
- profile.name=String(v||"").trim().slice(0,20);
- $("farmName").textContent=(profile.name?profile.name+"'s":"Your")+" Pig Farm";
- $("nameInput").value=profile.name;$("nameInput2").value=profile.name;
- toast(profile.name?("👋 Profile set — welcome, "+profile.name+"!"):"Profile cleared.");
- mpPublishProfile();renderStats();markDirty();
+ var raw=String(v||"").trim();
+ if(!raw){profile.name="";$("farmName").textContent="Your Pig Farm";$("nameInput").value="";$("nameInput2").value="";toast("Profile cleared.");mpPublishProfile();renderStats();markDirty();return;}
+ /* v2.4: username filter applies to display names too — reject, never censor. */
+ var chk=isNameAllowed(raw,{allowDrippy:myRole==="owner"||(fbUser&&ownerInfo&&ownerInfo.ownerUid===fbUser.uid)});
+ if(!chk.ok){sndErr();toast("🚫 "+chk.why);return;}
+ var apply=function(){
+  profile.name=raw.slice(0,20);
+  $("farmName").textContent=(profile.name?profile.name+"'s":"Your")+" Pig Farm";
+  $("nameInput").value=profile.name;$("nameInput2").value=profile.name;
+  toast("👋 Profile set — welcome, "+profile.name+"!");
+  mpPublishProfile();renderStats();markDirty();
+ };
+ /* display names must be unique across players (best-effort, skipped offline) */
+ if(fbDb&&fbUser){
+  fbDb.collection("users").where("name","==",raw).limit(5).get().then(function(snap){
+   var taken=false;snap.forEach(function(d){if(d.id!==fbUser.uid)taken=true;});
+   if(taken){sndErr();toast("🚫 That name is taken — pick another one.");return;}
+   apply();
+  }).catch(function(){apply();});
+ }else{apply();}
 }
 $("btnSetName").addEventListener("click",function(){setNameFrom($("nameInput").value);});
 $("btnSetName2").addEventListener("click",function(){setNameFrom($("nameInput2").value);});
@@ -1759,20 +2029,121 @@ function renderPlayers(){
   list.appendChild(e);
  }
 }
-function openProfile(p){
- if(safeAvatarImg(p.avatarImg))$("pmAvatar").innerHTML='<img src="'+safeAvatarImg(p.avatarImg)+'" alt=""/>';else $("pmAvatar").textContent=p.avatar||"🐷";
- $("pmName").innerHTML=esc(p.name||"Player")+roleTag(roleOfUid(p.id||p._uid,p.role));
- var bn=BANNERS.find(function(x){return x.id===p.banner;})||BANNERS[0];
- $("pmBanner").style.background=bn.css;$("pmBanner").textContent=(p.guild?"🏰 "+p.guild+" · ":"")+(p.title?"“"+p.title+"”":"Pig Clicker player");
- $("pmCoins").textContent=fmt(p.coins||0);$("pmLife").textContent=fmt(p.lifetime||0);
- $("pmPps").textContent=fmt(p.pps||0);$("pmTaps").textContent=fmt(p.taps||0);
- $("pmCombo").textContent="×"+(p.bestCombo||1).toFixed(1);$("pmCps").textContent=p.bestCps||0;
- $("pmLevel").textContent=p.level||1;$("pmApples").textContent=p.apples||0;
- $("pmTitle").textContent=p.title||"—";$("pmVip").textContent=p.vip||"—";$("pmSkin").textContent=p.skin||"Classic";
- $("profileModal").classList.add("open");
+/* ============================== v2.4: FULL PLAYER PROFILE ==============================
+   Its own screen (not the old cramped popup — the old profileModal HTML is
+   gone, and its JS refs would throw at load under "use strict", so this
+   replaces openProfile entirely). Tap any player — leaderboard row, Players
+   list, Friends list, Find Friends result, chat name — to open it. */
+var ppTarget=null;
+function ppUid(p){return (p&&p._uid)||(p&&p.uid)||(p&&p.id)||"";}
+function timeAgo(ts){
+ var ms=Date.now()-toMs(ts);
+ if(ms<60000)return "just now";
+ var m=Math.floor(ms/60000);if(m<60)return m+"m ago";
+ var h=Math.floor(m/60);if(h<24)return h+"h ago";
+ var d=Math.floor(h/24);if(d<30)return d+"d ago";
+ return Math.floor(d/30)+"mo ago";
 }
-$("pmClose").addEventListener("click",function(){$("profileModal").classList.remove("open");});
-$("profileModal").addEventListener("click",function(e){if(e.target===this)this.classList.remove("open");});
+function openProfile(p){
+ ppTarget=p||{};
+ var uid=ppUid(ppTarget);
+ /* with a real Firestore uid, fetch the full doc — join date, badges and
+    powers live there (badges/powers ride inside the state JSON). */
+ if(uid&&fbDb){
+  fbDb.collection("users").doc(uid).get().then(function(doc){
+   if(doc.exists){var d=doc.data();d._uid=doc.id;renderProfileView(mergeProfile(ppTarget,d));}
+   else renderProfileView(ppTarget);
+  }).catch(function(){renderProfileView(ppTarget);});
+ }else{
+  renderProfileView(ppTarget);
+ }
+}
+function mergeProfile(p,d){
+ var out={};for(var k in p)out[k]=p[k];
+ ["username","name","avatar","avatarImg","banner","title","guildName","coins","lifetime","taps","pps","bestCombo","bestCps","level","grantedLevel","biggestWin","apples","prestiges","skin","vip","role","createdAt","updatedAt","friends","blocked","powers","email","hasRealEmail"].forEach(function(k){if(d[k]!==undefined)out[k]=d[k];});
+ out.guild=out.guildName||out.guild||"";
+ try{var st=d.state?JSON.parse(d.state):null;
+  if(st){if(st.achDone)out.achDone=st.achDone;if(Array.isArray(st.powers))out.powers=st.powers;if(st.title)out.title=out.title||st.title;}
+ }catch(e){}
+ return out;
+}
+function renderProfileView(p){
+ var uid=ppUid(p);
+ var isMe=!!fbUser&&uid===fbUser.uid;
+ var role=roleOfUid(uid,p.role);
+ var bn=BANNERS.find(function(x){return x.id===p.banner;})||BANNERS[0];
+ var pb=$("ppBanner");pb.style.background=bn.css;
+ pb.textContent=(p.guild?"🏰 "+p.guild+" · ":"")+(p.title?"“"+(titleName(p.title)||p.title)+"”":"Pig Clicker player");
+ if(safeAvatarImg(p.avatarImg))$("ppAvatar").innerHTML='<img src="'+safeAvatarImg(p.avatarImg)+'" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover"/>';else $("ppAvatar").textContent=p.avatar||"🐷";
+ $("ppName").innerHTML=esc(p.name||p.username||"Player");
+ $("ppTags").innerHTML=roleTag(role)+(isMe?'<span class="you-tag">YOU</span>':"")+((p.hasRealEmail||p.email)?' <b style="color:var(--pink-d)">✉️ Verified</b>':"");
+ /* join date — real createdAt only; "Joined: —" when the doc has none. */
+ var joined="Joined: —";
+ if(p.createdAt){var jd=new Date(toMs(p.createdAt));if(!isNaN(jd.getTime()))joined="Joined Pig Clicker: "+jd.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});}
+ $("ppJoined").textContent=joined;
+ $("ppOnline").textContent=isOnline(p.updatedAt)?"🟢 Online now":(p.updatedAt?("⚪ Last seen "+timeAgo(p.updatedAt)):"⚪ Offline");
+ var effLv=Math.max(p.level||1,p.grantedLevel||0);
+ var achDone=p.achDone||{};
+ var badgeList=ACHIEVEMENTS.filter(function(a){return achDone[a.id];});
+ var powers=Array.isArray(p.powers)?p.powers:[];
+ var rows=[
+  ["🐷 Coins",fmt(p.coins||0)],
+  ["📈 Level",effLv],
+  ["👆 Total taps",fmt(p.taps||0)],
+  ["💰 Biggest win",fmt(p.biggestWin||0)],
+  ["🍎 Prestige level",p.apples||0],
+  ["🏅 Badges",badgeList.length+" / "+ACHIEVEMENTS.length],
+  ["🎖️ Title",titleName(p.title)||p.title||"—"],
+  ["⚡ Goku powers",powers.length?powers.map(function(id){var f=gokuForm(id);return f?f.name:id;}).join(", "):"—"],
+  ["🏰 Guild",p.guild||"—"],
+  ["🤝 Friends",Array.isArray(p.friends)?p.friends.length:"—"],
+  ["🎨 Skin",p.skin||"Classic"]
+ ];
+ $("ppStats").innerHTML=rows.map(function(r){return "<tr><td>"+r[0]+"</td><td>"+r[1]+"</td></tr>";}).join("");
+ $("ppBadges").innerHTML=badgeList.length?("<h3 style='margin:4px 0'>🏅 Top badges</h3><div class='ach-grid'>"+badgeList.slice(0,8).map(function(a){return "<div class='ach done'>"+a.icon+" "+a.name+"</div>";}).join("")+"</div>"):"";
+ $("ppPowers").innerHTML=powers.length?("<h3 style='margin:4px 0'>⚡ Goku powers ("+powers.length+")</h3><div class='ach-grid'>"+powers.map(function(id){var f=gokuForm(id);return "<div class='ach done'>⚡ "+(f?f.name:id)+"</div>";}).join("")+"</div>"):"";
+ var act=$("ppActions");act.innerHTML="";
+ function ppBtn(label,cls,fn,disabled){var b=document.createElement("button");b.type="button";b.className="big-btn "+(cls||"");b.textContent=label;if(disabled)b.disabled=true;else b.addEventListener("click",fn);act.appendChild(b);return b;}
+ if(isMe){
+  ppBtn("✏️ Edit profile","",function(){closeProfileView();showView("profile");});
+ }else{
+  var st=friendState(uid);
+  if(st==="friends")ppBtn("💬 DM them","pink",function(){openDm(uid,p.name||p.username);});
+  if(st==="none")ppBtn("🤝 Add friend","",function(){sendFriendRequest({_uid:uid,name:p.name,username:p.username,blocked:p.blocked||[]});closeProfileView();});
+  else if(st==="incoming")ppBtn("✔ Accept friend request","",function(){var r=incomingReqs.find(function(x){return x.from===uid;});if(r)acceptRequest(r);closeProfileView();});
+  else if(st==="sent")ppBtn("📨 Request sent","",function(){},true);
+  ppBtn("🚫 Block","",function(){blockPlayer(uid,p);closeProfileView();});
+  if(myRole==="owner"||myRole==="admin")ppBtn("🔨 Manage (staff)","red",function(){closeProfileView();openStaffPanelFor(uid);});
+ }
+ showProfileView();
+}
+function showProfileView(){
+ $("playerProfile").style.display="";
+ window.scrollTo({top:0});
+}
+function closeProfileView(){
+ $("playerProfile").style.display="none";
+}
+function blockPlayer(uid,p){
+ if(!fbUser||!uid||uid===fbUser.uid)return;
+ if(!blockedCache.some(function(x){return x.uid===uid;}))blockedCache.push({uid:uid,username:p.username||p.name||""});
+ friendsCache=friendsCache.filter(function(x){return x.uid!==uid;});
+ cancelRequestsWith(uid);removeMeFromTheirFriends(uid);
+ renderFriends();cloudSaveNow();
+ toast("Blocked "+(p.name||p.username)+". They can't be re-added while blocked.");
+}
+function openStaffPanelFor(uid){
+ panelSearch="";var ps=$("panelSearch");if(ps)ps.value="";
+ openStaffPanel();
+ panelSelectedUid=uid;
+ var tries=0;
+ var iv=setInterval(function(){
+  tries++;
+  var found=panelPlayers.some(function(x){return x._uid===uid;});
+  if(found||tries>20){clearInterval(iv);if(found){panelSelectedUid=uid;renderPanelList();var el=$("playerTools");if(el)el.scrollIntoView({behavior:"smooth",block:"start"});}}
+ },250);
+}
+$("ppBack").addEventListener("click",closeProfileView);
 $("awayClose").addEventListener("click",function(){$("awayModal").classList.remove("open");});
 
 /* rooms */
@@ -1795,7 +2166,7 @@ $("chatForm").addEventListener("submit",function(e){
  e.preventDefault();var v=$("chatInput").value.trim();if(!v)return;
  if(isBanned){toast("🚫 Banned players can't chat.");return;}
  $("chatInput").value="";
- feed("💬 "+displayName()+": "+v);
+ feedChat(displayName(),v,myId);
  mpPublish("chat",{id:myId,localId:myId,name:displayName(),text:v});
 });
 $("btnInstall").addEventListener("click",function(){
@@ -1809,6 +2180,7 @@ var fbReady=false, fbDenied=false, fbOnlineCount=0;
 var friendsCache=[], blockedCache=[], guildCache=null, topCache=[];
 /* roles: owner (first-claim, config/owner) + admins (config/admins) */
 var ownerInfo=null, ownerLoaded=false, adminUids=[], myRole="player", isBanned=false, myMuted=false;
+var myLastSeenVersion=""; /* v2.4: last UPDATE_LOG version this player has seen */
 var eventCfg={}, appliedInboxKeys={};
 var lastRoleSig="", panelPlayers=[], panelSearch="", cloudCoinsSeen=null;
 var unsubscribers=[];
@@ -1865,11 +2237,11 @@ function renderCloudStrip(){
 function renderAuth(){
  var area=$("authArea");if(!area)return;
  if(!fbReady){
-  area.innerHTML='<div class="auth-note">📴 The cloud service could not load in this browser, so sign-in is paused here — the game is locked until it loads. There is no guest play in v2.3.</div><p class="sub">Tip: open the game in Chrome or Safari with a normal connection and sign-in will appear.</p>';
+  area.innerHTML='<div class="auth-note">📴 The cloud service could not load in this browser, so sign-in is paused here — the game is locked until it loads.</div><p class="sub">Tip: open the game in Chrome or Safari with a normal connection and sign-in will appear.</p>';
   return;
  }
  if(fbUser){
-  area.innerHTML='<p class="sub" style="margin-bottom:6px">Signed in as <b>'+esc(profile.username||"")+'</b> ('+esc(fbUser.email||"")+')</p>'
+  area.innerHTML='<p class="sub" style="margin-bottom:6px">Signed in as <b>'+esc(profile.username||"")+'</b>'+(profile.email?' ('+esc(profile.email)+')':' <span style="color:var(--muted)">(no email on file)</span>')+(fbUser.emailVerified?' <b style="color:var(--pink-d)">✉️ Verified</b>':'')+'</p>'
    +(fbDenied?'<div class="auth-note">☁️ <b>Online save unavailable — check back soon.</b> The cloud database is locked at the moment, so saves are being kept on this device and will sync automatically when it opens. Everything in the game still works.</div>':'<p class="auth-ok" id="authOk">☁️ Cloud save is ON — progress syncs to your account.</p>')
    +'<div class="room-row"><button class="buy blue" id="btnSaveNow" type="button">☁️ Save now</button><button class="buy red" id="btnSignOut" type="button">Sign out</button></div>'
    +'<p class="sub" style="margin-top:10px">Signing out clears this device\'s local progress. Your cloud progress loads again on any device when you sign back in.</p>';
@@ -1880,46 +2252,45 @@ function renderAuth(){
  area.innerHTML=(isBanned?'<div class="auth-note" style="border-color:var(--red);background:linear-gradient(180deg,rgba(224,49,49,.12),transparent)">🚫 <b>You are banned.</b> This account was banned by the Owner or an Admin, so it has been signed out. Game actions stay locked for this account.</div>':"")
   +'<div class="auth-tabs" role="tablist"><button class="tab on" id="atLogin" type="button">Log in</button><button class="tab" id="atReg" type="button">Register</button></div>'
   +'<div id="authForm">'
-  +'<input class="auth-input" id="authUser" maxlength="20" placeholder="Username (register only)" autocomplete="off" style="display:none;margin-bottom:8px"/>'
-  +'<input class="auth-input" id="authEmail" type="email" placeholder="Email" autocomplete="email" style="margin-bottom:8px"/>'
+  +'<input class="auth-input" id="authUser" maxlength="20" placeholder="Username or email" autocomplete="off" style="margin-bottom:8px"/>'
+  +'<div class="gate-choice" id="aEmailChoice" style="display:none;margin-bottom:8px"><button class="tab on" id="aChoiceEmail" type="button">📧 With email</button><button class="tab" id="aChoiceNoEmail" type="button">🐷 Username only</button></div>'
+  +'<input class="auth-input" id="authEmail" type="email" placeholder="Email (optional — recovery + ✉️ Verified badge)" autocomplete="email" style="margin-bottom:8px"/>'
   +'<input class="auth-input" id="authPass" type="password" placeholder="Password (6+ characters)" autocomplete="current-password" style="margin-bottom:8px"/>'
   +'<div class="auth-err" id="authErr"></div>'
   +'<button class="big-btn pink" id="btnAuthGo" type="button">Log in 🐷</button>'
-  +'<p class="sub" style="margin-top:8px">Email + password only — no Google, no Apple, no VR. Passwords are hashed by Firebase; the game never sees or stores yours.</p>'
+  +'<p class="sub" style="margin-top:8px">Email is optional — you only need it for password recovery and the ✉️ Verified badge. Passwords are hashed by Firebase; the game never sees or stores yours.</p>'
   +'</div>';
- var mode="login";
+ var mode="login", emailMode="email";
  function setMode(m){
   mode=m;
   $("atLogin").classList.toggle("on",m==="login");
   $("atReg").classList.toggle("on",m==="register");
-  $("authUser").style.display=m==="register"?"":"none";
+  $("authUser").placeholder=m==="register"?"Username":"Username or email";
+  $("aEmailChoice").style.display=m==="register"?"":"none";
+  $("authEmail").style.display=(m==="register"&&emailMode==="email")?"":"none";
   $("authPass").setAttribute("autocomplete",m==="register"?"new-password":"current-password");
   $("btnAuthGo").textContent=m==="register"?"Create my account 🐷":"Log in 🐷";
   $("authErr").textContent="";
  }
+ function setAuthEmailMode(em){
+  emailMode=em;
+  $("aChoiceEmail").classList.toggle("on",em==="email");
+  $("aChoiceNoEmail").classList.toggle("on",em==="noemail");
+  $("authEmail").style.display=(mode==="register"&&em==="email")?"":"none";
+ }
  $("atLogin").addEventListener("click",function(){setMode("login");});
  $("atReg").addEventListener("click",function(){setMode("register");});
+ $("aChoiceEmail").addEventListener("click",function(){setAuthEmailMode("email");});
+ $("aChoiceNoEmail").addEventListener("click",function(){setAuthEmailMode("noemail");});
  $("btnAuthGo").addEventListener("click",function(){
-  var email=$("authEmail").value.trim(),pass=$("authPass").value;
   var errEl=$("authErr");errEl.textContent="";
-  if(!email||!pass){errEl.textContent="Type your email and password first.";return;}
+  var pass=$("authPass").value;
   if(mode==="register"){
    var uname=$("authUser").value.trim();
-   if(uname.length<3){errEl.textContent="Pick a username of at least 3 characters — it's how friends find you.";return;}
-   if(!/^[A-Za-z0-9_ ]+$/.test(uname)){errEl.textContent="Usernames can use letters, numbers, spaces and _ only.";return;}
-   $("btnAuthGo").disabled=true;
-   fbAuth.createUserWithEmailAndPassword(email,pass).then(function(cred){
-    try{if(cred.user&&cred.user.sendEmailVerification)cred.user.sendEmailVerification().catch(function(){});}catch(e){}
-    profile.username=uname;profile.name=profile.name||uname;
-    return createUserDoc(cred.user,uname);
-   }).then(function(){
-    toast("🎉 Account created — welcome, "+uname+"! Cloud save is ON. A verification email is on its way.");
-   }).catch(function(err){errEl.textContent=fbErrText(err.code);noteFbError(err,"register");$("btnAuthGo").disabled=false;});
+   var em=emailMode==="email"?$("authEmail").value.trim():"";
+   doRegister(uname,em,pass,errEl,$("btnAuthGo"));
   }else{
-   $("btnAuthGo").disabled=true;
-   fbAuth.signInWithEmailAndPassword(email,pass).then(function(){
-    toast("👋 Welcome back!");
-   }).catch(function(err){errEl.textContent=fbErrText(err.code);noteFbError(err,"login");var b=$("btnAuthGo");if(b)b.disabled=false;});
+   doLogin($("authUser").value.trim(),pass,errEl,$("btnAuthGo"));
   }
  });
 }
@@ -1928,14 +2299,21 @@ function userDocPayload(){
   username:profile.username||"", name:displayName(), avatar:profile.avatar, avatarImg:profile.avatarImg||"",
   title:S.title||"", banner:S.banner||"sunset", guildId:S.guildId||"", guildName:S.guildName||"",
   coins:Math.floor(S.coins), lifetime:Math.floor(S.lifetime), taps:S.taps, pps:Math.round(perSec()*10)/10,
-  level:level(), apples:S.apples, prestiges:S.prestiges, bestCombo:Math.round((S.bestCombo||1)*10)/10, bestCps:S.bestCps||0,
+  level:level(), grantedLevel:S.grantedLevel||0, biggestWin:Math.floor(S.biggestWin||0), skin:S.skin||"classic",
+  apples:S.apples, prestiges:S.prestiges, bestCombo:Math.round((S.bestCombo||1)*10)/10, bestCps:S.bestCps||0,
   vip:vipTier(S.taps).name, friends:friendsCache, blocked:blockedCache,
+  email:profile.email||"", hasRealEmail:!!profile.email,
   state:JSON.stringify(S), updatedAt:Date.now()
  };
 }
-function createUserDoc(user,uname){
+function createUserDoc(user,uname,realEmail){
  if(!fbDb)return Promise.resolve();
  var payload=userDocPayload();payload.username=uname;payload.createdAt=Date.now();
+ /* v2.4: fresh accounts start with the tutorial pending and the current
+    version already "seen" (no What's New popup for brand-new players). */
+ payload.tutorialDone=false;payload.lastSeenVersion=CURRENT_VERSION;
+ payload.email=realEmail||"";payload.hasRealEmail=!!realEmail;
+ profile.email=realEmail||"";
  return fbDb.collection("users").doc(user.uid).set(payload,{merge:true}).catch(function(err){noteFbError(err,"createDoc");});
 }
 var saveTimer=null;
@@ -1970,14 +2348,22 @@ window.addEventListener("online",function(){if(cloudDirty)cloudSaveNow();});
 function onSignedIn(user){
  startSaveLoop();
  var ref=fbDb.collection("users").doc(user.uid);
- ref.get().then(function(doc){
+ /* v2.4: device-ban check FIRST — a banned device locks out even a
+    brand-new account made to dodge the ban. */
+ checkDeviceBan().then(function(devBan){
+  if(devBan){enforceBan({reason:devBan.reason||"This device is banned.",until:devBan.bannedUntil||null,device:true});return null;}
+  return ref.get();
+ }).then(function(doc){
+  if(!doc)return; /* device ban already handled above */
   if(doc.exists){
    var d=doc.data();
-   if(d.banned){enforceBan();return;}
+   if(isBanActive(d)){enforceBan({reason:d.banReason||"",until:d.bannedUntil||null});return;}
    if(!S.powers)S.powers=[];
    if(Array.isArray(d.powers))d.powers.forEach(function(pid){if(S.powers.indexOf(pid)===-1)S.powers.push(pid);});
    cloudCoinsSeen=(typeof d.coins==="number")?d.coins:null;
    profile.username=d.username||profile.username;
+   profile.email=d.email||"";
+   myLastSeenVersion=d.lastSeenVersion||"";
    friendsCache=Array.isArray(d.friends)?d.friends:[];
    blockedCache=Array.isArray(d.blocked)?d.blocked:[];
    var cloudState=null;
@@ -1988,6 +2374,10 @@ function onSignedIn(user){
    if(cloudState&&(d.updatedAt||0)>=localAt-1000){
     localWipedAt=0;var base=freshState();for(var k in base){if(cloudState[k]===undefined)cloudState[k]=base[k];}
     S=cloudState;bestComboSeen=S.bestCombo||1;
+    /* v2.4 inf-grant fix: a staff coin grant lands on the doc's top-level
+       coins field but NOT in the state JSON — never let a stale state
+       JSON eat the grant on sign-in. */
+    if(typeof d.coins==="number"&&d.coins>S.coins)S.coins=d.coins;
     profile.name=d.name&&d.name!=="Anonymous Pig"?d.name:profile.name;
     profile.avatar=d.avatar||profile.avatar;profile.avatarImg=d.avatarImg||"";
     applySkin();refreshAvatarPicks();renderAch();renderTree();renderAll();renderDaily();renderQuests();renderBp();
@@ -1996,16 +2386,64 @@ function onSignedIn(user){
     cloudDirty=true;cloudSaveNow();
    }
    if(d.name){$("farmName").textContent=d.name+"'s Pig Farm";$("nameInput").value=profile.name;$("nameInput2").value=profile.name;}
+   /* v2.4: staff-granted level lives on the doc top-level too — take the
+      higher of the doc value and whatever the state JSON carried. */
+   if(typeof d.grantedLevel==="number")S.grantedLevel=Math.max(S.grantedLevel||0,Math.min(99999,d.grantedLevel));
+   recordMyDevice();
+   /* v2.4: tutorial only for genuinely fresh accounts (created minutes
+      ago, never finished it). Existing accounts never see it. */
+   if(d.tutorialDone!==true&&d.createdAt&&Date.now()-toMs(d.createdAt)<10*60*1000){
+    setTimeout(function(){startTutorial(false);},600);
+   }else{
+    maybeShowWhatsNew();
+   }
   }else{
-   localWipedAt=0;createUserDoc(user,profile.username||"").then(function(){cloudDirty=false;});
+   localWipedAt=0;recordMyDevice();
+   createUserDoc(user,profile.username||"",profile.email||"").then(function(){cloudDirty=false;});
+   setTimeout(function(){startTutorial(false);},600);
   }
-  renderCloudStrip();renderStats();mpPublishProfile();
+  renderCloudStrip();renderStats();mpPublishProfile();renderEmailCard();
   setupCloudListeners();hideGate();
  }).catch(function(err){
   noteFbError(err,"load");
   setupCloudListeners();
   renderCloudStrip();hideGate();
  });
+}
+/* v2.4: ban helpers — temp bans expire on their own, everywhere. */
+function toMs(v){if(v==null)return 0;if(typeof v==="number")return v;if(v.toMillis)return v.toMillis();if(v.seconds)return v.seconds*1000;return 0;}
+function banUntilMs(v){if(v==null||v===false)return null;var m=toMs(v);return m>0?m:null;}
+function isBanActive(d){
+ if(!d||d.banned!==true)return false;
+ var u=banUntilMs(d.bannedUntil);
+ return u===null||u>Date.now();
+}
+function banRemainingText(d){
+ var u=banUntilMs(d.bannedUntil);
+ if(u===null)return "Permanent ban";
+ var ms=u-Date.now();
+ if(ms<=0)return "Ban expired";
+ var m=Math.floor(ms/60000);
+ if(m<60)return m+"m left";
+ var h=Math.floor(m/60);
+ if(h<48)return h+"h "+(m%60)+"m left";
+ return Math.floor(h/24)+"d "+(h%24)+"h left";
+}
+function recordMyDevice(){
+ if(!fbDb||!fbUser)return;
+ var id=getDeviceId();
+ fbDb.collection("users").doc(fbUser.uid).update({deviceIds:firebase.firestore.FieldValue.arrayUnion(id)}).catch(function(){});
+}
+function checkDeviceBan(){
+ if(!fbDb||!fbUser)return Promise.resolve(null);
+ var id=getDeviceId();
+ return fbDb.collection("deviceBans").doc(id).get().then(function(doc){
+  if(!doc.exists)return null;
+  var d=doc.data()||{};
+  var u=banUntilMs(d.bannedUntil);
+  if(u!==null&&u<=Date.now()){doc.ref.delete().catch(function(){});return null;}
+  return d;
+ }).catch(function(){return null;});
 }
 function teardownCloudListeners(){
  unsubscribers.forEach(function(u){try{u();}catch(e){}});unsubscribers=[];
@@ -2033,9 +2471,10 @@ function setupCloudListeners(){
  try{
   var u2=fbDb.collection("users").doc(fbUser.uid).onSnapshot(function(doc){
    if(!doc.exists)return;var d=doc.data();
-   if(d.banned){enforceBan();return;}
+   if(isBanActive(d)){enforceBan({reason:d.banReason||"",until:d.bannedUntil||null});return;}
    /* v2.3 Bug A: banned flipped back to false while we still carry the ban
-      flags (e.g. the sign-out in enforceBan failed) — restore full access. */
+      flags (e.g. the sign-out in enforceBan failed) — restore full access.
+      v2.4: an expired temp ban restores access the same way. */
    if(banLock||isBanned){clearBanState();return;}
    myDocRole=d.role||"player";refreshRole();
    if(Array.isArray(d.friends))friendsCache=d.friends;
@@ -2119,7 +2558,7 @@ function renderGlobalBoard(){
    var b=document.createElement("button");b.type="button";b.className="player";
    var you=d._uid===fbUser.uid;
    b.innerHTML='<span class="rank '+(idx===0?"top":"")+'">'+(idx===0?"👑":"#"+(idx+1))+'</span><span class="av">'+avatarHTML(d,40)+'</span><span class="grow"><h3>'+esc(d.name||d.username||"Player")+roleTag(roleOfUid(d._uid,d.role))+(you?'<span class="you-tag">YOU</span>':"")+(d.title?'<span class="title-tag">'+esc(titleName(d.title)||d.title)+"</span>":"")+'</h3><p>Lv '+(d.level||1)+" · "+fmt(d.lifetime||0)+' lifetime · '+fmt(d.taps||0)+' taps'+(d.guildName?" · 🏰 "+esc(d.guildName):"")+'</p></span><span style="font-family:Baloo 2;font-weight:800">🐷 '+fmt(d.coins||0)+"</span>";
-   b.addEventListener("click",function(){openProfile({avatar:d.avatar,avatarImg:d.avatarImg,name:d.name,coins:d.coins,lifetime:d.lifetime,pps:d.pps,taps:d.taps,bestCombo:d.bestCombo,bestCps:d.bestCps,level:d.level,apples:d.apples,title:titleName(d.title)||d.title,vip:d.vip,skin:"—",banner:d.banner,guild:d.guildName});});
+   b.addEventListener("click",function(){openProfile({avatar:d.avatar,avatarImg:d.avatarImg,name:d.name,username:d.username,coins:d.coins,lifetime:d.lifetime,pps:d.pps,taps:d.taps,bestCombo:d.bestCombo,bestCps:d.bestCps,level:d.level,grantedLevel:d.grantedLevel,apples:d.apples,title:titleName(d.title)||d.title,vip:d.vip,skin:"—",banner:d.banner,guild:d.guildName,_uid:d._uid,role:d.role,createdAt:d.createdAt,updatedAt:d.updatedAt,friends:d.friends,blocked:d.blocked,powers:d.powers});});
    el.appendChild(b);
   });
  }
@@ -2140,7 +2579,8 @@ function renderFriends(){
  el.innerHTML="";
  friendsCache.forEach(function(f){
   var live=topCache.find(function(d){return d._uid===f.uid;});
-  var row=document.createElement("div");row.className="player";row.style.cursor="default";
+  var row=document.createElement("div");row.className="player";row.style.cursor="pointer";
+  row.addEventListener("click",function(e){if(e.target.closest("button"))return;openProfile(live||f);});
   row.innerHTML='<span class="av">'+avatarHTML(live||f,40)+'</span><span class="grow"><h3>'+esc(f.name||f.username)+'</h3><p><span class="pres '+(live&&isOnline(live.updatedAt)?"on":"off")+'">'+(live&&isOnline(live.updatedAt)?"🟢 Online now":"⚪ Offline")+"</span>"+(live?" · Lv "+(live.level||1)+" · "+fmt(live.lifetime||0)+" lifetime":"")+'</p></span>';
   var db=document.createElement("button");db.type="button";db.className="buy small pink";db.textContent="⚔️ Duel";
   db.addEventListener("click",function(){var sel=$("duelPick");sel.value=f.uid;showView("social");$("btnDuelSend").click();});
@@ -2254,7 +2694,8 @@ function renderFriendResults(){
  friendResultsCache.forEach(function(t){
   var st=friendState(t._uid);
   var blockedMe=!!fbUser&&(t.blocked||[]).some(function(b){return b.uid===fbUser.uid;});
-  var row=document.createElement("div");row.className="player";row.style.cursor="default";
+  var row=document.createElement("div");row.className="player";row.style.cursor="pointer";
+  row.addEventListener("click",function(e){if(e.target.closest("button"))return;openProfile(t);});
   row.innerHTML='<span class="av">'+avatarHTML(t,40)+'</span><span class="grow"><h3>'+esc(t.name||"Player")+'</h3><p>@'+esc(t.username||"")+' · Lv '+(t.level||1)+' · '+fmt(t.lifetime||0)+' lifetime</p></span>';
   var b=document.createElement("button");b.type="button";b.className="buy small pink";
   if(st==="friends"){b.textContent="✔ Friends";b.disabled=true;b.classList.add("maxed");}
@@ -2464,7 +2905,7 @@ $("btnRaidClaim").addEventListener("click",function(){
  if(!fbUser||!raidDoc||raidClaimedLocal)return;
  var share=Math.max(1,Math.round(raidMyDmgLocal/Math.max(1,(raidDoc.totalDmg||raidMyDmgLocal))*(raidDoc.pool||10000000)));
  fbDb.collection("raids").doc(raidId()).collection("hitters").doc(fbUser.uid).update({claimed:true}).then(function(){
-  raidClaimedLocal=true;S.coins+=share;S.lifetime+=share;addBpXp(40);sndGold();
+  raidClaimedLocal=true;S.coins+=share;S.lifetime+=share;noteWin(share);addBpXp(40);sndGold();
   toast("🎁 Raid reward claimed: +"+fmt(share)+" 🪙!");
   feed("🗡️ "+displayName()+" claimed a raid reward of "+fmt(share)+" 🪙!",true);
   renderRaid();renderStats();markDirty();
@@ -2537,7 +2978,7 @@ function watchDuel(id,role){
    var mine=role==="a"?(d.aScore||0):(d.bScore||0),theirs=role==="a"?(d.bScore||0):(d.aScore||0);
    if(mine>theirs){
     duelStatus("🏆 <b>YOU WIN THE DUEL!</b> "+mine+" taps vs "+theirs+". Prize: 🪙 "+fmt(d.prize||5000)+" — added to your coins!");
-    if(!duelDoc.paid){duelDoc.paid=true;S.coins+=d.prize||5000;S.lifetime+=d.prize||5000;S.duelWins=(S.duelWins||0)+1;addBpXp(30);sndGold();feed("🥊 "+displayName()+" won a click duel!",true);checkAch();checkTitles();renderStats();markDirty();}
+    if(!duelDoc.paid){duelDoc.paid=true;S.coins+=d.prize||5000;S.lifetime+=d.prize||5000;noteWin(d.prize||5000);S.duelWins=(S.duelWins||0)+1;addBpXp(30);sndGold();feed("🥊 "+displayName()+" won a click duel!",true);checkAch();checkTitles();renderStats();markDirty();}
    }else if(mine<theirs){
     duelStatus("💀 You lost the duel, "+mine+" taps vs "+theirs+". The pig believes in your comeback arc. 🥲");
     if(!duelDoc.paid){duelDoc.paid=true;sndErr();}
@@ -2693,7 +3134,11 @@ function refreshRole(){
    ban-watch (below) and clearBanState() restore full access the moment
    the ban lifts, and the wipe marker stops the empty local state from
    overwriting the player's cloud progress on re-sign-in. */
-var banLock=false, lastBanCheck=0, banWatchUnsub=null;
+var banLock=false, lastBanCheck=0, banWatchUnsub=null, banInfo=null, banCountInt=null;
+function updateBanCountdown(){
+ var el=$("banLeftLine");if(!el||!banInfo)return;
+ el.textContent="⏱️ "+banRemainingText({bannedUntil:banInfo.until});
+}
 function showAuthGate(){
  var g=$("authGate"),b=$("bannedScreen");
  if(g)g.style.display="flex";if(b)b.style.display="none";
@@ -2705,6 +3150,12 @@ function showBannedScreen(){
  if(g)g.style.display="none";if(b)b.style.display="flex";
  var sf=$("staffFloat");if(sf)sf.style.display="none";
  document.body.classList.add("gated");
+ /* v2.4: show what the ban is for and how long is left (live countdown). */
+ var r=$("banReasonLine"),l=$("banLeftLine");
+ if(r){if(banInfo&&banInfo.reason){r.textContent="🔨 Banned for: "+banInfo.reason;r.style.display="";}else{r.style.display="none";}}
+ if(l){if(banInfo){l.textContent="⏱️ "+banRemainingText({bannedUntil:banInfo.until});l.style.display="";}else{l.style.display="none";}}
+ if(banCountInt)clearInterval(banCountInt);
+ banCountInt=setInterval(updateBanCountdown,30000);
 }
 function hideGate(){
  var g=$("authGate"),b=$("bannedScreen");
@@ -2730,13 +3181,13 @@ function startBanWatch(){
      the unban and restores me. */
   banWatchUnsub=fbDb.collection("users").doc(uid).onSnapshot(function(doc){
    if(!doc.exists)return;var d=doc.data();
-   if(d&&d.banned!==true&&banLock){clearBanState();}
+   if(d&&!isBanActive(d)&&banLock){clearBanState();}
   },function(){stopBanWatch();});
  }catch(e){banWatchUnsub=null;}
 }
-function enforceBan(){
+function enforceBan(info){
  if(banLock)return;
- banLock=true;isBanned=true;
+ banLock=true;isBanned=true;banInfo=info||{reason:"",until:null};
  try{teardownCloudListeners();}catch(e){}
  isBanned=true; /* teardown resets it unless banLock is set — re-assert */
  wipeLocalSave();
@@ -2748,7 +3199,8 @@ function enforceBan(){
 function handleBanned(){enforceBan();}
 function clearBanState(){
  if(!banLock&&!isBanned)return;
- banLock=false;isBanned=false;stopBanWatch();
+ banLock=false;isBanned=false;banInfo=null;stopBanWatch();
+ if(banCountInt){clearInterval(banCountInt);banCountInt=null;}
  hideGate();
  toast("🔓 You've been unbanned — welcome back!");
  if(fbUser){onSignedIn(fbUser);}else{showAuthGate();}
@@ -2758,52 +3210,103 @@ function recheckBan(){
  if(!fbReady||!fbUser||!fbDb||banLock)return;
  var now=Date.now();if(now-lastBanCheck<10000)return;lastBanCheck=now;
  fbDb.collection("users").doc(fbUser.uid).get().then(function(doc){
-  if(doc.exists&&doc.data()&&doc.data().banned)enforceBan();
+  if(doc.exists&&doc.data()&&isBanActive(doc.data())){var d=doc.data();enforceBan({reason:d.banReason||"",until:d.bannedUntil||null});return;}
+  return checkDeviceBan();
+ }).then(function(devBan){
+  if(devBan)enforceBan({reason:devBan.reason||"This device is banned.",until:devBan.bannedUntil||null,device:true});
  }).catch(function(){});
+}
+/* v2.4: shared auth flows — used by the gate form AND the Profile-tab form.
+   Email is optional: with an email you get recovery + the ✉️ Verified badge;
+   without one you sign in with username + password and get the full game. */
+function doRegister(uname, emailOrNull, pass, errEl, btn, onDone){
+ var chk=isNameAllowed(uname,{allowDrippy:false});
+ if(!chk.ok){errEl.textContent="🚫 "+chk.why;return Promise.resolve(false);}
+ if(!pass||pass.length<6){errEl.textContent="Password needs 6+ characters.";return Promise.resolve(false);}
+ var realEmail=emailOrNull&&emailOrNull.trim()?emailOrNull.trim():"";
+ if(realEmail&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(realEmail)){errEl.textContent="That email doesn't look right.";return Promise.resolve(false);}
+ var email=realEmail||placeholderEmail(uname);
+ if(btn)btn.disabled=true;
+ return fbAuth.createUserWithEmailAndPassword(email,pass).then(function(cred){
+  /* username must be unique — checked after auth (reads need sign-in). If
+     taken, the fresh auth account is deleted and the name is refused. */
+  return fbDb.collection("users").where("username","==",uname).limit(5).get().then(function(snap){
+   var taken=false;snap.forEach(function(d){if(d.id!==cred.user.uid)taken=true;});
+   if(taken){return cred.user.delete().then(function(){throw new Error("username-taken");});}
+   return cred;
+  });
+ }).then(function(cred){
+  if(realEmail){try{if(cred.user&&cred.user.sendEmailVerification)cred.user.sendEmailVerification().catch(function(){});}catch(e){}}
+  profile.username=uname;profile.name=profile.name||uname;profile.email=realEmail;
+  return createUserDoc(cred.user,uname,realEmail);
+ }).then(function(){
+  toast("🎉 Account created — welcome, "+uname+"! Cloud save is ON.");
+  if(onDone)onDone(true);
+  return true;
+ }).catch(function(err){
+  if(err&&err.message==="username-taken"){errEl.textContent="🚫 That username is taken — pick another one.";}
+  else{errEl.textContent=fbErrText(err.code||"");noteFbError(err,"register");}
+  if(btn)btn.disabled=false;
+  return false;
+ });
+}
+function doLogin(ident, pass, errEl, btn){
+ if(!ident||!pass){errEl.textContent="Type your username (or email) and password first.";return Promise.resolve(false);}
+ var email=resolveLoginEmail(ident);
+ if(btn)btn.disabled=true;
+ return fbAuth.signInWithEmailAndPassword(email,pass).then(function(){
+  toast("👋 Welcome back!");
+  return true;
+ }).catch(function(err){
+  var msg=fbErrText(err.code||"");
+  if(ident.indexOf("@")===-1)msg+=" Tip: if you signed up with an email, log in with the email instead.";
+  errEl.textContent=msg;noteFbError(err,"login");
+  if(btn)btn.disabled=false;
+  return false;
+ });
 }
 function initGateAuth(){
  var go=$("gBtnAuthGo");if(!go)return;
  if(!fbReady){var f=$("gAuthForm"),d=$("gAuthDown");if(f)f.style.display="none";if(d)d.style.display="";}
- var mode="login";
+ var mode="login", emailMode="email";
  function setGateMode(m){
   mode=m;
   $("gAtLogin").classList.toggle("on",m==="login");
   $("gAtReg").classList.toggle("on",m==="register");
-  $("gAuthUser").style.display=m==="register"?"":"none";
+  $("gAuthUser").placeholder=m==="register"?"Username":"Username or email";
+  $("gEmailChoice").style.display=m==="register"?"":"none";
+  $("gAuthEmail").style.display=(m==="register"&&emailMode==="email")?"":"none";
   $("gAuthPass").setAttribute("autocomplete",m==="register"?"new-password":"current-password");
   go.textContent=m==="register"?"Create my account 🐷":"Log in 🐷";
   var e=$("gAuthErr");if(e)e.textContent="";
   var v=$("gVerifyNote");if(v)v.style.display="none";
  }
+ function setGateEmailMode(em){
+  emailMode=em;
+  $("gChoiceEmail").classList.toggle("on",em==="email");
+  $("gChoiceNoEmail").classList.toggle("on",em==="noemail");
+  $("gAuthEmail").style.display=(mode==="register"&&em==="email")?"":"none";
+ }
  $("gAtLogin").addEventListener("click",function(){setGateMode("login");});
  $("gAtReg").addEventListener("click",function(){setGateMode("register");});
+ $("gChoiceEmail").addEventListener("click",function(){setGateEmailMode("email");});
+ $("gChoiceNoEmail").addEventListener("click",function(){setGateEmailMode("noemail");});
  go.addEventListener("click",function(){
   if(!fbReady||!fbAuth){$("gAuthErr").textContent="Sign-in is still loading — wait a second and try again.";return;}
-  var email=$("gAuthEmail").value.trim(),pass=$("gAuthPass").value;
   var errEl=$("gAuthErr");errEl.textContent="";
-  if(!email||!pass){errEl.textContent="Type your email and password first.";return;}
+  var pass=$("gAuthPass").value;
   if(mode==="register"){
    var uname=$("gAuthUser").value.trim();
-   if(uname.length<3){errEl.textContent="Pick a username of at least 3 characters — it's how friends find you.";return;}
-   if(!/^[A-Za-z0-9_ ]+$/.test(uname)){errEl.textContent="Usernames can use letters, numbers, spaces and _ only.";return;}
-   go.disabled=true;
-   fbAuth.createUserWithEmailAndPassword(email,pass).then(function(cred){
-    try{if(cred.user&&cred.user.sendEmailVerification)cred.user.sendEmailVerification().catch(function(){});}catch(e){}
-    profile.username=uname;profile.name=profile.name||uname;
-    return createUserDoc(cred.user,uname);
-   }).then(function(){
-    var v=$("gVerifyNote");if(v)v.style.display="";
-    toast("🎉 Account created — welcome, "+uname+"! Cloud save is ON.");
-   }).catch(function(err){errEl.textContent=fbErrText(err.code);noteFbError(err,"register");go.disabled=false;});
+   var em=emailMode==="email"?$("gAuthEmail").value.trim():"";
+   doRegister(uname,em,pass,errEl,go,function(ok){
+    if(ok){var v=$("gVerifyNote");if(v&&em)v.style.display="";}
+   });
   }else{
-   go.disabled=true;
-   fbAuth.signInWithEmailAndPassword(email,pass).then(function(){
-    toast("👋 Welcome back!");
-   }).catch(function(err){errEl.textContent=fbErrText(err.code);noteFbError(err,"login");go.disabled=false;});
+   doLogin($("gAuthUser").value.trim(),pass,errEl,go);
   }
  });
  var bb=$("btnBannedOther");
- if(bb)bb.addEventListener("click",function(){banLock=false;isBanned=false;showAuthGate();var e=$("gAuthEmail");if(e)e.focus();});
+ if(bb)bb.addEventListener("click",function(){banLock=false;isBanned=false;banInfo=null;showAuthGate();var e=$("gAuthEmail");if(e)e.focus();});
 }
 function systemChat(text){
  if(!fbDb)return;
@@ -2815,6 +3318,7 @@ function auditGrant(action,target,extra){
  var doc={actorUid:fbUser.uid,actorName:displayName(),targetUid:target._uid,targetName:target.name||target.username||"Player",action:action,at:firebase.firestore.FieldValue.serverTimestamp()};
  if(extra&&extra.amount!=null)doc.amount=extra.amount;
  if(extra&&extra.powerId)doc.powerId=extra.powerId;
+ if(extra&&extra.reason)doc.reason=extra.reason;
  fbDb.collection("grants").add(doc).catch(function(err){noteFbError(err,"audit");});
 }
 function actorLabel(){return myRole==="owner"?"👑 Owner":"🛡️ Admin";}
@@ -2946,13 +3450,13 @@ function renderPanelList(){
   shown++;
   var role=roleOfUid(p._uid,p.role),isMe=p._uid===fbUser.uid;
   var row=document.createElement("div");row.className="player";row.style.cursor="default";row.style.alignItems="flex-start";
-  row.innerHTML='<span class="av">'+avatarHTML(p,40)+'</span><span class="grow"><h3>'+esc(nm)+roleTag(role)+(isMe?'<span class="you-tag">YOU</span>':"")+(p.banned?'<span class="role-tag tag-banned">🔨 BANNED</span>':"")+(p.muted?'<span class="role-tag" style="background:var(--muted);color:#fff">🔇 MUTED</span>':"")+'</h3><p>🐷 '+fmt(p.coins||0)+' · Lv '+(p.level||1)+' · '+fmt(p.lifetime||0)+' lifetime'+(p.banned&&p.bannedByOwner?" · banned by the Owner":"")+'</p></span>';
+  row.innerHTML='<span class="av">'+avatarHTML(p,40)+'</span><span class="grow"><h3>'+esc(nm)+roleTag(role)+(isMe?'<span class="you-tag">YOU</span>':"")+(isBanActive(p)?'<span class="role-tag tag-banned">🔨 BANNED'+(p.hardBanned?" · HARD":"")+'</span>':"")+(p.muted?'<span class="role-tag" style="background:var(--muted);color:#fff">🔇 MUTED</span>':"")+'</h3><p>🐷 '+fmt(p.coins||0)+' · Lv '+(Math.max(p.level||1,p.grantedLevel||0))+' · '+fmt(p.lifetime||0)+' lifetime'+(isBanActive(p)?' · '+banRemainingText(p):"")+(isBanActive(p)&&p.bannedByOwner?" · banned by the Owner":"")+'</p></span>';
   var mg=document.createElement("button");mg.type="button";mg.className="buy small pink";
   mg.textContent=panelSelectedUid===p._uid?"▲ Close tools":"🛠️ Manage";
   mg.addEventListener("click",function(){panelSelectedUid=panelSelectedUid===p._uid?null:p._uid;renderPanelList();});
   row.appendChild(mg);el.appendChild(row);
   if(panelSelectedUid===p._uid){
-   var tools=document.createElement("div");tools.className="panel-tools";
+   var tools=document.createElement("div");tools.className="panel-tools";tools.id="playerTools";
    buildPlayerTools(tools,p,role,isMe);
    el.appendChild(tools);
   }
@@ -2969,7 +3473,7 @@ function panelGiveCoins(p,amt){
   p.coins=(p.coins||0)+amt;
   auditGrant("grant_coins",p,{amount:amt});
   systemChat(actorLabel()+" gave "+fmtFull(amt)+" Pig Coins to "+(p.name||p.username));
-  toast("🎁 Gave "+fmt(amt)+" 🪙 to "+(p.name||p.username)+"!");
+  toast("🎁 Gave "+fmtFull(amt)+" 🪙 to "+(p.name||p.username)+"!");
   renderPanelList();
  }).catch(function(err){noteFbError(err,"giveCoins");toast(fbErrText(err.code||"permission-denied"));});
 }
@@ -2985,7 +3489,10 @@ function panelGivePower(p,powerId){
   if(p._uid===fbUser.uid){if(!S.powers)S.powers=[];if(S.powers.indexOf(powerId)===-1)S.powers.push(powerId);renderShop();markDirty();}
  }).catch(function(err){noteFbError(err,"givePower");toast(fbErrText(err.code||"permission-denied"));});
 }
-function panelSetBan(p,ban){
+/* v2.4: ban durations — null = Permanent. */
+var BAN_DURATIONS=[{label:"1 hour",ms:3600000},{label:"6 hours",ms:21600000},{label:"24 hours",ms:86400000},{label:"7 days",ms:604800000},{label:"30 days",ms:2592000000},{label:"Permanent",ms:null}];
+function panelSetBan(p,ban,opts){
+ opts=opts||{};
  if(!fbDb||!fbUser||(myRole!=="owner"&&myRole!=="admin"))return;
  if(p._uid===fbUser.uid){toast("You can't ban yourself.");return;}
  var role=roleOfUid(p._uid,p.role);
@@ -2994,15 +3501,34 @@ function panelSetBan(p,ban){
   if(role==="admin"){toast("🛡️ Admins can't ban other admins.");return;}
   if(!ban&&p.bannedByOwner){toast("🛡️ Only the Owner can lift an Owner ban.");return;}
  }
- /* v2.3 Bug A: an unban must clear ALL THREE fields together — leaving
-    bannedBy/bannedByOwner set made later unbans fail the rules check and
-    left stale "banned by the Owner" tags on the player. */
- var upd=ban?{banned:true,bannedBy:fbUser.uid,bannedByOwner:myRole==="owner"}:{banned:false,bannedBy:"",bannedByOwner:false};
- fbDb.collection("users").doc(p._uid).update(upd).then(function(){
-  p.banned=ban;if(ban){p.bannedBy=fbUser.uid;p.bannedByOwner=myRole==="owner";}else{p.bannedBy="";p.bannedByOwner=false;}
-  auditGrant(ban?"ban":"unban",p,{});
-  systemChat(ban?("🔨 "+actorLabel()+" banned "+(p.name||p.username)):("🔓 "+actorLabel()+" unbanned "+(p.name||p.username)));
-  toast(ban?("🔨 Banned "+(p.name||p.username)+"."):("🔓 Unbanned "+(p.name||p.username)+"."));
+ var hard=!!opts.hard;
+ var reason=String(opts.reason||"").trim().slice(0,120);
+ var untilTs=null;
+ if(ban&&opts.durationMs){try{untilTs=firebase.firestore.Timestamp.fromMillis(Date.now()+opts.durationMs);}catch(e){untilTs=null;}}
+ /* v2.4: an unban clears ALL FIVE ban fields together — leaving any of
+    them set made later unbans fail and left stale ban tags. A hard ban
+    also writes deviceBan docs for every device the player has used, and
+    an unban deletes them again — otherwise the player stays device-locked. */
+ var upd=ban?{banned:true,bannedBy:fbUser.uid,bannedByOwner:myRole==="owner",bannedUntil:untilTs,banReason:reason,hardBanned:hard}
+           :{banned:false,bannedBy:"",bannedByOwner:false,bannedUntil:null,banReason:"",hardBanned:false};
+ var jobs=[fbDb.collection("users").doc(p._uid).update(upd)];
+ if(ban&&hard&&(p.deviceIds||[]).length){
+  p.deviceIds.forEach(function(dev){
+   jobs.push(fbDb.collection("deviceBans").doc(dev).set({deviceId:dev,bannedUid:p._uid,bannedBy:fbUser.uid,bannedAt:firebase.firestore.FieldValue.serverTimestamp(),bannedUntil:untilTs,reason:reason}).catch(function(){}));
+  });
+ }
+ if(!ban&&(p.deviceIds||[]).length){
+  p.deviceIds.forEach(function(dev){
+   jobs.push(fbDb.collection("deviceBans").doc(dev).delete().catch(function(){}));
+  });
+ }
+ Promise.all(jobs).then(function(){
+  p.banned=ban;p.bannedUntil=untilTs;p.banReason=reason;p.hardBanned=ban&&hard;
+  if(ban){p.bannedBy=fbUser.uid;p.bannedByOwner=myRole==="owner";}else{p.bannedBy="";p.bannedByOwner=false;}
+  auditGrant(ban?(hard?"hard_ban":"ban"):"unban",p,{reason:reason});
+  var durTxt=ban?(untilTs?" for "+banRemainingText({bannedUntil:untilTs}):" permanently"):"";
+  systemChat(ban?("🔨 "+actorLabel()+(hard?" HARD-banned ":" banned ")+(p.name||p.username)+durTxt+(reason?" — "+reason:"")):("🔓 "+actorLabel()+" unbanned "+(p.name||p.username)));
+  toast(ban?((hard?"🔨 Hard-banned ":"🔨 Banned ")+(p.name||p.username)+durTxt+(hard&&!(p.deviceIds||[]).length?" (No device recorded yet — account ban only for now.)":"")+"."):("🔓 Unbanned "+(p.name||p.username)+"."));
   renderPanelList();
  }).catch(function(err){noteFbError(err,"ban");toast(fbErrText(err.code||"permission-denied"));});
 }
@@ -3053,6 +3579,9 @@ function applyInbox(items){
   appliedInboxKeys[it.k]=1;
   if(it.t==="xp"&&it.amt){S.lifetime=Math.max(0,S.lifetime+it.amt);toast("🎁 You gained "+fmt(it.amt)+" XP!");changed=true;}
   else if(it.t==="setxp"&&typeof it.amt==="number"){S.lifetime=Math.max(0,it.amt);toast("🎁 Your XP was set by staff.");changed=true;}
+  /* v2.4: staff-set level (grantedLevel). Above 50 it lives here — XP caps
+     at 50. Setting 50 or below clears the grant and sets XP exactly. */
+  else if(it.t==="grantlevel"&&typeof it.lv==="number"){var gl=Math.max(1,Math.min(99999,Math.floor(it.lv)));if(gl>50){S.grantedLevel=gl;}else{S.grantedLevel=0;S.lifetime=lifetimeForLevel(gl);}toast("📈 Your level was set to "+gl+" by staff!");changed=true;}
   else if(it.t==="apples"&&it.n){S.apples+=it.n;toast("🍎 You received "+it.n+" Golden Apples!");changed=true;}
   else if(it.t==="prestige"&&it.n){S.prestiges+=it.n;toast("🌀 You gained "+it.n+" prestige levels!");changed=true;}
   else if(it.t==="skillpts"&&it.n){S.skillPts=(S.skillPts||0)+it.n;toast("⭐ You received "+it.n+" Skill Points!");changed=true;}
@@ -3106,6 +3635,10 @@ function armConfirm(btn,armText,ms){
 function lifetimeForLevel(lv){lv=Math.max(1,Math.min(50,lv));return Math.pow(lv-1,2)*100;}
 
 /* ---------- per-player tools: 31 for Owner, 5 for Admin ---------- */
+/* v2.4: "inf" arm state keyed by player UID in JS — the two-tap confirm
+   used to live on the button's dataset, which every panel re-render
+   destroyed, so the arm never survived to the second tap. */
+var infArmed={};
 function buildPlayerTools(container,p,role,isMe){
  var isOwner=myRole==="owner";
  var nm=p.name||p.username||"Player";
@@ -3114,16 +3647,20 @@ function buildPlayerTools(container,p,role,isMe){
  var c1=toolCard("Give coins","Hand out Pig Coins. Type inf for the max (Owner only).");
  var inCoins=toolInput("Amount or inf",true);var bCoins=toolBtn("Give 🪙 coins");
  bCoins.addEventListener("click",function(){
-  var s=(inCoins.value||"").trim().toLowerCase(),amt;
-  if(s==="inf"||s==="infinity"){
+  /* "inf" first, before any number parsing — Number("inf") is NaN and the
+     old fallback of 1,000,000 is what Rizz saw. */
+  var raw=(inCoins.value||"").trim().toLowerCase();
+  if(raw==="inf"||raw==="infinity"||raw==="∞"){
    if(!isOwner){toast("Only the Owner can give INF coins.");return;}
-   amt=999999999999999;
-   if(!bCoins.dataset.arm){armConfirm(bCoins,"⚠️ Tap again to confirm INF");return;}
-   delete bCoins.dataset.arm;bCoins.textContent="Give 🪙 coins";
-  }else{
-   amt=Math.floor(Number(inCoins.value)||0);
-   if(amt<1){sndErr();toast("Type how many coins to give first.");return;}
+   var key=p._uid;
+   if(!infArmed[key]){infArmed[key]=Date.now();armConfirm(bCoins,"⚠️ Tap again to confirm INF");return;}
+   /* arm lasts 5s; a stale arm re-arms instead of firing */
+   if(Date.now()-infArmed[key]>5000){infArmed[key]=Date.now();armConfirm(bCoins,"⚠️ Tap again to confirm INF");return;}
+   delete infArmed[key];bCoins.textContent="Give 🪙 coins";
+   panelGiveCoins(p,999999999999999);inCoins.value="";return;
   }
+  var amt=Math.floor(Number(inCoins.value)||0);
+  if(amt<1){sndErr();toast("Type how many coins to give first.");return;}
   panelGiveCoins(p,amt);inCoins.value="";
  });
  c1.appendChild(inCoins);c1.appendChild(bCoins);g.appendChild(c1);
@@ -3138,7 +3675,7 @@ function buildPlayerTools(container,p,role,isMe){
  }
  /* --- 📈 Levels & XP --- */
  var g2=toolSec(container,"📈 Levels & XP");
- var c3=toolCard("Give levels","Add levels (grants the XP needed to reach them).");
+ var c3=toolCard("Give levels","Add levels — past 50 it uses the staff grant, up to 99999.");
  var inLv=toolInput("Levels to give");var bLv=toolBtn("Give levels");
  bLv.addEventListener("click",function(){
   var n=Math.floor(Number(inLv.value)||0);
@@ -3147,11 +3684,11 @@ function buildPlayerTools(container,p,role,isMe){
  });
  c3.appendChild(inLv);c3.appendChild(bLv);g2.appendChild(c3);
  if(isOwner){
-  var c4=toolCard("Set exact level","Jump this player to an exact level (1–50).");
-  var inSL=toolInput("Level 1–50");var bSL=toolBtn("Set level","blue");
+  var c4=toolCard("Set exact level","Jump this player to an exact level (1–99999 — staff grants can go past 50).");
+  var inSL=toolInput("Level 1–99999");var bSL=toolBtn("Set level","blue");
   bSL.addEventListener("click",function(){
    if(!inSL.value){sndErr();toast("Type the level first.");return;}
-   panelSetLevel(p,Math.max(1,Math.min(50,Math.floor(Number(inSL.value)||0))));inSL.value="";
+   panelSetLevel(p,Math.max(1,Math.min(99999,Math.floor(Number(inSL.value)||0))));inSL.value="";
   });
   c4.appendChild(inSL);c4.appendChild(bSL);g2.appendChild(c4);
   var c5=toolCard("Give XP","Hand out raw XP (lifetime coins = XP).");
@@ -3162,6 +3699,16 @@ function buildPlayerTools(container,p,role,isMe){
    sendInbox(p,[{t:"xp",amt:n}],"grant_xp","🎁 👑 Owner gave "+fmtFull(n)+" XP to "+nm);inXp.value="";
   });
   c5.appendChild(inXp);c5.appendChild(bXp);g2.appendChild(c5);
+ }
+ /* v2.4: admins can set their OWN level past 50 (up to 99999). */
+ if(!isOwner&&myRole==="admin"&&isMe){
+  var c4s=toolCard("Set MY level (staff)","Admins can push their own level past 50, up to 99999.");
+  var inSL2=toolInput("Level 1–99999");var bSL2=toolBtn("Set my level","blue");
+  bSL2.addEventListener("click",function(){
+   if(!inSL2.value){sndErr();toast("Type the level first.");return;}
+   panelSetLevel(p,Math.max(1,Math.min(99999,Math.floor(Number(inSL2.value)||0))));inSL2.value="";
+  });
+  c4s.appendChild(inSL2);c4s.appendChild(bSL2);g2.appendChild(c4s);
  }
  /* --- 🌟 Progress (Owner) --- */
  if(isOwner){
@@ -3238,12 +3785,35 @@ function buildPlayerTools(container,p,role,isMe){
  if(isMe){banBlocked="self";banWhy="You can't ban yourself.";}
  else if(myRole==="admin"&&role==="owner"){banBlocked="owner";banWhy="Admins can't ban the Owner.";}
  else if(myRole==="admin"&&role==="admin"){banBlocked="admin";banWhy="Admins can't ban other admins.";}
- else if(myRole==="admin"&&p.banned&&p.bannedByOwner){banBlocked="ownerban";banWhy="Only the Owner can lift an Owner ban.";}
- var c19=toolCard(p.banned?"Unban player":"Ban player",banBlocked?banWhy:(p.banned?"Lift the ban — they can play again.":"Ban them: signed out on the spot, game locked."));
- var bB=toolBtn(p.banned?"🔓 Unban":"🔨 Ban",p.banned?"blue":"red");
+ else if(myRole==="admin"&&isBanActive(p)&&p.bannedByOwner){banBlocked="ownerban";banWhy="Only the Owner can lift an Owner ban.";}
+ var bannedNow=isBanActive(p);
+ var c19=toolCard(bannedNow?"Unban player":"Ban player",banBlocked?banWhy:(bannedNow?"Lift the ban — they can play again.":"Ban them: signed out on the spot, game locked."));
+ var selDur=toolSelect(BAN_DURATIONS.map(function(d,i){return{value:String(i),label:"⏱️ "+d.label};}));
+ var inReason=toolInput("Reason for ban (optional)",true);
+ var bB=toolBtn(bannedNow?"🔓 Unban":"🔨 Ban",bannedNow?"blue":"red");
  if(banBlocked){bB.disabled=true;bB.title=banWhy;}
- bB.addEventListener("click",function(){if(banBlocked){toast(banWhy);return;}panelSetBan(p,!p.banned);});
+ bB.addEventListener("click",function(){
+  if(banBlocked){toast(banWhy);return;}
+  if(bannedNow){panelSetBan(p,false);return;}
+  var dur=BAN_DURATIONS[parseInt(selDur.value,10)||0];
+  panelSetBan(p,true,{durationMs:dur.ms,reason:inReason.value});
+ });
+ if(!bannedNow){c19.appendChild(selDur);c19.appendChild(inReason);}
  c19.appendChild(bB);g6.appendChild(c19);
+ /* v2.4: Hard Ban — account + device, so a new account can't dodge it. */
+ if(!bannedNow){
+  var c19h=toolCard("🔨 Hard Ban","Bans the account AND the device — no new-account dodging.");
+  var bHB=toolBtn("🔨 Hard Ban","red");
+  if(banBlocked){bHB.disabled=true;bHB.title=banWhy;}
+  bHB.addEventListener("click",function(){
+   if(banBlocked){toast(banWhy);return;}
+   var dur2=BAN_DURATIONS[parseInt(selDur.value,10)||0];
+   if(!bHB.dataset.arm){armConfirm(bHB,"⚠️ Tap again to HARD BAN");return;}
+   delete bHB.dataset.arm;bHB.textContent="🔨 Hard Ban";
+   panelSetBan(p,true,{hard:true,durationMs:dur2.ms,reason:inReason.value});
+  });
+  c19h.appendChild(bHB);g6.appendChild(c19h);
+ }
  var muteBlocked="";
  if(isMe)muteBlocked="You can't mute yourself.";
  else if(myRole==="admin"&&(role==="owner"||role==="admin"))muteBlocked="Admins can't mute the Owner or other admins.";
@@ -3349,15 +3919,23 @@ function loadAuditLog(){
 /* ---------- staff actions: coins / levels / mute / reset / wipe / all / events ---------- */
 function panelGiveLevels(p,n){
  if(!fbDb||!fbUser||(myRole!=="owner"&&myRole!=="admin"))return;
- var cur=p.level||1, nl=Math.min(50,cur+n);
+ var cur=p.level||1, nl=Math.min(99999,cur+n);
  if(nl<=cur){toast((p.name||p.username)+" is already level "+cur+".");return;}
- var delta=lifetimeForLevel(nl)-(p.lifetime||0);
- if(delta<=0){toast((p.name||p.username)+" already has the XP for level "+nl+".");return;}
- sendInbox(p,[{t:"xp",amt:delta}],"grant_levels","📈 "+actorLabel()+" gave "+(nl-cur)+" levels to "+(p.name||p.username)+" (now level "+nl+")");
+ if(nl<=50){
+  var delta=lifetimeForLevel(nl)-(p.lifetime||0);
+  if(delta<=0){toast((p.name||p.username)+" already has the XP for level "+nl+".");return;}
+  sendInbox(p,[{t:"xp",amt:delta}],"grant_levels","📈 "+actorLabel()+" gave "+(nl-cur)+" levels to "+(p.name||p.username)+" (now level "+nl+")");
+ }else{
+  /* v2.4: past 50, levels live in grantedLevel (XP caps at 50). */
+  sendInbox(p,[{t:"grantlevel",lv:nl}],"grant_levels","📈 "+actorLabel()+" gave "+(nl-cur)+" levels to "+(p.name||p.username)+" (now level "+nl+")");
+ }
 }
 function panelSetLevel(p,lv){
- if(!fbDb||!fbUser||myRole!=="owner")return;
- sendInbox(p,[{t:"setxp",amt:lifetimeForLevel(lv)}],"set_level","📈 👑 Owner set "+(p.name||p.username)+" to level "+lv);
+ /* v2.4: Owner can set anyone; Admins can set their OWN level (up to 99999). */
+ if(!fbDb||!fbUser||(myRole!=="owner"&&myRole!=="admin"))return;
+ if(myRole==="admin"&&p._uid!==fbUser.uid){toast("Admins can only set their own level.");return;}
+ lv=Math.max(1,Math.min(99999,Math.floor(lv||0)));
+ sendInbox(p,[{t:"grantlevel",lv:lv}],"set_level","📈 "+actorLabel()+" set "+(p.name||p.username)+" to level "+lv);
 }
 function panelSetCoins(p,target){
  if(!fbDb||!fbUser||myRole!=="owner")return;
@@ -3586,7 +4164,7 @@ if(profile.name){$("farmName").textContent=profile.name+"'s Pig Farm";$("nameInp
 buildStaffFloat();
 applySkin();refreshAvatarPicks();renderAch();renderTree();renderAll();renderPlayers();renderDaily();ensureQuests();renderQuests();renderBp();renderLog();renderCloudStrip();renderGlobalBoard();renderFriends();renderGuild();renderRaid();renderDuelPick();renderRolePanel();renderRequests();renderDmList();renderEventStrip();
 checkTitles();
-feed("🐷 Welcome to Pig Clicker v2.3! Sign in, tap the pig, raid the boss, and check the Update Log in your Profile.");
+feed("🐷 Welcome to Pig Clicker v2.4! Sign in, tap the pig, raid the boss, and check the Update Log in your Profile.");
 mpConnect();scheduleGolden();
 fbInit();
 initGateAuth();

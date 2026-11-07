@@ -1,6 +1,6 @@
-// Pig Clicker service worker — v2.3
+// Pig Clicker service worker — v2.4
 // Network-first for the game page (so updates always land), cache-first for local icons/manifest.
-var CACHE = "pig-clicker-v2.3";
+var CACHE = "pig-clicker-v2.4";
 var ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 self.addEventListener("install", function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(ASSETS); }).then(function () { return self.skipWaiting(); }));
