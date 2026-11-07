@@ -280,6 +280,12 @@ button,input,select{font:inherit} button{cursor:pointer}
 .modal h2{text-align:center;margin:4px 0 12px}
 .close-btn{width:100%;margin-top:12px}
 .foot{color:var(--muted);font-weight:700;text-align:center;margin-top:20px;font-size:.88rem}
+/* v2.3: auth gate + banned screen — full-screen, nothing behind them is reachable */
+.gate-screen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px;overflow:auto}
+.gate-card{width:100%;max-width:420px;text-align:center}
+.gate-card h1{margin:6px 0 6px;font-size:1.5rem}
+.gate-pig{font-size:4rem;line-height:1}
+.gated .wrap,.gated .bottom-nav{display:none!important}
 .bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--card);border-top:2px solid var(--line);display:grid;grid-template-columns:repeat(6,1fr);padding:6px 4px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -8px 24px rgba(90,40,10,.10)}
 .bottom-nav button{border:none;background:none;color:var(--muted);font-weight:900;font-size:.72rem;padding:7px 2px;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:1px}
 .bottom-nav button .bi{font-size:1.35rem;line-height:1}
@@ -301,14 +307,43 @@ button,input,select{font:inherit} button{cursor:pointer}
 }
 </style>
 </head>
-<body>
+<body class="gated">
+<!-- v2.3: auth gate — nobody sees or touches the game until signed in with an email account -->
+<div id="authGate" class="gate-screen">
+  <div class="gate-card">
+    <div class="gate-pig">🐷</div>
+    <h1>Pig Clicker</h1>
+    <p class="sub">You need an email account to play. Sign in or make one — it takes 20 seconds.</p>
+    <div class="auth-tabs" role="tablist"><button class="tab on" id="gAtLogin" type="button">Log in</button><button class="tab" id="gAtReg" type="button">Register</button></div>
+    <div id="gAuthForm">
+      <input class="auth-input" id="gAuthUser" maxlength="20" placeholder="Username (register only)" autocomplete="off" style="display:none;margin-bottom:8px"/>
+      <input class="auth-input" id="gAuthEmail" type="email" placeholder="Email" autocomplete="email" style="margin-bottom:8px"/>
+      <input class="auth-input" id="gAuthPass" type="password" placeholder="Password (6+ characters)" autocomplete="current-password" style="margin-bottom:8px"/>
+      <div class="auth-err" id="gAuthErr"></div>
+      <button class="big-btn pink" id="gBtnAuthGo" type="button">Log in 🐷</button>
+      <p class="sub" style="margin-top:8px">Email + password only — no Google, no Apple, no VR. Passwords are hashed by Firebase; the game never sees or stores yours.</p>
+      <p class="sub" id="gVerifyNote" style="display:none">📧 Verification email sent — you can play right away, just confirm it when it arrives.</p>
+    </div>
+    <div id="gAuthDown" style="display:none"><div class="auth-note">📴 The sign-in service couldn't load — check your connection and reload the page.</div></div>
+  </div>
+</div>
+<!-- v2.3: banned screen — full-screen, no game access, only sign in with a different account -->
+<div id="bannedScreen" class="gate-screen" style="display:none">
+  <div class="gate-card">
+    <div class="gate-pig">🔨</div>
+    <h1>You have been banned</h1>
+    <p class="sub">This account was banned by the Owner or an Admin. You can't play Pig Clicker on this account — your local progress on this device has been cleared.</p>
+    <button class="big-btn pink" id="btnBannedOther" type="button">Sign in again</button>
+    <p class="sub" style="margin-top:8px">If the Owner unbanned this account, signing in again takes you straight back into the game. Otherwise use a different account.</p>
+  </div>
+</div>
 <div class="wrap">
 
   <!-- TOP HUD -->
   <header class="hud" aria-label="Your stats bar">
     <button class="hud-av" id="hudAvatar" type="button" aria-label="Open your profile">🐷</button>
     <div class="hud-mid">
-      <div class="hud-name" id="hudName">Guest Pig</div>
+      <div class="hud-name" id="hudName">Pig Clicker</div>
       <div class="hud-sub">Lv <span id="hudLvl">1</span> · <span id="hudLvlTitle">Piglet Keeper</span> · <span id="hudTitle">No title</span> <span id="hudVip"></span><span id="hudRole"></span></div>
     </div>
     <div class="hud-coins">
@@ -322,7 +357,7 @@ button,input,select{font:inherit} button{cursor:pointer}
   <div class="alert-strip" aria-label="Live world status">
     <span id="raidStrip">🗡️ Raid boss: —</span>
     <span id="onlineStrip">🟢 Online: 1</span>
-    <span id="cloudStrip">☁️ Guest mode — progress stays on this device</span>
+    <span id="cloudStrip">☁️ Sign in to play</span>
     <span id="eventStrip" style="display:none"></span>
   </div>
 
@@ -464,7 +499,7 @@ button,input,select{font:inherit} button{cursor:pointer}
           <input class="room-input" id="joinInput" maxlength="10" placeholder="Friend's room code…" style="flex:1" autocomplete="off"/>
           <button class="send-btn" id="btnJoin" type="button">Join Room</button>
         </div>
-        <p class="sub" style="margin-top:10px">Send your code to your friends — when they join the same room, you all show up on each other's leaderboard <b>live</b>. Race to the richest pig. 🏆</p>
+        <p class="sub" style="margin-top:10px">Everyone online shows up below — room friends <b>live</b>, plus every player online right now 🌐. Race to the richest pig. 🏆</p>
         <input class="search-input" id="playerSearch" placeholder="🔎 Search players by name…" autocomplete="off" style="margin-bottom:12px"/>
         <div id="playerList"></div>
       </section>
@@ -686,7 +721,7 @@ button,input,select{font:inherit} button{cursor:pointer}
       <p class="sub" id="installNote" style="margin-top:10px"></p>
     </section>
 
-    <p class="foot">🐷 Pig Clicker v2.2 — tap, upgrade, prestige, raid and duel. Signed-in progress saves to the cloud; guest progress stays on this device.</p>
+    <p class="foot">🐷 Pig Clicker v2.3 — tap, upgrade, prestige, raid and duel. Sign in with your email to play — progress saves to the cloud.</p>
   </main>
 </div>
 
@@ -895,6 +930,16 @@ var ACHIEVEMENTS=[
  {id:"b48", icon:"🥊", name:"First Blood", desc:"Win 1 click duel.", test:function(s){return (s.duelWins||0)>=1}}
 ];
 var UPDATE_LOG=[
+ {v:"v2.3", tag:"EMAIL REQUIRED & REAL BANS", date:"November 6, 2026", items:[
+  "🔐 Email required to play: no more guest play — everybody signs in with an email account before they can tap the pig, see the leaderboard, or touch anything in the game.",
+  "📧 Verification email: new accounts get a Firebase verification email right after registering. You can play straight away — just confirm it when it lands in your inbox.",
+  "🔨 Bans actually ban now: a banned player is locked out the instant the ban lands — mid-session, any tab. Their local progress is wiped, they're signed out, and they land on a full-screen “You have been banned” screen with no way back into the game.",
+  "🛡️ Ban checks everywhere: checked on load before the game even renders, watched live while you play, and re-checked every time the tab comes back into focus.",
+  "🔓 Unban fixed: unbanning now clears the ban completely and restores the player on the spot — their cloud progress comes back intact, and signing in fresh after an unban lands them straight in the game.",
+  "🛡️ Admin grants fixed: granting admin now always unlocks the admin panel for them (the panel checks both the admin list and their account), and revoking admin removes it cleanly.",
+  "🌐 Online players list fixed: the Players list now shows EVERYONE online — not just your room — so you can see all your friends the moment they sign in.",
+  "🚪 Signed out? You're back at the login screen — and signing out clears the local save on that device, so no other account can pick up your pig."
+ ]},
  {v:"v2.2", tag:"OWNER & ADMIN SUPER UPDATE", date:"November 6, 2026", items:[
   "🪟 Movable Owner & Admin panels: drag them anywhere by the header (works on touch too), minimize them, close them, and reopen them from the Profile tab — never stuck in one spot again.",
   "🛠️ 30+ staff tools: coins (including INF), levels, XP, prestige, Golden Apples, skill points, every Goku power, unlock-all powers/skins, badges, titles, skins, Battle Pass tiers + Premium, VIP badges, bans, mutes, resets, wipes, farm-wide events and announcements — every tool its own card with its own space, nothing crammed in one line.",
@@ -1006,8 +1051,14 @@ function markDirty(){cloudDirty=true;saveLocal();}
 
 /* ============================== LOCAL CACHE ============================== */
 var LS_KEY="pigclicker.v2.save";
+/* v2.3 Bug A: localWipedAt — set when a ban (or sign-out) wipes local state.
+   While set, the local save is a post-wipe save and must NEVER beat the
+   cloud in the onSignedIn merge, or an unbanned player's cloud progress
+   would be overwritten by the empty local state. Cleared once cloud
+   state is adopted (or a fresh account is created). */
+var localWipedAt=0;
 function saveLocal(){
- try{localStorage.setItem(LS_KEY,JSON.stringify({S:S,qol:qol,profile:profile,roomCode:roomCode,savedAt:Date.now()}));}catch(e){}
+ try{localStorage.setItem(LS_KEY,JSON.stringify({S:S,qol:qol,profile:profile,roomCode:roomCode,savedAt:Date.now(),wiped:localWipedAt||undefined}));}catch(e){}
 }
 function loadLocal(){
  try{var raw=localStorage.getItem(LS_KEY);if(!raw)return null;var d=JSON.parse(raw);if(!d||!d.S)return null;
@@ -1679,6 +1730,18 @@ $("playerSearch").addEventListener("input",renderPlayers);
 function renderPlayers(){
  var q=($("playerSearch").value||"").trim().toLowerCase();
  var arr=Object.keys(players).map(function(k){return players[k];});
+ /* v2.3 Bug B: room (MQTT) players only show people in YOUR room code —
+    everyone else saw just themselves. Merge in every globally-online
+    player from the leaderboard feed (updated in the last 3 min), deduped
+    by UID, so the list shows all online players to everyone. */
+ var now=Date.now(),seen={};
+ arr.forEach(function(p){seen[p.id||p.localId]=1;});
+ (topCache||[]).forEach(function(d){
+  if(!d||!d._uid||seen[d._uid])return;
+  if(now-(d.updatedAt||0)>180000)return;
+  seen[d._uid]=1;
+  arr.push({id:d._uid,localId:d._uid,name:d.name||d.username||"Player",username:d.username||"",avatar:d.avatar||"🐷",avatarImg:d.avatarImg||"",title:d.title||"",vip:d.vip||"",coins:d.coins||0,lifetime:d.lifetime||0,pps:d.pps||0,taps:d.taps||0,bestCombo:d.bestCombo||1,bestCps:d.bestCps||0,level:d.level||1,apples:d.apples||0,skin:"Classic",banner:d.banner||"sunset",guild:d.guildName||"",role:d.role||"player",ts:d.updatedAt||0,global:true});
+ });
  arr.sort(function(a,b){return (b.lifetime||0)-(a.lifetime||0);});
  var list=$("playerList");if(!list)return;list.innerHTML="";
  var shown=0;
@@ -1686,13 +1749,13 @@ function renderPlayers(){
   if(q&&String(p.name||"").toLowerCase().indexOf(q)===-1)return;
   shown++;
   var b=document.createElement("button");b.type="button";b.className="player";
-  b.innerHTML='<span class="rank '+(idx===0?"top":"")+'">'+(idx===0?"👑":"#"+(idx+1))+'</span><span class="av">'+avatarHTML(p,40)+'</span><span class="grow"><h3>'+esc(p.name||"Player")+roleTag(roleOfUid(p.id||p.localId,p.role))+((p.localId||p.id)===myId||p.id===(fbUser&&fbUser.uid)?'<span class="you-tag">YOU</span>':"")+(p.title?'<span class="title-tag">'+esc(p.title)+"</span>":"")+'</h3><p>Lv '+p.level+" · "+fmt(p.lifetime||0)+' lifetime · '+fmt(p.pps||0)+'/sec</p></span><span style="font-family:Baloo 2;font-weight:800">🐷 '+fmt(p.coins||0)+"</span>";
+  b.innerHTML='<span class="rank '+(idx===0?"top":"")+'">'+(idx===0?"👑":"#"+(idx+1))+'</span><span class="av">'+avatarHTML(p,40)+'</span><span class="grow"><h3>'+esc(p.name||"Player")+roleTag(roleOfUid(p.id||p.localId,p.role))+((p.localId||p.id)===myId||p.id===(fbUser&&fbUser.uid)?'<span class="you-tag">YOU</span>':"")+(p.global?'<span class="title-tag">🌐 Online</span>':"")+(p.title?'<span class="title-tag">'+esc(p.title)+"</span>":"")+'</h3><p>Lv '+p.level+" · "+fmt(p.lifetime||0)+' lifetime · '+fmt(p.pps||0)+'/sec</p></span><span style="font-family:Baloo 2;font-weight:800">🐷 '+fmt(p.coins||0)+"</span>";
   b.addEventListener("click",function(){openProfile(p);});
   list.appendChild(b);
  });
  if(!shown){
   var e=document.createElement("div");e.className="empty";
-  e.textContent=q?("No players match “"+q+"”. Try another name."):"Just you so far — send your room code to a friend and they'll pop up here live. 🐷";
+  e.textContent=q?("No players match “"+q+"”. Try another name."):"Nobody else is online right now — your friends show up here the moment they sign in. 🐷";
   list.appendChild(e);
  }
 }
@@ -1758,7 +1821,11 @@ function fbInit(){
   fbAuth.onAuthStateChanged(function(u){
    fbUser=u||null;
    renderAuth();renderRolePanel();
-   if(u){onSignedIn(u);}else{teardownCloudListeners();renderCloudStrip();renderGlobalBoard();renderFriends();renderGuild();}
+   if(u){onSignedIn(u);}else{
+    teardownCloudListeners();
+    if(banLock){showBannedScreen();}else{showAuthGate();}
+    renderCloudStrip();renderGlobalBoard();renderFriends();renderGuild();
+   }
   });
  }catch(e){
   fbReady=false;fbUser=null;renderAuth();renderCloudStrip();
@@ -1775,11 +1842,12 @@ function fbErrText(code){
   "auth/invalid-credential":"Email or password didn't match — check both and try again.",
   "auth/too-many-requests":"Too many tries in a row — wait a minute and try again.",
   "auth/network-request-failed":"Network hiccup — check your connection and try again.",
-  "auth/operation-not-allowed":"Email/password sign-in isn't switched on for this project yet."
+  "auth/operation-not-allowed":"Email/password sign-in isn't switched on for this project yet.",
+  "auth/user-disabled":"This account has been disabled — contact the Owner."
  };
  if(map[code])return map[code];
  if(code&&code.indexOf("permission-denied")>-1)return "The online database is locked right now — your progress is safe locally and will sync when it's open.";
- return "Something went wrong ("+(code||"unknown")+"). Local play still works fine.";
+ return "Something went wrong ("+(code||"unknown")+"). The game needs a sign-in to play — check your connection and try again.";
 }
 function noteFbError(err,where){
  if(err&&err.code==="permission-denied"||(err&&String(err.message||"").indexOf("permission")>-1)){
@@ -1791,26 +1859,26 @@ function renderCloudStrip(){
  var el=$("cloudStrip");if(!el)return;
  if(fbUser&&fbDenied){el.textContent="☁️ Online save unavailable — check back soon (playing locally, all good)";el.className="warn";}
  else if(fbUser){el.textContent="☁️ Signed in as "+(profile.username||fbUser.email)+" — cloud save on";el.className="";}
- else if(!fbReady){el.textContent="☁️ Cloud unreachable here — guest mode, progress stays on this device";el.className="warn";}
- else{el.textContent="☁️ Guest mode — sign in (Profile tab) to save to the cloud";el.className="";}
+ else if(!fbReady){el.textContent="☁️ Sign-in service unreachable — check your connection and reload";el.className="warn";}
+ else{el.textContent="☁️ Sign in to play — progress saves to the cloud";el.className="";}
 }
 function renderAuth(){
  var area=$("authArea");if(!area)return;
  if(!fbReady){
-  area.innerHTML='<div class="auth-note">📴 The cloud service could not load in this browser, so accounts are paused here. <b>Guest play works 100%</b> — tap the pig, and your progress is kept on this device.</div><p class="sub">Tip: open the game in Chrome or Safari with a normal connection and sign-in will appear.</p>';
+  area.innerHTML='<div class="auth-note">📴 The cloud service could not load in this browser, so sign-in is paused here — the game is locked until it loads. There is no guest play in v2.3.</div><p class="sub">Tip: open the game in Chrome or Safari with a normal connection and sign-in will appear.</p>';
   return;
  }
  if(fbUser){
   area.innerHTML='<p class="sub" style="margin-bottom:6px">Signed in as <b>'+esc(profile.username||"")+'</b> ('+esc(fbUser.email||"")+')</p>'
    +(fbDenied?'<div class="auth-note">☁️ <b>Online save unavailable — check back soon.</b> The cloud database is locked at the moment, so saves are being kept on this device and will sync automatically when it opens. Everything in the game still works.</div>':'<p class="auth-ok" id="authOk">☁️ Cloud save is ON — progress syncs to your account.</p>')
    +'<div class="room-row"><button class="buy blue" id="btnSaveNow" type="button">☁️ Save now</button><button class="buy red" id="btnSignOut" type="button">Sign out</button></div>'
-   +'<p class="sub" style="margin-top:10px">Signing out keeps this device\'s local progress. Your cloud progress loads again on any device when you sign back in.</p>';
+   +'<p class="sub" style="margin-top:10px">Signing out clears this device\'s local progress. Your cloud progress loads again on any device when you sign back in.</p>';
   $("btnSaveNow").addEventListener("click",function(){cloudSaveNow(true);});
-  $("btnSignOut").addEventListener("click",function(){fbAuth.signOut();});
+  $("btnSignOut").addEventListener("click",function(){try{cloudSaveNow();}catch(e){}wipeLocalSave();try{fbAuth.signOut();}catch(e){}});
   return;
  }
  area.innerHTML=(isBanned?'<div class="auth-note" style="border-color:var(--red);background:linear-gradient(180deg,rgba(224,49,49,.12),transparent)">🚫 <b>You are banned.</b> This account was banned by the Owner or an Admin, so it has been signed out. Game actions stay locked for this account.</div>':"")
-  +'<div class="auth-tabs" role="tablist"><button class="tab on" id="atLogin" type="button">Log in</button><button class="tab" id="atReg" type="button">Register</button><button class="tab" id="atGuest" type="button">👤 Guest</button></div>'
+  +'<div class="auth-tabs" role="tablist"><button class="tab on" id="atLogin" type="button">Log in</button><button class="tab" id="atReg" type="button">Register</button></div>'
   +'<div id="authForm">'
   +'<input class="auth-input" id="authUser" maxlength="20" placeholder="Username (register only)" autocomplete="off" style="display:none;margin-bottom:8px"/>'
   +'<input class="auth-input" id="authEmail" type="email" placeholder="Email" autocomplete="email" style="margin-bottom:8px"/>'
@@ -1818,16 +1886,12 @@ function renderAuth(){
   +'<div class="auth-err" id="authErr"></div>'
   +'<button class="big-btn pink" id="btnAuthGo" type="button">Log in 🐷</button>'
   +'<p class="sub" style="margin-top:8px">Email + password only — no Google, no Apple, no VR. Passwords are hashed by Firebase; the game never sees or stores yours.</p>'
-  +'</div>'
-  +'<div id="authGuestBox" style="display:none"><div class="auth-note">👤 <b>Guest play:</b> everything works, progress stays on this device only. Create an account any time to turn on cloud saves, the global leaderboard, friends, duels and guilds.</div></div>';
+  +'</div>';
  var mode="login";
  function setMode(m){
   mode=m;
   $("atLogin").classList.toggle("on",m==="login");
   $("atReg").classList.toggle("on",m==="register");
-  $("atGuest").classList.toggle("on",m==="guest");
-  $("authForm").style.display=m==="guest"?"none":"";
-  $("authGuestBox").style.display=m==="guest"?"":"none";
   $("authUser").style.display=m==="register"?"":"none";
   $("authPass").setAttribute("autocomplete",m==="register"?"new-password":"current-password");
   $("btnAuthGo").textContent=m==="register"?"Create my account 🐷":"Log in 🐷";
@@ -1835,7 +1899,6 @@ function renderAuth(){
  }
  $("atLogin").addEventListener("click",function(){setMode("login");});
  $("atReg").addEventListener("click",function(){setMode("register");});
- $("atGuest").addEventListener("click",function(){setMode("guest");});
  $("btnAuthGo").addEventListener("click",function(){
   var email=$("authEmail").value.trim(),pass=$("authPass").value;
   var errEl=$("authErr");errEl.textContent="";
@@ -1846,10 +1909,11 @@ function renderAuth(){
    if(!/^[A-Za-z0-9_ ]+$/.test(uname)){errEl.textContent="Usernames can use letters, numbers, spaces and _ only.";return;}
    $("btnAuthGo").disabled=true;
    fbAuth.createUserWithEmailAndPassword(email,pass).then(function(cred){
+    try{if(cred.user&&cred.user.sendEmailVerification)cred.user.sendEmailVerification().catch(function(){});}catch(e){}
     profile.username=uname;profile.name=profile.name||uname;
     return createUserDoc(cred.user,uname);
    }).then(function(){
-    toast("🎉 Account created — welcome, "+uname+"! Cloud save is ON.");
+    toast("🎉 Account created — welcome, "+uname+"! Cloud save is ON. A verification email is on its way.");
    }).catch(function(err){errEl.textContent=fbErrText(err.code);noteFbError(err,"register");$("btnAuthGo").disabled=false;});
   }else{
    $("btnAuthGo").disabled=true;
@@ -1876,6 +1940,7 @@ function createUserDoc(user,uname){
 }
 var saveTimer=null;
 function cloudSaveNow(manual){
+ if(banLock)return;
  if(!fbReady||!fbUser||!fbDb)return;
  var ref=fbDb.collection("users").doc(fbUser.uid);
  var payload=userDocPayload();
@@ -1897,7 +1962,10 @@ function startSaveLoop(){
 document.addEventListener("visibilitychange",function(){
  S.lastSeen=Date.now();saveLocal();
  if(document.visibilityState==="hidden"&&cloudDirty)cloudSaveNow();
+ /* v2.3: re-check the ban every time the tab comes back into focus */
+ if(document.visibilityState==="visible")recheckBan();
 });
+window.addEventListener("focus",function(){recheckBan();});
 window.addEventListener("online",function(){if(cloudDirty)cloudSaveNow();});
 function onSignedIn(user){
  startSaveLoop();
@@ -1905,7 +1973,7 @@ function onSignedIn(user){
  ref.get().then(function(doc){
   if(doc.exists){
    var d=doc.data();
-   if(d.banned){handleBanned();return;}
+   if(d.banned){enforceBan();return;}
    if(!S.powers)S.powers=[];
    if(Array.isArray(d.powers))d.powers.forEach(function(pid){if(S.powers.indexOf(pid)===-1)S.powers.push(pid);});
    cloudCoinsSeen=(typeof d.coins==="number")?d.coins:null;
@@ -1914,9 +1982,11 @@ function onSignedIn(user){
    blockedCache=Array.isArray(d.blocked)?d.blocked:[];
    var cloudState=null;
    try{cloudState=d.state?JSON.parse(d.state):null;}catch(e){}
-   var localAt=0;try{var lc=loadLocal();localAt=lc?lc.savedAt:0;}catch(e){}
+   /* v2.3 Bug A: a post-wipe local save (wiped flag) must never beat the
+      cloud, or an unbanned player's progress would be zeroed by it. */
+   var localAt=0;try{var lc=loadLocal();localAt=(lc&&lc.wiped)?0:(lc?lc.savedAt:0);}catch(e){}
    if(cloudState&&(d.updatedAt||0)>=localAt-1000){
-    var base=freshState();for(var k in base){if(cloudState[k]===undefined)cloudState[k]=base[k];}
+    localWipedAt=0;var base=freshState();for(var k in base){if(cloudState[k]===undefined)cloudState[k]=base[k];}
     S=cloudState;bestComboSeen=S.bestCombo||1;
     profile.name=d.name&&d.name!=="Anonymous Pig"?d.name:profile.name;
     profile.avatar=d.avatar||profile.avatar;profile.avatarImg=d.avatarImg||"";
@@ -1927,14 +1997,14 @@ function onSignedIn(user){
    }
    if(d.name){$("farmName").textContent=d.name+"'s Pig Farm";$("nameInput").value=profile.name;$("nameInput2").value=profile.name;}
   }else{
-   createUserDoc(user,profile.username||"").then(function(){cloudDirty=false;});
+   localWipedAt=0;createUserDoc(user,profile.username||"").then(function(){cloudDirty=false;});
   }
   renderCloudStrip();renderStats();mpPublishProfile();
-  setupCloudListeners();
+  setupCloudListeners();hideGate();
  }).catch(function(err){
   noteFbError(err,"load");
   setupCloudListeners();
-  renderCloudStrip();
+  renderCloudStrip();hideGate();
  });
 }
 function teardownCloudListeners(){
@@ -1943,7 +2013,8 @@ function teardownCloudListeners(){
  ownerInfo=null;ownerLoaded=false;adminUids=[];myRole="player";lastRoleSig="";cloudCoinsSeen=null;
  incomingReqs=[];outgoingReqs=[];reqToastArmed=false;friendResultsCache=[];
  dmThreads=[];currentDm=null;dmMessages=[];if(dmUnsub){try{dmUnsub();}catch(e){}dmUnsub=null;}
- eventCfg={};appliedInboxKeys={};myMuted=false;isBanned=false;
+ eventCfg={};appliedInboxKeys={};myMuted=false;myDocRole="player";if(!banLock)isBanned=false;
+ stopBanWatch();
  renderRolePanel();renderRequests();renderDmList();renderEventStrip();
 }
 function setupCloudListeners(){
@@ -1954,7 +2025,7 @@ function setupCloudListeners(){
   var u1=fbDb.collection("users").orderBy("lifetime","desc").limit(100).onSnapshot(function(snap){
    topCache=[];var online=0,now=Date.now();
    snap.forEach(function(doc){var d=doc.data();d._uid=doc.id;topCache.push(d);if(now-(d.updatedAt||0)<180000)online++;});
-   fbOnlineCount=online;fbDenied=false;renderGlobalBoard();renderFriends();updateOnlineStrip();renderDuelPick();renderCloudStrip();
+   fbOnlineCount=online;fbDenied=false;renderGlobalBoard();renderFriends();updateOnlineStrip();renderDuelPick();renderCloudStrip();renderPlayers();
   },function(err){noteFbError(err,"leaderboard");renderGlobalBoard();});
   unsubscribers.push(u1);
  }catch(e){renderGlobalBoard();}
@@ -1962,7 +2033,11 @@ function setupCloudListeners(){
  try{
   var u2=fbDb.collection("users").doc(fbUser.uid).onSnapshot(function(doc){
    if(!doc.exists)return;var d=doc.data();
-   if(d.banned){handleBanned();return;}
+   if(d.banned){enforceBan();return;}
+   /* v2.3 Bug A: banned flipped back to false while we still carry the ban
+      flags (e.g. the sign-out in enforceBan failed) — restore full access. */
+   if(banLock||isBanned){clearBanState();return;}
+   myDocRole=d.role||"player";refreshRole();
    if(Array.isArray(d.friends))friendsCache=d.friends;
    if(Array.isArray(d.blocked))blockedCache=d.blocked;
    renderFriends();renderDuelPick();
@@ -1991,8 +2066,10 @@ function setupCloudListeners(){
     applyInbox(inbox);
     fbDb.collection("users").doc(fbUser.uid).update({staffInbox:firebase.firestore.FieldValue.arrayRemove.apply(null,inbox)}).catch(function(){});
    }
-   /* keep my doc's role field in sync with the config docs (claim/grant source of truth) */
-   if(ownerLoaded&&d.role!==myRole){fbDb.collection("users").doc(fbUser.uid).update({role:myRole}).catch(function(){});}
+   /* v2.3 Bug B: the old role-sync write (update role to myRole) is gone —
+      a player can never write their own role field (rules deny it), so it
+      only ever failed silently. The doc role is written by the Owner only
+      (panelSetAdmin / claimOwner); myRole is derived in computeRole(). */
   },function(err){noteFbError(err,"mydoc");});
   unsubscribers.push(u2);
  }catch(e){}
@@ -2027,7 +2104,7 @@ function renderGlobalBoard(){
  var el=$("globalBoard");if(!el)return;
  if(!fbReady){el.innerHTML='<div class="empty">The global leaderboard needs the cloud, which could not load in this browser. Your room leaderboard below still works! 🐷</div>';$("myRankLine").textContent="";return;}
  if(fbDenied){el.innerHTML='<div class="empty">☁️ Online leaderboard unavailable — check back soon. The database is locked right now; your room leaderboard and local game are unaffected.</div>';$("myRankLine").textContent="";return;}
- if(!fbUser){el.innerHTML='<div class="empty">Sign in (Profile tab) to join the global leaderboard — it\'s free and takes 20 seconds. Guests still rule their room leaderboard. 🐷</div>';$("myRankLine").textContent="";return;}
+ if(!fbUser){el.innerHTML='<div class="empty">Sign in to join the global leaderboard — it\'s free and takes 20 seconds. 🐷</div>';$("myRankLine").textContent="";return;}
  var arr=topCache.slice();
  if(lbFilter==="friends"){
   var fids={};friendsCache.forEach(function(f){fids[f.uid]=true;});fids[fbUser.uid]=true;
@@ -2058,7 +2135,7 @@ function renderGlobalBoard(){
 function isOnline(ts){return ts&&(Date.now()-ts)<180000;}
 function renderFriends(){
  var el=$("friendList");if(!el)return;
- if(!fbUser){el.innerHTML='<div class="empty">Sign in to use the friends list — guests can still play rooms together. 🐷</div>';renderDuelPick();renderBlocked();return;}
+ if(!fbUser){el.innerHTML='<div class="empty">Sign in to use the friends list. 🐷</div>';renderDuelPick();renderBlocked();return;}
  if(!friendsCache.length){el.innerHTML='<div class="empty">No friends yet. Search for any player in the Find Friends card above and send them a request!</div>';renderDuelPick();renderBlocked();return;}
  el.innerHTML="";
  friendsCache.forEach(function(f){
@@ -2583,10 +2660,17 @@ function roleOfUid(uid,roleField){
  if(uid&&adminUids.indexOf(uid)>-1)return "admin";
  return "player";
 }
+var myDocRole="player";
 function computeRole(){
  if(!fbUser)return "player";
  if(ownerInfo&&ownerInfo.ownerUid===fbUser.uid)return "owner";
  if(adminUids.indexOf(fbUser.uid)>-1)return "admin";
+ /* v2.3 Bug B: fallback — the Owner's grant writes role:"admin" on the doc
+    too, and only the Owner can write that field (rules), so a doc that
+    says admin means the Owner granted it. This unlocks the panel even if
+    the config/admins snapshot lags or is missed. Rules still enforce
+    every admin action server-side via config/admins. */
+ if(myDocRole==="admin")return "admin";
  return "player";
 }
 function refreshRole(){
@@ -2594,12 +2678,132 @@ function refreshRole(){
  renderRolePanel();renderStats();
  if(fbUser)mpPublishProfile();
 }
-function handleBanned(){
- if(isBanned)return;
- isBanned=true;
- toast("🚫 You are banned from Pig Clicker.");
+/* ============================== v2.3: AUTH GATE + BAN ENFORCEMENT ==============================
+   v2.2 bug: handleBanned() signed the player out — and sign-out reset
+   isBanned and dropped them into guest play, so a banned player kept
+   playing locally. v2.3: no guest play at all, and a ban locks the
+   account out for real: live listener + load check + focus re-check all
+   funnel into enforceBan(), which wipes local state, signs out, and
+   shows the full-screen banned screen. The banLock flag survives the
+   sign-out round-trip so the auth-state callback shows the banned
+   screen instead of the login gate.
+   v2.3 Bug A (unban glitch): v2.2 never watched for banned flipping back
+   to false — isBanned stayed stuck and every guard kept blocking, so an
+   unbanned player "couldn't do anything". Now the live listener, the
+   ban-watch (below) and clearBanState() restore full access the moment
+   the ban lifts, and the wipe marker stops the empty local state from
+   overwriting the player's cloud progress on re-sign-in. */
+var banLock=false, lastBanCheck=0, banWatchUnsub=null;
+function showAuthGate(){
+ var g=$("authGate"),b=$("bannedScreen");
+ if(g)g.style.display="flex";if(b)b.style.display="none";
+ var sf=$("staffFloat");if(sf)sf.style.display="none";
+ document.body.classList.add("gated");
+}
+function showBannedScreen(){
+ var g=$("authGate"),b=$("bannedScreen");
+ if(g)g.style.display="none";if(b)b.style.display="flex";
+ var sf=$("staffFloat");if(sf)sf.style.display="none";
+ document.body.classList.add("gated");
+}
+function hideGate(){
+ var g=$("authGate"),b=$("bannedScreen");
+ if(g)g.style.display="none";if(b)b.style.display="none";
+ document.body.classList.remove("gated");
+}
+function wipeLocalSave(){
+ localWipedAt=Date.now();
+ try{localStorage.removeItem(LS_KEY);}catch(e){}
+ S=freshState();bestComboSeen=1;combo=1;
+ profile.name="";profile.avatar="🐷";profile.avatarImg="";profile.username="";
+ friendsCache=[];blockedCache=[];
+ try{renderAll();renderStats();}catch(e){}
+}
+function stopBanWatch(){if(banWatchUnsub){try{banWatchUnsub();}catch(e){}banWatchUnsub=null;}}
+function startBanWatch(){
+ if(!fbDb||!fbUser||banWatchUnsub)return;
+ var uid=fbUser.uid;
+ try{
+  /* Watches ONLY the banned flag on my own doc. If the sign-out in
+     enforceBan succeeded, this dies on its own (signed-out reads are
+     denied); if the sign-out failed and I'm still signed in, it catches
+     the unban and restores me. */
+  banWatchUnsub=fbDb.collection("users").doc(uid).onSnapshot(function(doc){
+   if(!doc.exists)return;var d=doc.data();
+   if(d&&d.banned!==true&&banLock){clearBanState();}
+  },function(){stopBanWatch();});
+ }catch(e){banWatchUnsub=null;}
+}
+function enforceBan(){
+ if(banLock)return;
+ banLock=true;isBanned=true;
+ try{teardownCloudListeners();}catch(e){}
+ isBanned=true; /* teardown resets it unless banLock is set — re-assert */
+ wipeLocalSave();
+ startBanWatch();
  try{if(fbAuth)fbAuth.signOut();}catch(e){}
+ toast("🚫 You are banned from Pig Clicker.");
+ showBannedScreen();renderAuth();renderRolePanel();
+}
+function handleBanned(){enforceBan();}
+function clearBanState(){
+ if(!banLock&&!isBanned)return;
+ banLock=false;isBanned=false;stopBanWatch();
+ hideGate();
+ toast("🔓 You've been unbanned — welcome back!");
+ if(fbUser){onSignedIn(fbUser);}else{showAuthGate();}
  renderAuth();renderRolePanel();
+}
+function recheckBan(){
+ if(!fbReady||!fbUser||!fbDb||banLock)return;
+ var now=Date.now();if(now-lastBanCheck<10000)return;lastBanCheck=now;
+ fbDb.collection("users").doc(fbUser.uid).get().then(function(doc){
+  if(doc.exists&&doc.data()&&doc.data().banned)enforceBan();
+ }).catch(function(){});
+}
+function initGateAuth(){
+ var go=$("gBtnAuthGo");if(!go)return;
+ if(!fbReady){var f=$("gAuthForm"),d=$("gAuthDown");if(f)f.style.display="none";if(d)d.style.display="";}
+ var mode="login";
+ function setGateMode(m){
+  mode=m;
+  $("gAtLogin").classList.toggle("on",m==="login");
+  $("gAtReg").classList.toggle("on",m==="register");
+  $("gAuthUser").style.display=m==="register"?"":"none";
+  $("gAuthPass").setAttribute("autocomplete",m==="register"?"new-password":"current-password");
+  go.textContent=m==="register"?"Create my account 🐷":"Log in 🐷";
+  var e=$("gAuthErr");if(e)e.textContent="";
+  var v=$("gVerifyNote");if(v)v.style.display="none";
+ }
+ $("gAtLogin").addEventListener("click",function(){setGateMode("login");});
+ $("gAtReg").addEventListener("click",function(){setGateMode("register");});
+ go.addEventListener("click",function(){
+  if(!fbReady||!fbAuth){$("gAuthErr").textContent="Sign-in is still loading — wait a second and try again.";return;}
+  var email=$("gAuthEmail").value.trim(),pass=$("gAuthPass").value;
+  var errEl=$("gAuthErr");errEl.textContent="";
+  if(!email||!pass){errEl.textContent="Type your email and password first.";return;}
+  if(mode==="register"){
+   var uname=$("gAuthUser").value.trim();
+   if(uname.length<3){errEl.textContent="Pick a username of at least 3 characters — it's how friends find you.";return;}
+   if(!/^[A-Za-z0-9_ ]+$/.test(uname)){errEl.textContent="Usernames can use letters, numbers, spaces and _ only.";return;}
+   go.disabled=true;
+   fbAuth.createUserWithEmailAndPassword(email,pass).then(function(cred){
+    try{if(cred.user&&cred.user.sendEmailVerification)cred.user.sendEmailVerification().catch(function(){});}catch(e){}
+    profile.username=uname;profile.name=profile.name||uname;
+    return createUserDoc(cred.user,uname);
+   }).then(function(){
+    var v=$("gVerifyNote");if(v)v.style.display="";
+    toast("🎉 Account created — welcome, "+uname+"! Cloud save is ON.");
+   }).catch(function(err){errEl.textContent=fbErrText(err.code);noteFbError(err,"register");go.disabled=false;});
+  }else{
+   go.disabled=true;
+   fbAuth.signInWithEmailAndPassword(email,pass).then(function(){
+    toast("👋 Welcome back!");
+   }).catch(function(err){errEl.textContent=fbErrText(err.code);noteFbError(err,"login");go.disabled=false;});
+  }
+ });
+ var bb=$("btnBannedOther");
+ if(bb)bb.addEventListener("click",function(){banLock=false;isBanned=false;showAuthGate();var e=$("gAuthEmail");if(e)e.focus();});
 }
 function systemChat(text){
  if(!fbDb)return;
@@ -2790,9 +2994,12 @@ function panelSetBan(p,ban){
   if(role==="admin"){toast("🛡️ Admins can't ban other admins.");return;}
   if(!ban&&p.bannedByOwner){toast("🛡️ Only the Owner can lift an Owner ban.");return;}
  }
- var upd=ban?{banned:true,bannedBy:fbUser.uid,bannedByOwner:myRole==="owner"}:{banned:false};
+ /* v2.3 Bug A: an unban must clear ALL THREE fields together — leaving
+    bannedBy/bannedByOwner set made later unbans fail the rules check and
+    left stale "banned by the Owner" tags on the player. */
+ var upd=ban?{banned:true,bannedBy:fbUser.uid,bannedByOwner:myRole==="owner"}:{banned:false,bannedBy:"",bannedByOwner:false};
  fbDb.collection("users").doc(p._uid).update(upd).then(function(){
-  p.banned=ban;if(ban){p.bannedBy=fbUser.uid;p.bannedByOwner=myRole==="owner";}
+  p.banned=ban;if(ban){p.bannedBy=fbUser.uid;p.bannedByOwner=myRole==="owner";}else{p.bannedBy="";p.bannedByOwner=false;}
   auditGrant(ban?"ban":"unban",p,{});
   systemChat(ban?("🔨 "+actorLabel()+" banned "+(p.name||p.username)):("🔓 "+actorLabel()+" unbanned "+(p.name||p.username)));
   toast(ban?("🔨 Banned "+(p.name||p.username)+"."):("🔓 Unbanned "+(p.name||p.username)+"."));
@@ -2804,8 +3011,10 @@ function panelSetAdmin(p,make){
  if(p._uid===fbUser.uid){toast("You're the Owner — you don't need admin.");return;}
  if(ownerInfo&&p._uid===ownerInfo.ownerUid){toast("The Owner's role can't change.");return;}
  var ref=fbDb.collection("config").doc("admins");
+ /* v2.3 Bug B: both directions use set+merge — update() fails if the
+    config/admins doc doesn't exist yet, which silently broke revokes. */
  var setOp=make?ref.set({uids:firebase.firestore.FieldValue.arrayUnion(p._uid)},{merge:true})
-               :ref.update({uids:firebase.firestore.FieldValue.arrayRemove(p._uid)});
+               :ref.set({uids:firebase.firestore.FieldValue.arrayRemove(p._uid)},{merge:true});
  setOp.then(function(){
   return fbDb.collection("users").doc(p._uid).update({role:make?"admin":"player"});
  }).then(function(){
@@ -3377,9 +3586,10 @@ if(profile.name){$("farmName").textContent=profile.name+"'s Pig Farm";$("nameInp
 buildStaffFloat();
 applySkin();refreshAvatarPicks();renderAch();renderTree();renderAll();renderPlayers();renderDaily();ensureQuests();renderQuests();renderBp();renderLog();renderCloudStrip();renderGlobalBoard();renderFriends();renderGuild();renderRaid();renderDuelPick();renderRolePanel();renderRequests();renderDmList();renderEventStrip();
 checkTitles();
-feed("🐷 Welcome to Pig Clicker v2.2! Tap the pig, raid the boss, and check the Update Log in your Profile.");
+feed("🐷 Welcome to Pig Clicker v2.3! Sign in, tap the pig, raid the boss, and check the Update Log in your Profile.");
 mpConnect();scheduleGolden();
 fbInit();
+initGateAuth();
 setTimeout(function(){toast("🐷 Tap the pig to start earning!");},600);
 </script>
 </body>
