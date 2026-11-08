@@ -40,6 +40,10 @@ jobs:
           fi
           ls "$ANDROID_HOME/tools/bin/sdkmanager"
 
+      - name: update project
+        working-directory: twa
+        run: bubblewrap update --skipVersionUpgrade
+
       - name: refresh manifest checksum
         working-directory: twa
         run: |
