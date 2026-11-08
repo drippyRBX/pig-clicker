@@ -27,6 +27,12 @@ jobs:
           echo "$KEYSTORE_B64" | base64 -d > twa/android.keystore
           ls -la twa/android.keystore
 
+      - name: configure bubblewrap
+        run: |
+          mkdir -p ~/.bubblewrap
+          printf '{"jdkPath": "%s", "androidSdkPath": "%s"}' "$JAVA_HOME" "$ANDROID_HOME" > ~/.bubblewrap/config.json
+          cat ~/.bubblewrap/config.json
+
       - name: build
         working-directory: twa
         env:
