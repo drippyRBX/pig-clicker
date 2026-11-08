@@ -32,6 +32,13 @@ jobs:
           mkdir -p ~/.bubblewrap
           printf '{"jdkPath": "%s", "androidSdkPath": "%s"}' "$JAVA_HOME" "$ANDROID_HOME" > ~/.bubblewrap/config.json
           cat ~/.bubblewrap/config.json
+          # Bubblewrap's SDK check needs a tools/ (or bin/) folder under the SDK
+          # root; modern SDKs only ship cmdline-tools, so link it into place.
+          if [ ! -e "$ANDROID_HOME/tools" ] && [ ! -e "$ANDROID_HOME/bin" ]; then
+            CMDLINE=$(ls -d "$ANDROID_HOME"/cmdline-tools/* 2>/dev/null | head -1)
+            if [ -n "$CMDLINE" ]; then ln -s "$CMDLINE" "$ANDROID_HOME/tools"; fi
+          fi
+          ls "$ANDROID_HOME/tools/bin/sdkmanager"
 
       - name: build
         working-directory: twa
