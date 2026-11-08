@@ -51,7 +51,7 @@ jobs:
         env:
           BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        run: yes | bubblewrap build
+        run: printf 'y\ny\ny\n' | bubblewrap build
 
       - uses: actions/upload-artifact@v4
         with:
