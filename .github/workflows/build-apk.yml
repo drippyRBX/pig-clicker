@@ -43,8 +43,8 @@ jobs:
       - name: refresh manifest checksum
         working-directory: twa
         run: |
-          sha1sum twa-manifest.json | awk '{print $1}' > manifest-checksum.txt
-          cat manifest-checksum.txt
+          printf '%s' "$(sha1sum twa-manifest.json | awk '{print $1}')" > manifest-checksum.txt
+          wc -c manifest-checksum.txt
 
       - name: build
         working-directory: twa
