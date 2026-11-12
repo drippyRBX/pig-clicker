@@ -8,7 +8,7 @@
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#ff6b9d"/>
 <link rel="apple-touch-icon" href="icon-192.png"/>
-<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(function(){})}</script>
+<script>if("serviceWorker" in navigator){var showUpd=function(reg){var p=document.getElementById("updatePrompt");if(p)p.style.display="block";var b=document.getElementById("btnUpdateApp");if(b)b.onclick=function(){if(reg.waiting)reg.waiting.postMessage({type:"SKIP_WAITING"});};};navigator.serviceWorker.register("sw.js").then(function(reg){if(reg.waiting)showUpd(reg);reg.addEventListener("updatefound",function(){var nw=reg.installing;if(nw)nw.addEventListener("statechange",function(){if(nw.state==="installed"&&navigator.serviceWorker.controller)showUpd(reg);});});}).catch(function(){});navigator.serviceWorker.addEventListener("controllerchange",function(){window.location.reload();});}</script>
 <title>Pig Clicker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;700;800;900&display=swap" rel="stylesheet">
@@ -407,6 +407,23 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
 .race-bar{display:block;height:8px;background:rgba(0,0,0,.12);border-radius:99px;overflow:hidden;margin-top:4px}
 .race-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--pink),var(--gold))}
 
+/* v2.5.1 — new layout */
+.gate-version{margin:6px 0 4px;font-weight:900}
+.ver-badge{display:inline-block;background:linear-gradient(90deg,#ff6b9d,#f5b301);color:#fff;border-radius:99px;padding:3px 12px;font-family:"Baloo 2";font-weight:800}
+.gate-highlights{text-align:left;font-weight:700;margin:8px auto 4px;max-width:340px;line-height:1.7}
+.bottom-nav{display:grid;grid-template-columns:repeat(8,1fr)}
+.bottom-nav button{font-size:.66rem;padding:8px 1px}
+.profile-header-banner{height:96px;background:linear-gradient(90deg,#e94f83,#ff8fab);background-size:cover;background-position:center}
+.profile-header-row{display:flex;gap:12px;align-items:flex-start;padding:12px 14px 14px}
+.profile-header-avatar{width:64px;height:64px;border-radius:50%;background:#fff;border:3px solid #fff;margin-top:-32px;font-size:2.2rem;line-height:58px;text-align:center;flex:0 0 auto;overflow:hidden}
+.profile-header-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.potd{border:2px dashed var(--gold,#f5b301);border-radius:12px;padding:8px 10px;font-weight:800}
+#updatePrompt{position:fixed;left:12px;right:12px;bottom:86px;z-index:90;background:#fff;border:2px solid var(--pink);border-radius:14px;padding:10px 12px;font-weight:800;display:none;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+#updatePrompt button{margin-left:8px}
+.tool-sec .perm-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-weight:700}
+.perm-row button{min-width:64px}
+.bank-stat{display:flex;justify-content:space-between;font-weight:800;padding:4px 0}
+.spin-result{font-size:1.3rem;font-weight:900;text-align:center;margin:8px 0}
 </style>
 </head>
 <body class="gated">
@@ -415,6 +432,14 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
   <div class="gate-card">
     <div class="gate-pig">🐷</div>
     <h1>Pig Clicker</h1>
+    <div class="gate-version"><span class="ver-badge">v2.5.1</span> <b>THE REDO — new layout, fixed bans, 152 more things</b></div>
+    <ul class="gate-highlights">
+      <li>🎨 Studio + Bank tabs — the layout itself is new</li>
+      <li>🏦 Pig Bank + 🎡 Lucky Spin</li>
+      <li>🔨 Admin panel rebuilt, bans fixed</li>
+      <li>🎞️ GIF profile pics &amp; banners for everyone</li>
+      <li>☀️ Sun God Luffy + 3 Legend powers</li>
+    </ul>
     <p class="sub">Play with an email, or just a username + password — your choice. Either way your progress saves to the cloud.</p>
     <div class="auth-tabs" role="tablist"><button class="tab on" id="gAtLogin" type="button">Log in</button><button class="tab" id="gAtReg" type="button">Register</button></div>
     <div id="gAuthForm">
@@ -473,6 +498,11 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
   <main class="view on" id="view-play">
     <section class="card stage" aria-label="Click the pig" style="margin-top:14px">
       <div class="farm-name" id="farmName">Your Pig Farm</div>
+      <div class="room-row" style="margin-top:8px">
+        <input class="search-input" id="pigNameInput" maxlength="24" placeholder="Name your pig…" style="flex:1"/>
+        <button class="chip-btn" id="btnSavePigName" type="button">Save pig name</button>
+      </div>
+      <div class="pig-name-line" id="pigNameLine" style="font-weight:800;color:var(--muted)"></div>
       <div class="level-line">Level <span id="lvlNum">1</span> · <span id="lvlTitle">Piglet Keeper</span> · 🍎 <span id="stApples">0</span></div>
       <div class="xpbar"><i id="xpFill"></i></div>
       <div class="level-line" id="xpText">0 / 100 XP to next level</div>
@@ -518,15 +548,35 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
       </div>
     </section>
 
-    <div class="quickbar" aria-label="Quick actions">
-      <button id="btnBurst" type="button">⚡ BURST ×3 — Ready!</button>
-      <button id="btnAutoTap" type="button">🤖 Auto-Tapper: Off</button>
-    </div>
+    <section class="card" id="playGoalsCard" aria-label="Today's goals" style="margin-top:14px">
+      <h2>🎯 Today's Goals</h2>
+      <p class="sub">Your daily quests, right here on the Play tab — no digging through Ranks.</p>
+      <div id="playGoals"></div>
+      <div class="room-row" style="margin-top:8px">
+        <input class="search-input" id="tapGoalInput" type="number" placeholder="Tap goal (taps)" style="flex:1"/>
+        <input class="search-input" id="coinGoalInput" type="number" placeholder="Coin goal (lifetime)" style="flex:1"/>
+        <button class="chip-btn" id="btnSetGoals" type="button">🎯 Set goals</button>
+      </div>
+      <div class="room-row" style="margin-top:8px">
+        <button class="chip-btn" id="btnBpBoost" type="button">⚡ BP XP boost (10,000 🪙, +50% for 1h)</button>
+      </div>
+    </section>
+    <section class="card" id="playEventsCard" aria-label="Live events" style="margin-top:14px">
+      <h2>🎉 Live Events</h2>
+      <div id="playEvents"></div>
+    </section>
     <div class="stat-chips" aria-label="Session stats">
       <span>👆 Session taps: <b id="chipTaps">0</b></span>
       <span>🔥 Best combo: <b id="chipCombo">×1.0</b></span>
       <span>🎁 Daily reward: <b id="chipDaily">claim in Profile</b></span>
       <span id="chipPower" style="display:none"></span>
+    </div>
+    <div class="quickbar" aria-label="Quick actions">
+      <button id="btnBurst" type="button">⚡ BURST ×3 — Ready!</button>
+      <button id="btnAutoTap" type="button">🤖 Auto-Tapper: Off</button>
+      <button id="btnCritBoost" type="button">💥 Crit Boost</button>
+      <button id="btnComboFreeze" type="button">🧊 Freeze Combo</button>
+      <button id="btnGoldenRadar" type="button">🔍 Golden Radar</button>
     </div>
   </main>
 
@@ -535,18 +585,19 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
     <section class="card" aria-label="Shop and upgrades">
       <h2>🛒 Pig Shop</h2>
       <p class="sub">Upgrades, auto-clickers, skins and prestige — everything that makes the pig richer.</p>
+      <div id="pigOfDay" class="potd" style="margin-bottom:10px"></div>
       <div class="buy-row"><span>Buy amount:</span>
         <button class="buy-amt on" data-amt="1" type="button">×1</button>
         <button class="buy-amt" data-amt="10" type="button">×10</button>
         <button class="buy-amt" data-amt="100" type="button">×100</button>
         <button class="buy-amt" data-amt="max" type="button">MAX</button>
       </div>
+      <div class="room-row" style="margin:8px 0"><button class="chip-btn" id="btnBuyCheapest" type="button">💰 Buy cheapest affordable</button><span class="sub" id="pigOfDayLine" style="flex:1"></span></div>
       <div class="tabs" role="tablist">
         <button class="tab on" data-tab="auto" type="button">🤖 Auto-Clickers</button>
         <button class="tab" data-tab="tap" type="button">👆 Tap Power</button>
         <button class="tab" data-tab="powers" type="button">⚡ Powers</button>
         <button class="tab" data-tab="skins" type="button">🎨 Skins</button>
-        <button class="tab" data-tab="pig" type="button">🐷 Pig Studio</button>
         <button class="tab" data-tab="prestige" type="button">🍎 Prestige</button>
       </div>
       <div id="shopList"></div>
@@ -555,6 +606,8 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
         <p class="sub" style="margin-bottom:8px">Reset your coins and buildings to earn Golden Apples. Each apple = <b>+10% to ALL earnings, forever</b>. Prestiging also earns <b>Skill Points</b> for the tree below.</p>
         <p style="font-weight:800;margin:0 0 10px">Prestige now for <b id="prestigeGain">0 🍎</b> <span style="color:var(--muted)">(needs 1,000,000 lifetime coins)</span></p>
         <button class="big-btn" id="btnPrestige" type="button">PRESTIGE 🍎</button>
+        <div class="sub" id="prestigeCalc" style="margin-top:6px"></div>
+        <div class="room-row" style="margin-top:8px"><button class="chip-btn" id="btnSuperPrestige" type="button">🌟 Super Prestige (10 🍎)</button><span class="sub">Trade 10 Golden Apples for +25% tap power, forever.</span></div>
       </div>
     </section>
 
@@ -566,6 +619,34 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
   </main>
 
   <!-- ============ VIEW: MULTIPLAYER ============ -->
+  <!-- ============ VIEW: STUDIO (v2.5.1 — moved out of the shop) ============ -->
+  <main class="view" id="view-studio">
+    <section class="card" aria-label="Pig Studio" style="margin-top:14px">
+      <h2>🎨 Pig Studio</h2>
+      <p class="sub">Your pig, your way — image, icon, colours, hats and click sound, all in its own tab now.</p>
+      <div id="studioList"></div>
+    </section>
+  </main>
+
+  <!-- ============ VIEW: BANK (v2.5.1) ============ -->
+  <main class="view" id="view-bank">
+    <section class="card" aria-label="Pig Bank" style="margin-top:14px">
+      <h2>🏦 Pig Bank</h2>
+      <p class="sub">Park coins here and they earn interest every hour. Higher bank level = higher rate.</p>
+      <div id="bankBody"></div>
+    </section>
+    <section class="card" aria-label="Lucky Spin">
+      <h2>🎡 Lucky Spin</h2>
+      <p class="sub">One free spin a day — spin more with tickets. Prizes scale with your Spin Luck skill.</p>
+      <div id="spinBody"></div>
+    </section>
+    <section class="card" aria-label="Mystery Box">
+      <h2>🎁 Mystery Box</h2>
+      <p class="sub">10,000 coins a box. Could be coins, apples, or a skin you don't own yet.</p>
+      <div id="mysteryBody"></div>
+    </section>
+  </main>
+
   <main class="view" id="view-social">
     <section class="card" aria-label="Raid boss">
       <h2>🗡️ Co-op Raid Boss</h2>
@@ -577,6 +658,9 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
         <p class="sub" id="raidCountdown" style="margin-bottom:8px"></p>
         <div class="room-row">
           <button class="buy pink" id="btnRaidTap" type="button">⚔️ RAID TAP</button>
+          <div class="sub" id="raidBounty" style="margin:6px 0"></div>
+          <button class="chip-btn" id="btnRaidAuto" type="button">🤖 Raid auto-tap: Off</button>
+          <button class="chip-btn" id="btnRaidBoost" type="button">🚀 Raid booster (25,000 🪙, +25% for 1h)</button>
           <button class="buy blue" id="btnRaidClaim" type="button" style="display:none">🎁 Claim raid reward</button>
           <button class="buy" id="btnRaidPing" type="button">📣 Raid ping</button>
           <span style="font-weight:900" id="raidMyDmg"></span>
@@ -643,6 +727,7 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
           <h2>🌐 Global Chat</h2>
           <p class="sub" id="gchatSub">Every signed-in pig farmer, one chat. Tap an emoji under a message to react.</p>
           <div class="gchat" id="gchatList"></div>
+          <div class="room-row" style="margin-bottom:8px"><button class="chip-btn" id="btnShout" type="button">📣 Shout (1,000 🪙)</button><span class="sub">Your message stands out in gold for everyone.</span></div>
           <form class="chat-form" id="gchatForm">
             <input class="chat-input" id="gchatInput" maxlength="200" placeholder="Message everyone…" autocomplete="off"/>
             <button class="send-btn" type="submit">Send</button>
@@ -650,6 +735,12 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
         </section>
       </div>
     </div>
+
+    <section class="card" aria-label="Invite friends">
+      <h2>🎁 Invite Friends</h2>
+      <p class="sub">Share your invite code — a friend who redeems it gets 5,000 coins, and you get credit for the invite.</p>
+      <div id="inviteBody"></div>
+    </section>
 
     <section class="card" aria-label="Guilds">
       <h2>🏰 Guilds</h2>
@@ -685,6 +776,7 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
     <section class="card" aria-label="Your friends">
       <h2>🐷 Your Friends</h2>
       <p class="sub">Your crew. Presence, duels and the friends-only leaderboard in Ranks all run off this list. <span id="friendOnlineCount"></span></p>
+    <div class="room-row"><label class="sub" for="friendSort">Sort:</label><select id="friendSort" class="search-input" style="flex:1"><option value="online">🟢 Online first</option><option value="level">📈 Highest level</option><option value="name">🔤 Name A–Z</option><option value="recent">🕐 Recently seen</option></select></div>
       <div id="friendList"></div>
     </section>
 
@@ -730,6 +822,12 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
       <p class="sub" id="myRankLine" style="margin-top:8px"></p>
     </section>
 
+    <section class="card" aria-label="Hall of Fame">
+      <h2>👑 Hall of Fame</h2>
+      <p class="sub">The top 3 tappers of all time — legends of the farm.</p>
+      <div id="hallOfFame"></div>
+    </section>
+
     <section class="card" aria-label="Battle pass">
       <h2>🎟️ Battle Pass — Season 1: Mud Season</h2>
       <p class="sub">Earn Pass XP from tapping, quests and raids. Free track for everyone; the Premium track (unlock: 25 🍎) doubles down with bigger drops. Tier <b id="bpTierTxt">0</b> · <b id="bpXpTxt">0</b> XP</p>
@@ -752,7 +850,7 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
 
       <section class="card" aria-label="Achievement badges" style="margin-top:0">
         <h2>🏅 Badges</h2>
-        <p class="sub" id="achCount">0 of 60 unlocked</p>
+        <p class="sub" id="achCount">0 of 76 unlocked</p>
         <div class="ach-grid" id="achGrid"></div>
       </section>
     </div>
@@ -760,6 +858,67 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
 
   <!-- ============ VIEW: PROFILE ============ -->
   <main class="view" id="view-profile">
+    <section class="card profile-header-card" aria-label="Your profile" style="margin-top:14px;padding:0;overflow:hidden">
+      <div id="profileHeaderBanner" class="profile-header-banner"></div>
+      <div class="profile-header-row">
+        <span id="profileHeaderAvatar" class="profile-header-avatar">🐷</span>
+        <div class="grow">
+          <h2 id="profileHeaderName" style="margin:0">Your Pig</h2>
+          <p class="sub" id="profileHeaderMeta" style="margin:2px 0 0"></p>
+          <div id="profileHeaderTags" style="margin-top:6px"></div>
+        </div>
+        <button class="chip-btn" id="btnEditProfileHeader" type="button">✏️ Edit</button>
+      </div>
+    </section>
+    <section class="card" aria-label="Your profile and cosmetics">
+      <h2>🎨 Profile &amp; Cosmetics</h2>
+      <p class="sub">Your public pig identity: avatar, title, showcase banner and VIP tier — shown on leaderboards and in chat.</p>
+      <div class="profile-form">
+        <input id="nameInput2" maxlength="20" placeholder="Display name" autocomplete="off"/>
+        <button class="send-btn" id="btnSetName2" type="button">Save name</button>
+      </div>
+      <h3 style="margin:12px 0 6px">Avatar</h3>
+      <div class="avatar-pick" id="avatarPick2" aria-label="Pick your avatar"></div>
+      <div class="room-row">
+        <label class="chip-btn" for="avatarFile" style="display:inline-block">🖼️ Upload custom avatar</label>
+        <input type="file" id="avatarFile" accept="image/*" style="display:none"/>
+        <button class="chip-btn" id="btnClearAvatarImg" type="button">Use emoji avatar</button>
+      </div>
+      <h3 style="margin:14px 0 6px">🎞️ GIF profile picture</h3>
+      <p class="sub">Upload any GIF from your gallery — it stays animated. No live web search here: Tenor needs an API key we don't have. Search Tenor in your browser, save the GIF, then upload it below.</p>
+      <div class="room-row">
+        <label class="chip-btn" for="gifAvatarFile" style="display:inline-block">🎞️ Upload GIF / image</label>
+        <input type="file" id="gifAvatarFile" accept="image/*" style="display:none"/>
+        <button class="chip-btn" id="btnClearGifAvatar" type="button">Use emoji avatar</button>
+      </div>
+      <div class="room-row" style="margin-top:8px">
+        <input class="search-input" id="gifAvatarSearch" placeholder="🔎 Search preset GIFs…" style="flex:1" autocomplete="off"/>
+        <button class="chip-btn" id="btnTenorAvatar" type="button">🔎 Search more on Tenor</button>
+      </div>
+      <div class="skin-row" id="gifAvatarGallery" style="margin-top:8px"></div>
+      <h3 style="margin:14px 0 6px">Title</h3>
+      <select class="auth-input" id="titleSelect"></select>
+      <h3 style="margin:14px 0 6px">Showcase banner</h3>
+      <div class="skin-row" id="bannerRow"></div>
+      <div id="bannerPreview" style="margin-top:10px;border-radius:14px;padding:16px;font-family:'Baloo 2';font-weight:800;font-size:1.15rem;text-align:center;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.35)"></div>
+      <h3 style="margin:14px 0 6px">🎞️ GIF banner</h3>
+      <p class="sub">Upload any GIF from your gallery as your showcase banner — it animates on your profile. Same deal as the picture: search Tenor in your browser, save the GIF, upload it here.</p>
+      <div class="room-row">
+        <label class="chip-btn" for="gifBannerFile" style="display:inline-block">🎞️ Upload GIF banner</label>
+        <input type="file" id="gifBannerFile" accept="image/*" style="display:none"/>
+        <button class="chip-btn" id="btnClearGifBanner" type="button">Use gradient banner</button>
+      </div>
+      <div class="room-row" style="margin-top:8px">
+        <input class="search-input" id="gifBannerSearch" placeholder="🔎 Search preset GIFs…" style="flex:1" autocomplete="off"/>
+        <button class="chip-btn" id="btnTenorBanner" type="button">🔎 Search more on Tenor</button>
+      </div>
+      <div class="skin-row" id="gifBannerGallery" style="margin-top:8px"></div>
+      <h3 style="margin:14px 0 6px">VIP tier <span style="color:var(--muted);font-size:.82rem">(by lifetime taps)</span></h3>
+      <div id="vipLine" style="font-weight:900"></div>
+      <h3 style="margin:14px 0 6px">Cosmetics inventory</h3>
+      <div id="cosmLine" style="font-weight:800;color:var(--muted)"></div>
+    </section>
+
     <section class="card" aria-label="Account" style="margin-top:14px">
       <h2>🔐 Account</h2>
       <div id="authArea"></div>
@@ -776,31 +935,6 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
       <p class="sub">Come back every day to grow your streak. Day 7 and day 28 drop Golden Apples. Streak: <b id="dailyStreak">0 days</b></p>
       <div class="cal-grid" id="calGrid"></div>
       <button class="big-btn pink" id="btnDaily" type="button" style="margin-top:12px">🎁 Claim today's reward</button>
-    </section>
-
-    <section class="card" aria-label="Your profile and cosmetics">
-      <h2>🎨 Profile &amp; Cosmetics</h2>
-      <p class="sub">Your public pig identity: avatar, title, showcase banner and VIP tier — shown on leaderboards and in chat.</p>
-      <div class="profile-form">
-        <input id="nameInput2" maxlength="20" placeholder="Display name" autocomplete="off"/>
-        <button class="send-btn" id="btnSetName2" type="button">Save name</button>
-      </div>
-      <h3 style="margin:12px 0 6px">Avatar</h3>
-      <div class="avatar-pick" id="avatarPick2" aria-label="Pick your avatar"></div>
-      <div class="room-row">
-        <label class="chip-btn" for="avatarFile" style="display:inline-block">🖼️ Upload custom avatar</label>
-        <input type="file" id="avatarFile" accept="image/*" style="display:none"/>
-        <button class="chip-btn" id="btnClearAvatarImg" type="button">Use emoji avatar</button>
-      </div>
-      <h3 style="margin:14px 0 6px">Title</h3>
-      <select class="auth-input" id="titleSelect"></select>
-      <h3 style="margin:14px 0 6px">Showcase banner</h3>
-      <div class="skin-row" id="bannerRow"></div>
-      <div id="bannerPreview" style="margin-top:10px;border-radius:14px;padding:16px;font-family:'Baloo 2';font-weight:800;font-size:1.15rem;text-align:center;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.35)"></div>
-      <h3 style="margin:14px 0 6px">VIP tier <span style="color:var(--muted);font-size:.82rem">(by lifetime taps)</span></h3>
-      <div id="vipLine" style="font-weight:900"></div>
-      <h3 style="margin:14px 0 6px">Cosmetics inventory</h3>
-      <div id="cosmLine" style="font-weight:800;color:var(--muted)"></div>
     </section>
 
     <section class="card" aria-label="Your stats and quality of life">
@@ -848,6 +982,11 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
       <div class="room-row" style="margin-top:10px">
         <button class="chip-btn" id="btnReplayTut" type="button">🎓 Replay tutorial</button>
         <button class="chip-btn" id="btnReset" type="button" style="color:var(--red);border-color:var(--red)">🗑️ Hard reset run</button>
+        <button class="chip-btn" id="btnSessionReset" type="button">🔄 Reset session stats</button>
+        <button class="chip-btn" id="btnManualSave" type="button">💾 Save now</button>
+        <button class="chip-btn" id="btnExportSave" type="button">📤 Export save</button>
+        <button class="chip-btn" id="btnImportSave" type="button">📥 Import save</button>
+        <input type="file" id="importSaveFile" accept="application/json,.json" style="display:none"/>
       </div>
     </section>
 
@@ -867,10 +1006,10 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
       <p class="sub">Every version of Pig Clicker. Tap a version on the side to see what it added.</p>
       <div class="log-search-row">
         <input class="search-input" id="logSearch" placeholder="🔎 Search updates…" style="flex:1" autocomplete="off"/>
-        <select class="auth-input" id="logFilter" style="flex:0 0 150px"><option value="all">All versions</option><option value="v2.5">v2.5 only</option><option value="v2.4">v2.4.x</option><option value="old">v2.3 &amp; older</option></select>
+        <select class="auth-input" id="logFilter" style="flex:0 0 150px"><option value="all">All versions</option><option value="v2.5.1">v2.5.1 only</option><option value="v2.4">v2.4.x</option><option value="old">v2.3 &amp; older</option></select>
       </div>
       <div class="room-row" style="margin-bottom:10px">
-        <button class="chip-btn" id="btnLogLatest" type="button">⬆️ Latest (v2.5)</button>
+        <button class="chip-btn" id="btnLogLatest" type="button">⬆️ Latest (v2.5.1)</button>
         <button class="chip-btn" id="btnLogCopy" type="button">📋 Copy changelog</button>
       </div>
       <div class="log-wrap">
@@ -890,18 +1029,20 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
       <p class="sub" id="installNote" style="margin-top:10px"></p>
     </section>
 
-    <p class="foot">🐷 Pig Clicker v2.5 — THE REWORK UPDATE: 150 new things. Tap, upgrade, prestige, raid and duel. Sign in to play — email optional, progress saves to the cloud.</p>
+    <p class="foot">🐷 Pig Clicker v2.5.1 — THE REWORK UPDATE, REDONE: new layout, fixed bans, 152 MORE new things. Tap, upgrade, prestige, raid and duel. Sign in to play — email optional, progress saves to the cloud.</p>
   </main>
 </div>
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav" aria-label="Main navigation">
   <button type="button" data-view="play" class="on"><span class="bi">🐷</span>Play</button>
+  <button type="button" data-view="studio"><span class="bi">🎨</span>Studio</button>
   <button type="button" data-view="shop"><span class="bi">🛒</span>Upgrades</button>
+  <button type="button" data-view="bank"><span class="bi">🏦</span>Bank</button>
   <button type="button" data-view="social"><span class="bi">🌍</span>Multiplayer</button>
   <button type="button" data-view="friends"><span class="bi">🤝</span>Friends</button>
   <button type="button" data-view="ranks"><span class="bi">🏆</span>Ranks</button>
-  <button type="button" data-view="profile"><span class="bi">🎨</span>Profile<span id="navNewDot" class="nav-dot" style="display:none"></span></button>
+  <button type="button" data-view="profile"><span class="bi">👤</span>Profile<span id="navNewDot" class="nav-dot" style="display:none"></span></button>
 </nav>
 
 <!-- v2.4: FULL PLAYER PROFILE — its own screen, not a cramped popup -->
@@ -978,7 +1119,15 @@ var GENERATORS=[
  {id:"trufflebank", emoji:"🏦", name:"Truffle Bank", desc:"Truffles in, interest out.", base:200000000000, pps:150000000},
  {id:"casino", emoji:"🎰", name:"Pig Casino", desc:"The house always pays YOU.", base:1500000000000, pps:800000000},
  {id:"baconrocket", emoji:"🥓", name:"Bacon Rocket", desc:"Crispy profits, orbital speed.", base:12000000000000, pps:4000000000},
- {id:"ailab", emoji:"🧠", name:"Pig AI Lab", desc:"An AI that only thinks about coins.", base:100000000000000, pps:20000000000}
+ {id:"ailab", emoji:"🧠", name:"Pig AI Lab", desc:"An AI that only thinks about coins.", base:100000000000000, pps:20000000000},
+ {id:"pigtaxi", emoji:"🚕", name:"Pig Taxi", desc:"Drives pigs around for tips.", base:800000000000000, pps:120000000000},
+ {id:"brewery", emoji:"🍺", name:"Oink Brewery", desc:"Brews the finest pig ale.", base:6000000000000000, pps:700000000000},
+ {id:"trufflemine", emoji:"⛏️", name:"Truffle Mine", desc:"Digs up truffles by the ton.", base:50000000000000000, pps:4000000000000},
+ {id:"university", emoji:"🎓", name:"Pig University", desc:"Teaches pigs to count coins.", base:400000000000000000, pps:25000000000000},
+ {id:"newsnet", emoji:"📺", name:"Oink News Network", desc:"Breaking news: pigs are rich.", base:3000000000000000000, pps:150000000000000},
+ {id:"themepark", emoji:"🎡", name:"Pig Theme Park", desc:"Rollercoasters made of bacon.", base:20000000000000000000, pps:900000000000000},
+ {id:"mooncheese", emoji:"🌕", name:"Moon Cheese Mine", desc:"Mining cheese on the moon.", base:150000000000000000000, pps:5000000000000000},
+ {id:"timemachine", emoji:"⏰", name:"Time Machine Pig", desc:"Earns coins yesterday, today and tomorrow.", base:1000000000000000000000, pps:30000000000000000}
 ];
 var TAP_UPGRADES=[
  {id:"tap1", emoji:"👆", name:"Stronger Finger", desc:"Tap power ×2.", mult:2, cost:500},
@@ -990,7 +1139,13 @@ var TAP_UPGRADES=[
  {id:"tap7", emoji:"🦾", name:"Titanium Finger", desc:"Tap power ×2.", mult:2, cost:5000000000},
  {id:"tap8", emoji:"🧤", name:"Plasma Glove", desc:"Tap power ×2.", mult:2, cost:80000000000},
  {id:"tap9", emoji:"⚛️", name:"Quantum Tap", desc:"Tap power ×3.", mult:3, cost:2000000000000},
- {id:"tap10", emoji:"🦶", name:"God Hoof", desc:"Tap power ×5.", mult:5, cost:50000000000000}
+ {id:"tap10", emoji:"🦶", name:"God Hoof", desc:"Tap power ×5.", mult:5, cost:50000000000000},
+ {id:"tap11", emoji:"🌟", name:"Golden Finger", desc:"Tap power ×2.", mult:2, cost:400000000000000},
+ {id:"tap12", emoji:"☄️", name:"Meteor Glove", desc:"Tap power ×3.", mult:3, cost:3000000000000000},
+ {id:"tap13", emoji:"🐉", name:"Dragon Hoof", desc:"Tap power ×2.", mult:2, cost:20000000000000000},
+ {id:"tap14", emoji:"🌌", name:"Void Tap", desc:"Tap power ×3.", mult:3, cost:150000000000000000},
+ {id:"tap15", emoji:"🌈", name:"Rainbow Hammer", desc:"Tap power ×5.", mult:5, cost:1000000000000000000},
+ {id:"tap16", emoji:"👑", name:"God Finger", desc:"Tap power ×5.", mult:5, cost:8000000000000000000}
 ];
 var SKINS=[
  {id:"classic", name:"Classic Pink", cost:0, pig:"#ffb3c8", pigD:"#ff8fab", snout:"#ff7aa2", hat:""},
@@ -1010,7 +1165,13 @@ var SKINS=[
  {id:"ninja", name:"Ninja Pig", cost:150000000000, pig:"#495057", pigD:"#343a40", snout:"#6c757d", hat:""},
  {id:"royalgold", name:"Royal Gold Pig", cost:400000000000, pig:"#ffe066", pigD:"#fab005", snout:"#ffd43b", hat:"M96 44 L112 16 L128 40 L144 12 L160 40 L176 16 L192 44 L186 58 L102 58 Z"},
  {id:"sunset", name:"Sunset Pig", cost:1000000000000, pig:"#ff9770", pigD:"#f3722c", snout:"#ff7b54", hat:""},
- {id:"shadow", name:"Shadow Pig", cost:2500000000000, pig:"#3a2b4d", pigD:"#241a33", snout:"#5a3d7a", hat:""}
+ {id:"shadow", name:"Shadow Pig", cost:2500000000000, pig:"#3a2b4d", pigD:"#241a33", snout:"#5a3d7a", hat:""},
+ {id:"lava", name:"Lava Pig", cost:5000000000000, pig:"#ff6b35", pigD:"#e85d04", snout:"#ff8c42", hat:""},
+ {id:"ocean", name:"Ocean Pig", cost:8000000000000, pig:"#4dabff", pigD:"#1c7ed6", snout:"#74c0fc", hat:""},
+ {id:"forest", name:"Forest Pig", cost:12000000000000, pig:"#69b578", pigD:"#2f9e44", snout:"#8ce99a", hat:""},
+ {id:"storm", name:"Storm Pig", cost:20000000000000, pig:"#adb5bd", pigD:"#495057", snout:"#ced4da", hat:""},
+ {id:"candycane", name:"Candy Cane Pig", cost:35000000000000, pig:"#ff8787", pigD:"#fa5252", snout:"#ffc9c9", hat:""},
+ {id:"midnight", name:"Midnight Pig", cost:60000000000000, pig:"#5a3d7a", pigD:"#241a33", snout:"#9775fa", hat:""}
 ];
 var AVATARS=["🐷","🐽","🧑‍🌾","👑","😎","🤠","🦸","🐖","🥓","🍎"];
 var BANNERS=[
@@ -1030,7 +1191,13 @@ var SKILL_NODES=[
  {id:"vault", icon:"💤", name:"Deep Sleep Vault", desc:"Offline earnings rate +25% per level.", max:3, costs:[2,3,4]},
  {id:"orchard", icon:"🍏", name:"Apple Orchard", desc:"Prestige apple gains +15% per level.", max:3, costs:[3,4,5]},
  {id:"raid", icon:"🗡️", name:"Raid Crusher", desc:"+10% raid damage per level.", max:5, costs:[1,1,2,2,3]},
- {id:"combo", icon:"🔥", name:"Combo Keeper", desc:"Combo builds +0.01 per tap per level.", max:5, costs:[1,1,2,2,3]}
+ {id:"combo", icon:"🔥", name:"Combo Keeper", desc:"Combo builds +0.01 per tap per level.", max:5, costs:[1,1,2,2,3]},
+ {id:"goldtouch", icon:"✨", name:"Golden Touch", desc:"+10% tap power per level.", max:5, costs:[1,1,2,2,3]},
+ {id:"raidarmor", icon:"🛡️", name:"Raid Armor", desc:"+10% raid damage per level.", max:5, costs:[1,1,2,2,3]},
+ {id:"duelist", icon:"⚔️", name:"Duelist", desc:"+5% tap power during duels per level.", max:5, costs:[1,1,2,2,3]},
+ {id:"bankbonus", icon:"🏦", name:"Bank Bonus", desc:"+1% bank interest per level.", max:5, costs:[1,1,2,2,3]},
+ {id:"spinluck", icon:"🎡", name:"Spin Luck", desc:"+5% Lucky Spin prizes per level.", max:5, costs:[1,1,2,2,3]},
+ {id:"combosurge", icon:"🔥", name:"Combo Surge", desc:"+0.1 max combo per level.", max:5, costs:[1,1,2,2,3]}
 ];
 var TITLES=[
  {id:"taplegend", name:"Tap Legend", how:"100,000 lifetime taps", test:function(s){return s.taps>=100000}},
@@ -1044,7 +1211,13 @@ var TITLES=[
  {id:"guildie", name:"Guild Loyalist", how:"Join a guild", test:function(s){return !!s.guildId}},
  {id:"champ", name:"Champion Tapper", how:"Reach Champion VIP tier", test:function(s){return vipTier(s.taps).id==="champ"}},
  {id:"raidmaster", name:"Raid Master", how:"Deal 5,000,000 raid damage", test:function(s){return (s.raidDamage||0)>=5000000}},
- {id:"stylist", name:"Pig Stylist", how:"Own 12 pig skins", test:function(s){return Object.keys(s.skinsOwned).length>=12}}
+ {id:"stylist", name:"Pig Stylist", how:"Own 12 pig skins", test:function(s){return Object.keys(s.skinsOwned).length>=12}},
+ {id:"bankbaron", name:"Bank Baron", how:"Bank 10,000,000 coins", test:function(s){return (s.bankBalance||0)>=10000000}},
+ {id:"spinmaster", name:"Spin Master", how:"Spin 25 times", test:function(s){return (s.spinTotal||0)>=25}},
+ {id:"raidbooster", name:"Raid Booster", how:"Deal 10,000,000 raid damage", test:function(s){return (s.raidDamage||0)>=10000000}},
+ {id:"mysterymogul", name:"Mystery Mogul", how:"Open 10 Mystery Boxes", test:function(s){return (s.mysteryOpened||0)>=10}},
+ {id:"giflegend", name:"GIF Legend", how:"Set a GIF profile picture or banner", test:function(s){return !!(s.gifAvatarSet||s.gifBannerSet)}},
+ {id:"pigparent", name:"Pig Parent", how:"Name your pig", test:function(s){return !!s.pigName}}
 ];
 function vipTier(taps){
  /* v2.2: a staff-granted VIP badge overrides the tap-based tier */
@@ -1074,7 +1247,13 @@ var PIG_POWERS=[
  {id:"pig_mudshield", icon:"🛡️", name:"Mud Shield", mult:1.5, cost:100000, desc:"A thick mud shield. Tap power ×1.5."},
  {id:"pig_goldenhoof", icon:"🦶", name:"Golden Hoof", mult:2, cost:5000000, desc:"A hoof dipped in gold. Tap power ×2."},
  {id:"pig_oinkstorm", icon:"🌪️", name:"Oink Storm", mult:3, cost:250000000, desc:"A storm made of oinks. Tap power ×3."},
- {id:"pig_tornado", icon:"🌀", name:"Pig Tornado", mult:5, cost:10000000000, desc:"A tornado with a pig in it. Tap power ×5."}
+ {id:"pig_tornado", icon:"🌀", name:"Pig Tornado", mult:5, cost:10000000000, desc:"A tornado with a pig in it. Tap power ×5."},
+ {id:"pig_mudrocket", icon:"🚀", name:"Mud Rocket", mult:2, cost:50000000000, desc:"A rocket made of mud. Tap power ×2."},
+ {id:"pig_goldenstorm", icon:"🌩️", name:"Golden Storm", mult:3, cost:500000000000, desc:"A storm of golden lightning. Tap power ×3."},
+ {id:"pig_oinkquake", icon:"🌋", name:"Oink Quake", mult:4, cost:5000000000000, desc:"The ground shakes with oinks. Tap power ×4."},
+ {id:"pig_nova", icon:"💥", name:"Pig Nova", mult:6, cost:50000000000000, desc:"A pig goes supernova. Tap power ×6."},
+ {id:"pig_titan", icon:"🗿", name:"Truffle Titan", mult:8, cost:500000000000000, desc:"A titan made of truffles. Tap power ×8."},
+ {id:"pig_cosmic", icon:"🌌", name:"Cosmic Oink", mult:10, cost:5000000000000000, desc:"The oink heard across the universe. Tap power ×10."}
 ];
 function pigPower(id){for(var i=0;i<PIG_POWERS.length;i++)if(PIG_POWERS[i].id===id)return PIG_POWERS[i];return null;}
 function pigPowerMult(){var f=S.equippedPigPower?pigPower(S.equippedPigPower):null;return f?f.mult:1;}
@@ -1101,7 +1280,13 @@ var CLICK_SOUNDS=[
  {id:"honk", icon:"📯", name:"Honk", desc:"Loud. Proud. Honk."},
  {id:"drum", icon:"🥁", name:"Drum Thump", desc:"A fat drum hit."},
  {id:"sparkle", icon:"✨", name:"Sparkle", desc:"Twinkly high notes."},
- {id:"robot", icon:"🤖", name:"Robot Beep", desc:"Beep boop oink."}
+ {id:"robot", icon:"🤖", name:"Robot Beep", desc:"Beep boop oink."},
+ {id:"squeak", icon:"🐭", name:"Squeak", desc:"A tiny high squeak."},
+ {id:"roar", icon:"🦁", name:"Roar", desc:"A big pig roar."},
+ {id:"bubble", icon:"🫧", name:"Bubble", desc:"Blub blub."},
+ {id:"whistle", icon:"🎵", name:"Whistle", desc:"A cheerful whistle."},
+ {id:"guitar", icon:"🎸", name:"Guitar", desc:"A little riff."},
+ {id:"bell", icon:"🔔", name:"Bell", desc:"Ding dong."}
 ];
 /* v2.5: weekly raid quest line (3 quests, tracked in S.raidQuests) */
 var RAID_QUESTS=[
@@ -1109,7 +1294,20 @@ var RAID_QUESTS=[
  {id:"rq2", name:"Boss Breaker", desc:"Deal 500,000 raid damage this week.", goal:500000, reward:150000},
  {id:"rq3", name:"Raid Legend", desc:"Deal 2,000,000 raid damage this week.", goal:2000000, reward:1000000}
 ];
-function gokuForm(id){for(var i=0;i<GOKU_FORMS.length;i++)if(GOKU_FORMS[i].id===id)return GOKU_FORMS[i];return null;}
+function gokuForm(id){for(var i=0;i<GOKU_FORMS.length;i++)if(GOKU_FORMS[i].id===id)return GOKU_FORMS[i];var lf=legendForm(id);if(lf)return lf;return null;}
+/* v2.5.1: Legend powers — grant-only, like the Goku line (never sold, never quested) */
+var LEGEND_POWERS=[
+ {id:"legend_sungod", icon:"☀️", name:"Sun God Luffy", mult:45, color:"#ff9f43", aura:"White + gold Gear 5 aura", desc:"The Sun God laughs and the pig taps ×45. Gear 5 energy, grant-only."},
+ {id:"legend_shadowmonarch", icon:"👑", name:"Shadow Monarch", mult:35, color:"#9775fa", aura:"Purple shadow aura", desc:"Arise. The shadows tap for you. ×35 tap power."},
+ {id:"legend_stormtitan", icon:"⛈️", name:"Storm Titan", mult:28, color:"#4dabff", aura:"Storm-blue aura + lightning", desc:"A titan made of storm clouds. ×28 tap power."},
+ {id:"legend_kitsune", icon:"🦊", name:"Cosmic Kitsune", mult:22, color:"#f783e8", aura:"Pink cosmic aura + nine tails", desc:"Nine tails, nine times the mischief. ×22 tap power."}
+];
+function legendForm(id){for(var i=0;i<LEGEND_POWERS.length;i++)if(LEGEND_POWERS[i].id===id)return LEGEND_POWERS[i];return null;}
+/* v2.5.1: GIF search has no free Tenor/Giphy API key — upload is the path.
+   Leave a key slot so the search box can be wired to the real Tenor API later. */
+var TENOR_API_KEY="";
+var PRESET_GIFS=[{"name": "Bouncing Pig", "data": "data:image/gif;base64,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"}, {"name": "Spinning Coin", "data": "data:image/gif;base64,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"}, {"name": "Rainbow Pulse", "data": "data:image/gif;base64,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"}, {"name": "Sparkle Burst", "data": "data:image/gif;base64,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"}, {"name": "Flame Pig", "data": "data:image/gif;base64,R0lGODlhYABgAIEAAP/////ZTf+zyP+fQyH/C05FVFNDQVBFMi4wAwEAAAAh+QQADgAAACwAAAAAYABgAAAI/wABCBxIsKDBgwgTKlzIsKHDhxAjSpxIsaLFixgzatzIsaPHjyBDihxJsqTJkyhTqlzJsqXLlzBjypxJs6bNmzhz6tzJs6fPn0CDCh1KtKjRo0iTKl3KtKnTp1CjSp1KtarVq1izat3KtavXr2AHeB1AtitZsVvPls2q9izbtmitwnVbda7aunbXSs17Nyrftn7/0nVqN4BdwnMDKD7MtPDiuY0TK34MV6njyZQBI72MmbHRwgJCixZgGHLRuaNTjzY9FK7q16Ert24Lu7ZsoK5r29b8k7Zu3bx75v4N+/ZO1MSLG8+JPLlq1sybO18N3abj6aMz9715GTtp7YNrch0OMB1z6eVAk1t9Dba9+/fw48ufT7++/fv488cMCAAh+QQBHAAEACweACgAJQAmAIH/////2U3/s8j/n0MIyAAJCBxIsODAAQYTKlxYcIBDhhAjEnCIUKLFhhQrXryYUePGiB0ffgQZciTEkBRNLsw4MaVKgywFxnx50GVLkTRvetSZ8+bAADV3jpwJVKZNkzYDKA368qjSokaFWkz6FOpRjjgJVIXq82PWrUtrev0KluBVhk6falXLVGLWtVDZiiXpsepPuV3R7sQLF+PJvWEL8n3rlyBfgYOlGjUYmDHXxQmFPlY4WSrhpkIVN23YM7LZzjAPgvY8Gm1p0oJfTj59cfXGyQEBACH5BAEOAAQALB4AKAAlACYAgf/////ZTf+zyP+fQwjIAAkIHEiw4EAABhMqXFgQgEOGECMScIhQosWGFCtevJhR48aIHR9+BBlyJMSQFE0uzDgxpUqDLAXGfHnQZUuRNG961Jnz5sABNXeOnAlUpk2TNgcoDfryqNKiRoVaTPoU6lGOOAlUherzY9atS2t6/QqW4FWGTp9qVctUYta1UNmKJemx6k+5XdHuxAsX48m9YQvyfeuXIF+Bg6UaNRiYMdfFCYU+VjhZKuGmQhU3bdgzstnOMA+C9jwabWnSgl9OPn1x9cbJAQEAIfkEARwABAAsHQAwACcAHQCB/////9lN/7PI/59DCJwACQgcSLAgQQAGEypcmBCAQ4YQIw50iFCixYYUK17cmJHiRo4dNX6EGNLjSIYlM55c2JFAy5UGX7pUCXMiTZsma948mHPlzgE8H/rsOaBoUJEghQosChQnUos/mTYVuFNiVKlTZyq1upUAVqNBL/b0mjCrVq5PxXbFWHMmybQj19psy1MhXJhp7+osKJfuVr1tNQL267IsTLNUAwIAOw=="}, {"name": "Wave Ride", "data": "data:image/gif;base64,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"}];
+
 function equippedForm(){return S.equippedPower?gokuForm(S.equippedPower):null;}
 function powerMult(){var f=equippedForm();return f?f.mult:1;}
 function applyPowerAura(){
@@ -1189,10 +1387,18 @@ var ACHIEVEMENTS=[
  {id:"b53", icon:"🔥", name:"Raid Streak 3", desc:"Claim raid rewards 3 raids in a row.", test:function(s){return (s.raidStreak||0)>=3}},
  {id:"b54", icon:"⚡", name:"Pig Power Up", desc:"Equip a Pig Power.", test:function(s){return !!s.equippedPigPower}},
  {id:"b55", icon:"🎵", name:"Sound Idea", desc:"Save a YouTube sound idea.", test:function(s){return (s.soundIdeas||[]).length>=1}},
- {id:"b56", icon:"🧠", name:"AI Lab Owner", desc:"Own a Pig AI Lab.", test:function(s){return (s.gens.ailab||0)>=1}}
+ {id:"b56", icon:"🧠", name:"AI Lab Owner", desc:"Own a Pig AI Lab.", test:function(s){return (s.gens.ailab||0)>=1}},
+ {id:"b57", icon:"🏦", name:"Banker", desc:"Bank 1,000,000 coins.", test:function(s){return (s.bankBalance||0)>=1000000}},
+ {id:"b58", icon:"🎡", name:"Spinner", desc:"Spin the Lucky Wheel 5 times.", test:function(s){return (s.spinTotal||0)>=5}},
+ {id:"b59", icon:"🎁", name:"Mystery Hunter", desc:"Open a Mystery Box.", test:function(s){return (s.mysteryOpened||0)>=1}},
+ {id:"b60", icon:"🗡️", name:"Raid Booster", desc:"Deal 1,000,000 raid damage in one boss.", test:function(s){return (s.raidDamage||0)>=1000000}},
+ {id:"b61", icon:"💸", name:"Big Spender", desc:"Spend 100,000,000 coins in the shop.", test:function(s){return s.lifetime>=100000000}},
+ {id:"b62", icon:"🐷", name:"Pig Namer", desc:"Give your pig a name.", test:function(s){return !!s.pigName}},
+ {id:"b63", icon:"🎞️", name:"GIF Star", desc:"Set a GIF profile picture or banner.", test:function(s){return !!(s.gifAvatarSet||s.gifBannerSet)}}
 ];
-var CURRENT_VERSION="v2.5";
+var CURRENT_VERSION="v2.5.1";
 var UPDATE_LOG=[
+ {"v": "v2.5.1", "tag": "THE REWORK UPDATE — REDONE", "date": "November 11, 2026", "highlights": ["🎨 The layout itself is new: Studio + Bank tabs, 8-tab nav, Play view rebuilt", "🔨 Admin panel rebuilt: 14 new tools, quick-ban presets, ban history", "🛡️ Per-admin permissions, Discord-style — and no admin can EVER touch the Owner", "🎞️ GIF profile pictures + banners for everyone (upload from your gallery)", "☀️ Sun God Luffy + 3 Legend powers, grant-only"], "groups": [{"t": "New auto-clickers — 8", "items": ["Pig Taxi", "Oink Brewery", "Truffle Mine", "Pig University", "Oink News Network", "Pig Theme Park", "Moon Cheese Mine", "Time Machine Pig"]}, {"t": "New tap upgrades — 6", "items": ["Golden Finger", "Meteor Glove", "Dragon Hoof", "Void Tap", "Rainbow Hammer", "God Finger"]}, {"t": "New Pig Powers — 6", "items": ["Mud Rocket", "Golden Storm", "Oink Quake", "Pig Nova", "Truffle Titan", "Cosmic Oink"]}, {"t": "New skill nodes — 6", "items": ["Golden Touch", "Raid Armor", "Duelist", "Bank Bonus", "Spin Luck", "Combo Surge"]}, {"t": "New skins — 6", "items": ["Lava Pig", "Ocean Pig", "Forest Pig", "Storm Pig", "Candy Cane Pig", "Midnight Pig"]}, {"t": "New click sounds — 6", "items": ["Squeak", "Roar", "Bubble", "Whistle", "Guitar", "Bell"]}, {"t": "New titles — 6", "items": ["Bank Baron", "Spin Master", "Raid Booster", "Mystery Mogul", "GIF Legend", "Pig Parent"]}, {"t": "New badges — 7", "items": ["Banker", "Spinner", "Mystery Hunter", "Raid Booster", "Big Spender", "Pig Namer", "GIF Star"]}, {"t": "New quests — 6", "items": ["Daily: Tap 5,000 times", "Daily: Catch 2 golden pigs", "Daily: Land 50 critical oinks", "Weekly: Deal 5,000,000 raid damage", "Weekly: Buy 100 auto-clickers", "Weekly: Earn 50,000,000 coins"]}, {"t": "New raid bosses — 5", "items": ["Lion King Pig", "Kraken Boar", "Ghost Pig", "Scorpion Hog", "Tornado Tusk"]}, {"t": "Admin tools — 14", "items": ["Quick-ban presets (1h / 24h / 7d / permanent)", "Recent bans list with one-tap unban", "Ban history viewer", "Player search + filter (banned / muted / admins / online)", "Bulk mute (all online)", "Bulk unmute", "Give raid tickets (Lucky Spin)", "Grant Pig Studio bundle", "Give skin / title (admins)", "Staff activity feed", "Ban-this-device shortcut", "Export audit log (copy to clipboard)", "Replay tutorial grant", "Bank bonus grant"]}, {"t": "Per-admin permissions — 13", "items": ["Permission system (stored per admin)", "Permissions editor in the owner panel", "Toggle: ban", "Toggle: hard ban", "Toggle: unban", "Toggle: mute / unmute", "Toggle: give coins", "Toggle: give powers", "Toggle: give levels / XP", "Toggle: give skins / titles", "Toggle: reset player progress", "Toggle: announcements & events", "Toggle: act on other admins"]}, {"t": "Multiplayer — 8", "items": ["Gift coins to a friend", "Guild bank withdraw (owner)", "Copy invite link", "Poke a friend", "Join a friend's room", "Friends sort (online / level / name / recent)", "Rally ping (room)", "Chat shout (gold, 1,000 coins)"]}, {"t": "QoL & settings — 10", "items": ["Export save (JSON)", "Import save (JSON)", "Manual save button", "Reset session stats", "Sell-back auto-clickers (50%)", "Prestige calculator", "Name your pig", "Crit Boost (60s, +10% crit)", "Combo Freeze (30s)", "Offline cap upgrade (+4h per level)"]}, {"t": "Pig Bank — 5", "items": ["Deposit coins", "Withdraw all", "Upgrade bank level", "Hourly interest", "Claim interest now"]}, {"t": "Lucky Spin — 2", "items": ["Daily free spin", "Spin tickets (earn + staff grants)"]}, {"t": "Shop extras — 2", "items": ["Pig of the Day (50% off, rotates daily)", "Buy cheapest affordable"]}, {"t": "Play view extras — 2", "items": ["Today's Goals card", "Live Events card"]}, {"t": "Structural UI — 8", "items": ["8-tab bottom nav (Play / Studio / Upgrades / Bank / Multiplayer / Friends / Ranks / Profile)", "Pig Studio as its own tab (out of the shop)", "Bank as its own view", "Play view reordered (goals + events above stats + quickbar)", "Discord-style profile header card", "Profile & Cosmetics moved to the top of Profile", "Login screen v2.5.1 badge + headline features", "Hall of Fame section in Ranks"]}, {"t": "Raid features — 6", "items": ["Daily raid bounty", "Raid damage milestones", "Raid auto-tap", "Raid booster (+25% for 1h)", "Squad damage bonus", "First-hit bonus (+50%)"]}, {"t": "GIF profiles & banners — 6", "items": ["Upload GIF profile picture (gallery)", "Upload GIF banner (gallery)", "Preset GIF gallery (profile picture)", "Preset GIF gallery (banner)", "GIF search filter", "Search more on Tenor button"]}, {"t": "Custom admin titles — 3", "items": ["Owner sets a custom title", "Owner removes a custom title", "Custom title shown in chat, leaderboards, profiles, staff panel"]}, {"t": "Legend grant powers — 4", "items": ["Sun God Luffy ×45", "Shadow Monarch ×35", "Storm Titan ×28", "Cosmic Kitsune ×22"]}, {"t": "Misc — 7", "items": ["Golden Pig radar", "Tap goal (set your own)", "Coin goal (set your own)", "Super Prestige (+25% tap power per 10 apples)", "Battle Pass XP boost (+50% for 1h)", "Mystery Box", "Invite codes"]}], "items": ["New auto-clickers — 8 new things", "New tap upgrades — 6 new things", "New Pig Powers — 6 new things", "New skill nodes — 6 new things", "New skins — 6 new things", "New click sounds — 6 new things", "New titles — 6 new things", "New badges — 7 new things", "New quests — 6 new things", "New raid bosses — 5 new things", "Admin tools — 14 new things", "Per-admin permissions — 13 new things", "Multiplayer — 8 new things", "QoL & settings — 10 new things", "Pig Bank — 5 new things", "Lucky Spin — 2 new things", "Shop extras — 2 new things", "Play view extras — 2 new things", "Structural UI — 8 new things", "Raid features — 6 new things", "GIF profiles & banners — 6 new things", "Custom admin titles — 3 new things", "Legend grant powers — 4 new things", "Misc — 7 new things"]},
  {v:"v2.5", tag:"THE REWORK UPDATE", date:"November 11, 2026", highlights:["🐷 Pig Studio: upload your own pig image, pick its icon, colours and hats", "🎵 Click sounds: 10 presets + upload your own MP3/WAV", "🗡️ Raid bosses reworked: phases, enrage, live top-5 damage board, 5 new bosses", "📱 Mobile UI rebuilt: GTA-style top bar, bigger pig, one-thumb nav", "📜 Update Log rebuilt: search, filter, counts, shareable changelog"], groups:[{"t": "Mobile UI + layout rework — 24", "items": ["GTA-style dark top bar", "Gold coin pill in the sticky HUD", "Bigger centred pig (340px)", "Mobile shop card, bottom-sheet style", "Desktop shop centred panel (760px)", "One-thumb bottom nav (64px targets)", "Bigger pig tap target (min 200px)", "Safe-area padding on the bottom nav", "Landscape mode layout", "Cleaner card radius + shadow refresh", "Spacing pass on the Play view", "Typography pass (Baloo headings)", "Combo bar rework (thicker gradient)", "New stage day/night gradient", "Full-width quickbar buttons on mobile", "Sticky buy-amount row in the shop", "Shop rows: bigger icon + price pill", "Bottom-nav active pill indicator", "Alert strip scrolls sideways on mobile", "Bottom-sheet modals on mobile", "Toasts docked above the bottom nav", "Update Log stacked layout on mobile", "Profile stats as card rows on mobile", "New v2.5 animations respect reduce-motion"]}, {"t": "Custom pig — 18", "items": ["New skin: Ember Pig", "New skin: Frost Pig", "New skin: Zombie Pig", "New skin: Candy Pig", "New skin: Rainbow Pig", "New skin: Neon Pig", "New skin: Pirate Pig", "New skin: Robot Pig", "New skin: Ninja Pig", "New skin: Royal Gold Pig", "New skin: Sunset Pig", "New skin: Shadow Pig", "Upload your own pig image", "Pig icon picker (12 icons)", "Body colour picker", "Snout colour picker", "Belly colour picker", "Accessories / hats layer (8)"]}, {"t": "Custom click sound — 12", "items": ["Preset sound: Classic Oink", "Preset sound: Pop", "Preset sound: Coin Ding", "Preset sound: Boing", "Preset sound: Laser Zap", "Preset sound: Quack", "Preset sound: Honk", "Preset sound: Drum Thump", "Preset sound: Sparkle", "Preset sound: Robot Beep", "Upload your own click sound (MP3/WAV)", "Per-pig sound pairing"]}, {"t": "Raid bosses rework — 20", "items": ["New raid boss: Pigzilla", "New raid boss: King Bacon", "New raid boss: Lava Boar", "New raid boss: Frost Snout", "New raid boss: Storm Pig", "Boss phases (3 phases)", "Enrage below 10% HP", "Live damage leaderboard (top 5)", "Raid lobby card", "Raid countdown to the next boss", "Rewards per phase", "Raid history (last 10)", "Weekly raid quest line (3 quests)", "Raid tap combo multiplier", "Segmented phase HP bar", "Floating raid damage numbers", "Raid milestone feed announcements (75/50/25%)", "Raid streak + streak bonus", "Boss weak-point window (x2 taps)", "Raid claim summary breakdown"]}, {"t": "Multiplayer rework — 16", "items": ["Live online list inside the raid card", "Room races refresh button", "Friend invites to raid", "Raid chat reactions (cheer row)", "Duel rematch button", "Duel best-of-3 series score", "Guild raid bonus (+5%)", "Guild shout button", "Friend-came-online toast", "Player search by skin: / power:", "Room race live positions (progress bars)", "Multiplayer status pill shows room size", "DM raid invite button", "Global raid ping button", "Guild board refresh + last-updated time", "Friends tab shows online-friend count"]}, {"t": "New content — 30", "items": ["New auto-clicker: Pig DJ", "New auto-clicker: Oink ATM", "New auto-clicker: Truffle Bank", "New auto-clicker: Pig Casino", "New auto-clicker: Bacon Rocket", "New auto-clicker: Pig AI Lab", "New tap upgrade: Titanium Finger", "New tap upgrade: Plasma Glove", "New tap upgrade: Quantum Tap", "New tap upgrade: God Hoof", "New power: Mud Shield", "New power: Golden Hoof", "New power: Oink Storm", "New power: Pig Tornado", "New skill node: Raid Crusher", "New skill node: Combo Keeper", "New title: Raid Master", "New title: Pig Stylist", "New badge: Custom Pig", "New badge: Wardrobe 12", "New badge: Raid Crusher", "New badge: Duel Ace", "New badge: Raid Streak 3", "New badge: Pig Power Up", "New badge: Sound Idea", "New badge: AI Lab Owner", "New daily quest: raid damage", "New daily quest: win a duel", "New weekly quest: raid damage", "New weekly quest: win 3 duels"]}, {"t": "QoL + polish — 18", "items": ["Hold-to-tap speed setting", "Haptics intensity setting", "Number format mode (short / full / exact)", "Best-buy hints: top 3", "Offline earnings breakdown", "Toast history log", "Force dark mode toggle", "Reduce motion toggle", "Compact shop toggle", "HUD per-sec toggle", "Auto-claim daily reward", "Floating +coins toggle", "Copy session stats", "Confirm-before-prestige toggle", "MAX buy warning", "Spacebar taps the pig", "Tap anywhere on the stage", "Reset QoL settings"]}, {"t": "Update Log rework — 12", "items": ["v2.5 top entry with all 150 items grouped", "Search updates", "Filter by version", "Item count badge per version", "Seen-state tick per version", "Copy changelog button", "What's New shows headline 5 only", "v2.5 highlights row (top 5 starred)", "Collapsible category groups", "Version header shows date + item count", "NEW badge reads 150 NEW", "Jump-to-latest button"]}], items:["Mobile UI + layout rework — 24 new things", "Custom pig — 18 new things", "Custom click sound — 12 new things", "Raid bosses rework — 20 new things", "Multiplayer rework — 16 new things", "New content — 30 new things", "QoL + polish — 18 new things", "Update Log rework — 12 new things"]},
  {v:"v2.4.1", tag:"CUSTOM BAN LENGTHS", date:"November 7, 2026", items:[
   "⏱️ Custom ban lengths: type any amount of time (minutes / hours / days / weeks / years) instead of only picking a preset — up to 999,999,999 of any unit, so yes, 999,999,999 years is a valid ban length. The banned screen shows the exact number you typed."
@@ -1285,7 +1491,8 @@ function freshState(){
   dailyLast:"",dailyStreak:0,dailyCount:0,lastLevelReward:1,burstsUsed:0,raidDamage:0,duelWins:0,
   guildId:"",guildName:"",quests:null,banner:"sunset",lastSeen:Date.now(),powers:[],equippedPower:"",
   grantedTitles:[],vipGranted:"",grantedLevel:0,biggestWin:0,
-  pigImg:"",pigIcon:"",pigColors:{body:"",snout:"",belly:""},pigAccessory:"none",clickSound:"oink",customSound:"",pigSounds:{},pigPowersOwned:{},equippedPigPower:"",soundIdeas:[],raidHistory:[],raidStreak:0,raidPhaseRewards:{},raidQuests:{},logSeen:{},raidCombo:0,raidWeakUntil:0};
+  pigImg:"",pigIcon:"",pigColors:{body:"",snout:"",belly:""},pigAccessory:"none",clickSound:"oink",customSound:"",pigSounds:{},pigPowersOwned:{},equippedPigPower:"",soundIdeas:[],raidHistory:[],raidStreak:0,raidPhaseRewards:{},raidQuests:{},logSeen:{},raidCombo:0,raidWeakUntil:0,
+  bankBalance:0,bankLevel:0,bankLastInterest:0,spinLast:"",spinStreak:0,spinTotal:0,spinTickets:0,pigName:"",gifAvatarSet:false,gifBannerSet:false,bannerGif:"",tapGoal:0,tapGoalDone:false,coinGoal:0,coinGoalDone:false,offlineCapHours:0,critBoostUntil:0,comboFreezeUntil:0,superPrestige:0,bpBoostUntil:0,mysteryOpened:0,inviteCode:"",inviteRedeemed:false,invitesUsed:0,raidBoostUntil:0,raidAutoTap:false,raidBountyDate:"",raidBountyGoal:0,raidBountyClaimed:false,raidFirstHitDate:"",raidMilestones:{}};
 }
 var S=freshState();
 var combo=1, comboTimer=null, bestComboSeen=1;
@@ -1319,8 +1526,8 @@ function skillLvl(id){return S.skills[id]||0;}
 function appleMult(){return 1+S.apples*0.10;}
 function guildBuff(){return 1+(guildCache&&guildCache.id===S.guildId?(guildCache.level||0)*0.02:0);}
 function perSec(){var t=0;GENERATORS.forEach(function(g){t+=(S.gens[g.id]||0)*g.pps;});return t*appleMult()*(1+skillLvl("army")*0.20)*guildBuff();}
-function critChance(){return 0.05+skillLvl("crit")*0.02;}
-function perTap(){var m=1;TAP_UPGRADES.forEach(function(u){if(S.tapOwned[u.id])m*=u.mult;});var v=m*appleMult()*combo*(1+skillLvl("might")*0.25)*guildBuff()*powerMult()*pigPowerMult();if(Date.now()<burstUntil)v*=3;return v;}
+function critChance(){return 0.05+skillLvl("crit")*0.02+(Date.now()<(S.critBoostUntil||0)?0.10:0);}
+function perTap(){var m=1;TAP_UPGRADES.forEach(function(u){if(S.tapOwned[u.id])m*=u.mult;});var v=m*appleMult()*combo*(1+skillLvl("might")*0.25)*(1+skillLvl("goldtouch")*0.10)*(1+(Date.now()<duelEndsAt?skillLvl("duelist")*0.05:0))*(1+(S.superPrestige||0)*0.25)*guildBuff()*powerMult()*pigPowerMult();if(Date.now()<burstUntil)v*=3;return v;}
 /* v2.4: effective level = XP level (max 50) OR staff-granted level (max 99999).
    Normal play can never pass 50 — only Owner/Admin grants set grantedLevel. */
 function level(){var xpLv=Math.min(50,Math.floor(Math.sqrt(Math.max(0,S.lifetime)/100))+1);var g=Math.max(0,Math.min(99999,Math.floor(S.grantedLevel||0)));return Math.max(xpLv,g);}
@@ -1474,6 +1681,12 @@ function playPresetSound(id){
   case "drum": tone(120,50,0.2,"sine",0.2*v); break;
   case "sparkle": [1046,1318,1568].forEach(function(f,i){setTimeout(function(){tone(f,f,0.1,"triangle",0.12*v);},i*60);}); break;
   case "robot": tone(700,700,0.06,"square",0.10*v); setTimeout(function(){tone(500,500,0.06,"square",0.10*v);},80); break;
+  case "squeak": tone(900,1400,0.09,"sine",0.14*v); break;
+  case "roar": tone(150,80,0.3,"sawtooth",0.16*v); break;
+  case "bubble": tone(400,700,0.12,"sine",0.14*v); setTimeout(function(){tone(500,800,0.1,"sine",0.12*v);},90); break;
+  case "whistle": tone(1200,1800,0.15,"sine",0.12*v); break;
+  case "guitar": [220,277,330].forEach(function(f,i){setTimeout(function(){tone(f,f,0.12,"triangle",0.12*v);},i*70);}); break;
+  case "bell": tone(1568,1568,0.3,"triangle",0.14*v); break;
   default: sndOink();
  }
 }
@@ -1517,7 +1730,7 @@ function currentSoundName(){
  return s?s.name:"Classic Oink";
 }
 function renderPigStudio(){
- var list=$("shopList");if(!list||activeTab!=="pig")return;
+ var list=$("studioList");if(!list)return;
  if(list.contains(document.activeElement)&&document.activeElement!==document.body)return;
  list.innerHTML="";
  var sk=SKINS.find(function(x){return x.id===S.skin;})||SKINS[0];
@@ -1629,7 +1842,7 @@ $("btnResetQol").addEventListener("click",function(){
  $("qHoldSpeed").value="180";$("qHaptic").value="normal";$("qFmtMode").value="short";
  applyQolClasses();renderStats();markDirty();toast("↩️ QoL settings reset to defaults.");
 });
-$("btnSoundPicker").addEventListener("click",function(){showView("shop");activeTab="pig";document.querySelectorAll(".tab[data-tab]").forEach(function(x){x.classList.toggle("on",x.dataset.tab==="pig");});renderShop();});
+$("btnSoundPicker").addEventListener("click",function(){showView("studio");renderPigStudio();});
 document.addEventListener("keydown",function(e){
  if(e.code!=="Space")return;
  var t=document.activeElement;
@@ -1782,7 +1995,7 @@ function safeAvatarImg(v){
  /* Only allow strict base64 image data URLs (what the in-page uploader produces).
     Anything else from a remote profile is treated as no image — never interpolated raw. */
  if(typeof v!=="string")return "";
- return /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]{20,}$/.test(v)?v:"";
+ return /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+/=]{20,}$/.test(v)&&v.length<400000?v:"";
 }
 function avatarHTML(p,size){
  var img=p?safeAvatarImg(p.avatarImg):"";
@@ -1807,8 +2020,8 @@ function doTap(x,y,quiet){
  S.coins+=coinGain;S.lifetime+=xpGain;S.taps++;sessionTaps++;noteWin(coinGain);
  addBpXp(0.1);
  if(crit){S.crits++;sndCrit();flashCrit();}else if(!quiet)playClickSound();
- combo=Math.min(2,combo+0.04+skillLvl("combo")*0.01); if(combo>bestComboSeen)bestComboSeen=combo; S.bestCombo=Math.max(S.bestCombo||1,bestComboSeen);
- clearTimeout(comboTimer);comboTimer=setTimeout(function(){combo=1;renderStats();},1600);
+ combo=Math.min(2+skillLvl("combosurge")*0.1,combo+0.04+skillLvl("combo")*0.01); if(combo>bestComboSeen)bestComboSeen=combo; S.bestCombo=Math.max(S.bestCombo||1,bestComboSeen);
+ clearTimeout(comboTimer);var comboDecay=function(){if(Date.now()<(S.comboFreezeUntil||0)){comboTimer=setTimeout(comboDecay,1600);return;}combo=1;renderStats();};comboTimer=setTimeout(comboDecay,1600);
  pigBtn.classList.add("squish");setTimeout(function(){pigBtn.classList.remove("squish");},80);
  if(qol.vibe)vibe(crit?30:8);
  if(!quiet)spawnFloat(coinGain,crit,x,y);
@@ -1835,8 +2048,9 @@ pigBtn.addEventListener("pointerdown",function(){if(!qol.hold)return;clearInterv
 var goldenTimer=null,goldenHide=null;
 function scheduleGolden(){
  clearTimeout(goldenTimer);
- goldenTimer=setTimeout(showGolden,35000+Math.random()*45000);
+ nextGoldenAt=Date.now()+35000+Math.random()*45000;goldenTimer=setTimeout(showGolden,nextGoldenAt-Date.now());
 }
+var nextGoldenAt=0;
 function showGolden(){
  var b=$("goldenPig"),stage=document.querySelector(".stage");
  b.style.left=(8+Math.random()*55)+"%";b.style.top=(10+Math.random()*40)+"%";b.style.display="block";
@@ -1906,11 +2120,15 @@ function renderShop(){
     if(n>=10||g.base>=450000)feed("🛒 "+displayName()+" bought ×"+n+" "+g.name+"!",true);
     questProgress();checkAch();checkTitles();renderAll();mpPublishProfile();markDirty();
    });
-   item.appendChild(btn);list.appendChild(item);
+   var sell=document.createElement("button");sell.className="buy";sell.type="button";
+   sell.innerHTML="Sell ×1<small>🪙 "+fmt(Math.floor(genCost(g,owned)*0.5))+"</small>";
+   sell.disabled=owned<1;
+   sell.addEventListener("click",function(){var o=S.gens[g.id]||0;if(o<1){sndErr();return;}var refund=Math.floor(genCost(g,o-1)*0.5);S.gens[g.id]=o-1;S.coins+=refund;sndBuy();toast("💰 Sold 1 "+g.name+" for "+fmt(refund)+" 🪙.");renderAll();mpPublishProfile();markDirty();});
+   item.appendChild(btn);item.appendChild(sell);list.appendChild(item);
   });
  } else if(activeTab==="powers"){
   var intro=document.createElement("p");intro.className="sub";
-  intro.innerHTML="The <b>Goku power line</b> — 8 OP forms, <b>grant-only</b>: the 👑 Owner and 🛡️ Admins hand them out from their panels (they're never sold and never quested). Equip <b>one at a time</b>; its tap multiplier stacks with tap upgrades, Golden Apples, combo and Burst — and wraps your pig in its aura.";
+  intro.innerHTML="The <b>Goku power line</b> — 8 OP forms, plus <b>4 Legend powers</b> (☀️ Sun God Luffy, Shadow Monarch, Storm Titan, Cosmic Kitsune) — all <b>grant-only</b>: the 👑 Owner and 🛡️ Admins hand them out from their panels (they're never sold and never quested). Equip <b>one at a time</b>; its tap multiplier stacks with tap upgrades, Golden Apples, combo and Burst — and wraps your pig in its aura.";
   list.appendChild(intro);
   GOKU_FORMS.forEach(function(f){
    var owned=(S.powers||[]).indexOf(f.id)>-1, on=S.equippedPower===f.id;
@@ -1966,9 +2184,7 @@ function renderShop(){
    });
    item.appendChild(btn);list.appendChild(item);
   });
- } else if(activeTab==="pig"){
-   renderPigStudio();
-  } else if(activeTab==="skins"){
+ } else if(activeTab==="skins"){
   var row=document.createElement("div");row.className="skin-row";
   SKINS.forEach(function(sk){
    var owned=!!S.skinsOwned[sk.id],on=S.skin===sk.id;
@@ -1987,6 +2203,7 @@ function renderShop(){
  } else if(activeTab==="prestige"){
   var gain=prestigeGain();
   $("prestigeGain").textContent=gain+" 🍎";
+  var pc=$("prestigeCalc");if(pc)pc.textContent="📊 Calculator: next apple at "+fmt(Math.ceil(1e6*Math.pow((gain+1)/(10*(1+skillLvl("orchard")*0.15)),2)))+" lifetime coins · Super Prestige: "+(S.superPrestige||0)+" (+"+Math.round((S.superPrestige||0)*25)+"% tap power)";
   $("btnPrestige").disabled=gain<1;
  }
  updateHint();
@@ -1996,9 +2213,9 @@ $("btnPrestige").addEventListener("click",function(){
  var gain=prestigeGain();if(gain<1){sndErr();return;}
  if(qol.confirmPrestige&&!$("btnPrestige").dataset.arm){$("btnPrestige").dataset.arm="1";$("btnPrestige").textContent="⚠️ Tap again to confirm prestige";setTimeout(function(){delete $("btnPrestige").dataset.arm;$("btnPrestige").textContent="PRESTIGE 🍎";},3000);toast("⚠️ Prestige resets your coins and buildings — tap again to confirm.");return;}
  delete $("btnPrestige").dataset.arm;
- var keep={apples:S.apples+gain,prestiges:S.prestiges+1,lifetime:S.lifetime,taps:S.taps,crits:S.crits,gold:S.goldenCaught,skins:S.skinsOwned,ach:S.achDone,start:S.startedAt,bestCombo:S.bestCombo,bestCps:S.bestCps,skillPts:S.skillPts+gain,skills:S.skills,title:S.title,bpXp:S.bpXp,bpPremium:S.bpPremium,bpClaimed:S.bpClaimed,bpClaimedP:S.bpClaimedP,dailyLast:S.dailyLast,dailyStreak:S.dailyStreak,dailyCount:S.dailyCount,lastLevelReward:S.lastLevelReward,burstsUsed:S.burstsUsed,raidDamage:S.raidDamage,duelWins:S.duelWins,guildId:S.guildId,guildName:S.guildName,quests:S.quests,banner:S.banner,powers:S.powers||[],equippedPower:S.equippedPower||"",pigImg:S.pigImg||"",pigIcon:S.pigIcon||"",pigColors:S.pigColors||{body:"",snout:"",belly:""},pigAccessory:S.pigAccessory||"none",clickSound:S.clickSound||"oink",customSound:S.customSound||"",pigSounds:S.pigSounds||{},pigPowersOwned:S.pigPowersOwned||{},equippedPigPower:S.equippedPigPower||"",soundIdeas:S.soundIdeas||[],raidHistory:S.raidHistory||[],raidStreak:S.raidStreak||0,raidPhaseRewards:S.raidPhaseRewards||{},raidQuests:S.raidQuests||{},logSeen:S.logSeen||{}};
+ var keep={apples:S.apples+gain,prestiges:S.prestiges+1,lifetime:S.lifetime,taps:S.taps,crits:S.crits,gold:S.goldenCaught,skins:S.skinsOwned,ach:S.achDone,start:S.startedAt,bestCombo:S.bestCombo,bestCps:S.bestCps,skillPts:S.skillPts+gain,skills:S.skills,title:S.title,bpXp:S.bpXp,bpPremium:S.bpPremium,bpClaimed:S.bpClaimed,bpClaimedP:S.bpClaimedP,dailyLast:S.dailyLast,dailyStreak:S.dailyStreak,dailyCount:S.dailyCount,lastLevelReward:S.lastLevelReward,burstsUsed:S.burstsUsed,raidDamage:S.raidDamage,duelWins:S.duelWins,guildId:S.guildId,guildName:S.guildName,quests:S.quests,banner:S.banner,powers:S.powers||[],equippedPower:S.equippedPower||"",pigImg:S.pigImg||"",pigIcon:S.pigIcon||"",pigColors:S.pigColors||{body:"",snout:"",belly:""},pigAccessory:S.pigAccessory||"none",clickSound:S.clickSound||"oink",customSound:S.customSound||"",pigSounds:S.pigSounds||{},pigPowersOwned:S.pigPowersOwned||{},equippedPigPower:S.equippedPigPower||"",soundIdeas:S.soundIdeas||[],raidHistory:S.raidHistory||[],raidStreak:S.raidStreak||0,raidPhaseRewards:S.raidPhaseRewards||{},raidQuests:S.raidQuests||{},logSeen:S.logSeen||{},bankBalance:S.bankBalance||0,bankLevel:S.bankLevel||0,bankLastInterest:S.bankLastInterest||0,spinLast:S.spinLast||"",spinStreak:S.spinStreak||0,spinTotal:S.spinTotal||0,spinTickets:S.spinTickets||0,pigName:S.pigName||"",gifAvatarSet:!!S.gifAvatarSet,gifBannerSet:!!S.gifBannerSet,bannerGif:S.bannerGif||"",tapGoal:S.tapGoal||0,tapGoalDone:!!S.tapGoalDone,coinGoal:S.coinGoal||0,coinGoalDone:!!S.coinGoalDone,offlineCapHours:S.offlineCapHours||0,critBoostUntil:S.critBoostUntil||0,comboFreezeUntil:S.comboFreezeUntil||0,superPrestige:S.superPrestige||0,bpBoostUntil:S.bpBoostUntil||0,mysteryOpened:S.mysteryOpened||0,inviteCode:S.inviteCode||"",inviteRedeemed:!!S.inviteRedeemed,invitesUsed:S.invitesUsed||0,raidBoostUntil:S.raidBoostUntil||0,raidAutoTap:!!S.raidAutoTap,raidBountyDate:S.raidBountyDate||"",raidBountyGoal:S.raidBountyGoal||0,raidBountyClaimed:!!S.raidBountyClaimed,raidFirstHitDate:S.raidFirstHitDate||"",raidMilestones:S.raidMilestones||{}};
  S=freshState();
- S.apples=keep.apples;S.prestiges=keep.prestiges;S.lifetime=keep.lifetime;S.taps=keep.taps;S.crits=keep.crits;S.goldenCaught=keep.gold;S.skinsOwned=keep.skins;S.achDone=keep.ach;S.startedAt=keep.start;S.bestCombo=keep.bestCombo;S.bestCps=keep.bestCps;S.skillPts=keep.skillPts;S.skills=keep.skills;S.title=keep.title;S.bpXp=keep.bpXp;S.bpPremium=keep.bpPremium;S.bpClaimed=keep.bpClaimed;S.bpClaimedP=keep.bpClaimedP;S.dailyLast=keep.dailyLast;S.dailyStreak=keep.dailyStreak;S.dailyCount=keep.dailyCount;S.lastLevelReward=keep.lastLevelReward;S.burstsUsed=keep.burstsUsed;S.raidDamage=keep.raidDamage;S.duelWins=keep.duelWins;S.guildId=keep.guildId;S.guildName=keep.guildName;S.quests=keep.quests;S.banner=keep.banner;S.powers=keep.powers;S.equippedPower=keep.equippedPower;S.pigImg=keep.pigImg;S.pigIcon=keep.pigIcon;S.pigColors=keep.pigColors;S.pigAccessory=keep.pigAccessory;S.clickSound=keep.clickSound;S.customSound=keep.customSound;S.pigSounds=keep.pigSounds;S.pigPowersOwned=keep.pigPowersOwned;S.equippedPigPower=keep.equippedPigPower;S.soundIdeas=keep.soundIdeas;S.raidHistory=keep.raidHistory;S.raidStreak=keep.raidStreak;S.raidPhaseRewards=keep.raidPhaseRewards;S.raidQuests=keep.raidQuests;S.logSeen=keep.logSeen;
+ S.apples=keep.apples;S.prestiges=keep.prestiges;S.lifetime=keep.lifetime;S.taps=keep.taps;S.crits=keep.crits;S.goldenCaught=keep.gold;S.skinsOwned=keep.skins;S.achDone=keep.ach;S.startedAt=keep.start;S.bestCombo=keep.bestCombo;S.bestCps=keep.bestCps;S.skillPts=keep.skillPts;S.skills=keep.skills;S.title=keep.title;S.bpXp=keep.bpXp;S.bpPremium=keep.bpPremium;S.bpClaimed=keep.bpClaimed;S.bpClaimedP=keep.bpClaimedP;S.dailyLast=keep.dailyLast;S.dailyStreak=keep.dailyStreak;S.dailyCount=keep.dailyCount;S.lastLevelReward=keep.lastLevelReward;S.burstsUsed=keep.burstsUsed;S.raidDamage=keep.raidDamage;S.duelWins=keep.duelWins;S.guildId=keep.guildId;S.guildName=keep.guildName;S.quests=keep.quests;S.banner=keep.banner;S.powers=keep.powers;S.equippedPower=keep.equippedPower;S.pigImg=keep.pigImg;S.pigIcon=keep.pigIcon;S.pigColors=keep.pigColors;S.pigAccessory=keep.pigAccessory;S.clickSound=keep.clickSound;S.customSound=keep.customSound;S.pigSounds=keep.pigSounds;S.pigPowersOwned=keep.pigPowersOwned;S.equippedPigPower=keep.equippedPigPower;S.soundIdeas=keep.soundIdeas;S.raidHistory=keep.raidHistory;S.raidStreak=keep.raidStreak;S.raidPhaseRewards=keep.raidPhaseRewards;S.raidQuests=keep.raidQuests;S.logSeen=keep.logSeen;S.bankBalance=keep.bankBalance;S.bankLevel=keep.bankLevel;S.bankLastInterest=keep.bankLastInterest;S.spinLast=keep.spinLast;S.spinStreak=keep.spinStreak;S.spinTotal=keep.spinTotal;S.spinTickets=keep.spinTickets;S.pigName=keep.pigName;S.gifAvatarSet=keep.gifAvatarSet;S.gifBannerSet=keep.gifBannerSet;S.bannerGif=keep.bannerGif;S.tapGoal=keep.tapGoal;S.tapGoalDone=keep.tapGoalDone;S.coinGoal=keep.coinGoal;S.coinGoalDone=keep.coinGoalDone;S.offlineCapHours=keep.offlineCapHours;S.critBoostUntil=keep.critBoostUntil;S.comboFreezeUntil=keep.comboFreezeUntil;S.superPrestige=keep.superPrestige;S.bpBoostUntil=keep.bpBoostUntil;S.mysteryOpened=keep.mysteryOpened;S.inviteCode=keep.inviteCode;S.inviteRedeemed=keep.inviteRedeemed;S.invitesUsed=keep.invitesUsed;S.raidBoostUntil=keep.raidBoostUntil;S.raidAutoTap=keep.raidAutoTap;S.raidBountyDate=keep.raidBountyDate;S.raidBountyGoal=keep.raidBountyGoal;S.raidBountyClaimed=keep.raidBountyClaimed;S.raidFirstHitDate=keep.raidFirstHitDate;S.raidMilestones=keep.raidMilestones;
  combo=1;sndGold();toast("🍎 PRESTIGE! +"+gain+" Golden Apples and +"+gain+" ⭐ Skill Points!");
  feed("🍎 "+displayName()+" PRESTIGED for +"+gain+" Golden Apples!",true);
  checkAch();checkTitles();renderAll();renderTree();mpPublishProfile();markDirty();cloudSaveNow();
@@ -2103,7 +2320,7 @@ function renderStats(){
  $("hudTitle").textContent=titleName(S.title)||"No title";
  var vt=vipTier(S.taps);
  $("hudVip").innerHTML=vt.id!=="none"?'<span class="vip-badge '+vt.cls+'">'+vt.name+" VIP</span>":"";
- var hr=$("hudRole");if(hr)hr.innerHTML=fbUser?roleTag(myRole):"";
+ var hr=$("hudRole");if(hr)hr.innerHTML=fbUser?roleTag(myRole,{customTitle:myCustomTitle}):"";
  var ef=equippedForm(),cpEl=$("chipPower");
  if(cpEl){if(ef){cpEl.style.display="";cpEl.innerHTML="⚡ Power: <b>"+ef.name+" ×"+ef.mult+"</b>";}else cpEl.style.display="none";}
  applyPowerAura();
@@ -2111,6 +2328,10 @@ function renderStats(){
  $("comboTxt").textContent="×"+combo.toFixed(1);
  $("comboFill").style.width=((combo-1)/1*100)+"%";
  $("chipTaps").textContent=fmt(sessionTaps);
+ var pnl=$("pigNameLine");if(pnl)pnl.textContent=S.pigName?("🐷 "+S.pigName+" the Pig"):"";
+ if(S.tapGoal&&S.taps>=S.tapGoal&&!S.tapGoalDone){S.tapGoalDone=true;S.coins+=5000;toast("🎯 Tap goal reached! +5,000 🪙");}
+ if(S.coinGoal&&S.lifetime>=S.coinGoal&&!S.coinGoalDone){S.coinGoalDone=true;S.coins+=10000;toast("🎯 Coin goal reached! +10,000 🪙");}
+ renderProfileHeader();
  $("chipCombo").textContent="×"+(Math.max(S.bestCombo||1,bestComboSeen)).toFixed(1);
  $("qTaps").textContent=fmt(S.taps);$("qLife").textContent=fmt(S.lifetime);
  $("qCombo").textContent="×"+(S.bestCombo||1).toFixed(1);$("qCps").textContent=S.bestCps||0;
@@ -2127,7 +2348,7 @@ function renderStats(){
 }
 function renderBanner(){
  var b=BANNERS.find(function(x){return x.id===S.banner;})||BANNERS[0];
- var pv=$("bannerPreview");if(pv){pv.style.background=b.css;pv.textContent=displayName()+(titleName(S.title)?" — “"+titleName(S.title)+"”":"");}
+ var pv=$("bannerPreview");if(pv){if(S.bannerGif){pv.style.backgroundImage="url("+S.bannerGif+")";pv.style.backgroundSize="cover";pv.style.backgroundPosition="center";}else{pv.style.backgroundImage="";pv.style.background=b.css;}pv.textContent=displayName()+(titleName(S.title)?" — “"+titleName(S.title)+"”":"");}
  var row=$("bannerRow");if(!row||row.dataset.done)return;row.dataset.done="1";
  BANNERS.forEach(function(bn){
   var btn=document.createElement("button");btn.type="button";btn.className="skin"+(S.banner===bn.id?" on":"");
@@ -2142,7 +2363,7 @@ function updateHint(){
  var ranked=GENERATORS.map(function(g){var o=S.gens[g.id]||0;return{g:g,r:g.pps/genCost(g,o),c:genCost(g,o)};}).sort(function(a,b){return b.r-a.r;}).slice(0,3);
  el.textContent="💡 Best value buys: "+ranked.map(function(x,i){return (i+1)+". "+x.g.name+" ("+fmt(x.c)+" 🪙)";}).join(" · ");
 }
-function renderAll(){renderStats();renderShop();}
+function renderAll(){renderStats();renderShop();renderBank();renderSpin();renderMystery();renderPigOfDay();renderPlayGoals();renderPlayEvents();renderHallOfFame();renderInvite();renderProfileHeader();renderGifGalleries();}
 
 /* QoL toggles */
 function syncToggle(id,on){var b=$(id);b.classList.toggle("on",on);b.textContent=on?"ON":"OFF";}
@@ -2167,6 +2388,11 @@ function showView(v){
  window.scrollTo({top:0,behavior:"smooth"});
  if(v==="ranks"){renderBp();renderQuests();}
  if(v==="shop")renderTree();
+ if(v==="bank"){renderBank();renderSpin();renderMystery();}
+ if(v==="studio")renderPigStudio();
+ if(v==="profile")renderProfileHeader();
+ if(v==="social"){renderHallOfFame();renderInvite();}
+ if(v==="play"){renderPlayGoals();renderPlayEvents();}
 }
 document.querySelectorAll(".bottom-nav button").forEach(function(b){b.addEventListener("click",function(){showView(b.dataset.view);});});
 $("hudGear").addEventListener("click",function(){showView("profile");});
@@ -2179,7 +2405,7 @@ function renderLog(){
  var f=(($("logFilter")||{}).value||"all");
  var first=null;
  UPDATE_LOG.forEach(function(e){
-  if(f==="v2.5"&&e.v!=="v2.5")return;
+  if(f==="v2.5.1"&&e.v!=="v2.5.1")return;
   if(f==="v2.4"&&e.v.indexOf("v2.4")!==0)return;
   if(f==="old"&&["v1.0","v1.1","v2.0","v2.1","v2.2","v2.3"].indexOf(e.v)===-1)return;
   if(q){
@@ -2316,7 +2542,10 @@ var DAILY_POOL=[
  {stat:"gensBought",goal:5,name:"Buy 5 auto-clickers",icon:"🤖"},
  {stat:"goldenCaught",goal:1,name:"Catch a golden pig",icon:"✨"},
  {stat:"raidDamage",goal:10000,name:"Deal 10,000 raid damage",icon:"🗡️"},
- {stat:"duelWins",goal:1,name:"Win a click duel",icon:"🥊"}
+ {stat:"duelWins",goal:1,name:"Win a click duel",icon:"🥊"},
+ {stat:"taps",goal:5000,name:"Tap 5,000 times",icon:"👆"},
+ {stat:"goldenCaught",goal:2,name:"Catch 2 golden pigs",icon:"✨"},
+ {stat:"crits",goal:50,name:"Land 50 critical oinks",icon:"💥"}
 ];
 var WEEKLY_POOL=[
  {stat:"taps",goal:20000,name:"Tap 20,000 times this week",icon:"👆"},
@@ -2326,7 +2555,10 @@ var WEEKLY_POOL=[
  {stat:"goldenCaught",goal:5,name:"Catch 5 golden pigs this week",icon:"✨"},
  {stat:"raidDamage",goal:250000,name:"Deal 250,000 raid damage this week",icon:"🗡️"},
  {stat:"raidDamage",goal:1000000,name:"Deal 1,000,000 raid damage this week",icon:"🗡️"},
- {stat:"duelWins",goal:3,name:"Win 3 click duels this week",icon:"🥊"}
+ {stat:"duelWins",goal:3,name:"Win 3 click duels this week",icon:"🥊"},
+ {stat:"raidDamage",goal:5000000,name:"Deal 5,000,000 raid damage this week",icon:"🗡️"},
+ {stat:"gensBought",goal:100,name:"Buy 100 auto-clickers this week",icon:"🤖"},
+ {stat:"lifetime",goal:50000000,name:"Earn 50,000,000 coins this week",icon:"💰"}
 ];
 function snapStats(){return{taps:S.taps,lifetime:S.lifetime,crits:S.crits,gensBought:totalGens(),goldenCaught:S.goldenCaught,raidDamage:S.raidDamage||0,duelWins:S.duelWins||0};}
 function ensureQuests(){
@@ -2354,6 +2586,7 @@ function renderQuests(){
  ensureQuests();
  renderQuestList($("questDaily"),S.quests.daily||[]);
  renderQuestList($("questWeekly"),S.quests.weekly||[]);
+ renderPlayGoals();
 }
 function renderQuestList(el,list){
  if(!el)return;el.innerHTML="";
@@ -2379,6 +2612,7 @@ function renderQuestList(el,list){
 var BP_TIERS=30, BP_XP_PER=100;
 function bpTier(){return Math.min(BP_TIERS,Math.floor((S.bpXp||0)/BP_XP_PER));}
 function addBpXp(n){
+ if(Date.now()<(S.bpBoostUntil||0))n=Math.round(n*1.5);
  var before=bpTier();S.bpXp=(S.bpXp||0)+n;
  if(bpTier()>before){toast("🎟️ Battle Pass tier "+bpTier()+" reached! Claim your rewards in Ranks.");sndGold();}
  if($("view-ranks").classList.contains("on"))renderBp();
@@ -2483,9 +2717,9 @@ $("btnDaily").addEventListener("click",function(){
 function mySnapshot(){
  var sk=SKINS.find(function(x){return x.id===S.skin;});
  return {id:fbUser?fbUser.uid:myId,localId:myId,name:displayName(),username:profile.username||"",avatar:profile.avatar,avatarImg:profile.avatarImg||"",
-  title:titleName(S.title),vip:vipTier(S.taps).name,coins:S.coins,lifetime:S.lifetime,
+  title:titleName(S.title),vip:vipTier(S.taps).name,coins:S.coins,lifetime:S.lifetime,customTitle:myCustomTitle||"",roomCode:roomCode,
   pps:perSec(),taps:S.taps,bestCombo:Math.round((S.bestCombo||1)*10)/10,bestCps:S.bestCps||0,level:level(),apples:S.apples,
-  skin:sk?sk.name:"Classic",banner:S.banner,guild:S.guildName||"",role:myRole,powers:S.powers||[],equippedPigPower:S.equippedPigPower||"",ts:Date.now()};
+  skin:sk?sk.name:"Classic",banner:S.banner,bannerGif:S.bannerGif||"",guild:S.guildName||"",role:myRole,powers:S.powers||[],equippedPigPower:S.equippedPigPower||"",ts:Date.now()};
 }
 function mpPublishProfile(){players[myId]=mySnapshot();renderPlayers();mpPublish("profile",mySnapshot());}
 var mpClient=null,mpConnected=false;
@@ -2610,7 +2844,7 @@ function renderPlayers(){
    }
   shown++;
   var b=document.createElement("button");b.type="button";b.className="player";
-  b.innerHTML='<span class="rank '+(idx===0?"top":"")+'">'+(idx===0?"👑":"#"+(idx+1))+'</span><span class="av">'+avatarHTML(p,40)+'</span><span class="grow"><h3>'+esc(p.name||"Player")+roleTag(roleOfUid(p.id||p.localId,p.role))+((p.localId||p.id)===myId||p.id===(fbUser&&fbUser.uid)?'<span class="you-tag">YOU</span>':"")+(p.global?'<span class="title-tag">🌐 Online</span>':"")+(p.title?'<span class="title-tag">'+esc(p.title)+"</span>":"")+'</h3><p>Lv '+p.level+" · "+fmt(p.lifetime||0)+' lifetime · '+fmt(p.pps||0)+'/sec</p></span><span style="font-family:Baloo 2;font-weight:800">🐷 '+fmt(p.coins||0)+"</span>"+'<span class="race-bar"><i style="width:'+Math.round((p.lifetime||0)/maxLife*100)+'%"></i></span>';
+  b.innerHTML='<span class="rank '+(idx===0?"top":"")+'">'+(idx===0?"👑":"#"+(idx+1))+'</span><span class="av">'+avatarHTML(p,40)+'</span><span class="grow"><h3>'+esc(p.name||"Player")+roleTag(roleOfUid(p.id||p.localId,p.role),p)+((p.localId||p.id)===myId||p.id===(fbUser&&fbUser.uid)?'<span class="you-tag">YOU</span>':"")+(p.global?'<span class="title-tag">🌐 Online</span>':"")+(p.title?'<span class="title-tag">'+esc(p.title)+"</span>":"")+'</h3><p>Lv '+p.level+" · "+fmt(p.lifetime||0)+' lifetime · '+fmt(p.pps||0)+'/sec</p></span><span style="font-family:Baloo 2;font-weight:800">🐷 '+fmt(p.coins||0)+"</span>"+'<span class="race-bar"><i style="width:'+Math.round((p.lifetime||0)/maxLife*100)+'%"></i></span>';
   b.addEventListener("click",function(){openProfile(p);});
   list.appendChild(b);
  });
@@ -2651,7 +2885,7 @@ function openProfile(p){
 }
 function mergeProfile(p,d){
  var out={};for(var k in p)out[k]=p[k];
- ["username","name","avatar","avatarImg","banner","title","guildName","coins","lifetime","taps","pps","bestCombo","bestCps","level","grantedLevel","biggestWin","apples","prestiges","skin","vip","role","createdAt","updatedAt","friends","blocked","powers","email","hasRealEmail"].forEach(function(k){if(d[k]!==undefined)out[k]=d[k];});
+ ["username","name","avatar","avatarImg","banner","bannerGif","customTitle","roomCode","title","guildName","coins","lifetime","taps","pps","bestCombo","bestCps","level","grantedLevel","biggestWin","apples","prestiges","skin","vip","role","createdAt","updatedAt","friends","blocked","powers","email","hasRealEmail"].forEach(function(k){if(d[k]!==undefined)out[k]=d[k];});
  out.guild=out.guildName||out.guild||"";
  try{var st=d.state?JSON.parse(d.state):null;
   if(st){if(st.achDone)out.achDone=st.achDone;if(Array.isArray(st.powers))out.powers=st.powers;if(st.title)out.title=out.title||st.title;}
@@ -2663,11 +2897,11 @@ function renderProfileView(p){
  var isMe=!!fbUser&&uid===fbUser.uid;
  var role=roleOfUid(uid,p.role);
  var bn=BANNERS.find(function(x){return x.id===p.banner;})||BANNERS[0];
- var pb=$("ppBanner");pb.style.background=bn.css;
+ var pb=$("ppBanner");if(p.bannerGif){pb.style.backgroundImage="url("+p.bannerGif+")";pb.style.backgroundSize="cover";pb.style.backgroundPosition="center";}else{pb.style.backgroundImage="";pb.style.background=bn.css;}
  pb.textContent=(p.guild?"🏰 "+p.guild+" · ":"")+(p.title?"“"+(titleName(p.title)||p.title)+"”":"Pig Clicker player");
  if(safeAvatarImg(p.avatarImg))$("ppAvatar").innerHTML='<img src="'+safeAvatarImg(p.avatarImg)+'" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover"/>';else $("ppAvatar").textContent=p.avatar||"🐷";
  $("ppName").innerHTML=esc(p.name||p.username||"Player");
- $("ppTags").innerHTML=roleTag(role)+(isMe?'<span class="you-tag">YOU</span>':"")+((p.hasRealEmail||p.email)?' <b style="color:var(--pink-d)">✉️ Verified</b>':"");
+ $("ppTags").innerHTML=roleTag(role,p)+(isMe?'<span class="you-tag">YOU</span>':"")+((p.hasRealEmail||p.email)?' <b style="color:var(--pink-d)">✉️ Verified</b>':"");
  /* join date — real createdAt only; "Joined: —" when the doc has none. */
  var joined="Joined: —";
  if(p.createdAt){var jd=new Date(toMs(p.createdAt));if(!isNaN(jd.getTime()))joined="Joined Pig Clicker: "+jd.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});}
@@ -2698,6 +2932,7 @@ function renderProfileView(p){
  if(isMe){
   ppBtn("✏️ Edit profile","",function(){closeProfileView();showView("profile");});
  }else{
+  if(!isMe&&p.roomCode)ppBtn("🚪 Join "+esc(p.name||p.username||"their")+"'s room","",function(){joinRoom(p.roomCode);});
   var st=friendState(uid);
   if(st==="friends")ppBtn("💬 DM them","pink",function(){openDm(uid,p.name||p.username);});
   if(st==="none")ppBtn("🤝 Add friend","",function(){sendFriendRequest({_uid:uid,name:p.name,username:p.username,blocked:p.blocked||[]});closeProfileView();});
@@ -2727,12 +2962,16 @@ function openStaffPanelFor(uid){
  panelSearch="";var ps=$("panelSearch");if(ps)ps.value="";
  openStaffPanel();
  panelSelectedUid=uid;
- var tries=0;
- var iv=setInterval(function(){
-  tries++;
-  var found=panelPlayers.some(function(x){return x._uid===uid;});
-  if(found||tries>20){clearInterval(iv);if(found){panelSelectedUid=uid;renderPanelList();var el=$("playerTools");if(el)el.scrollIntoView({behavior:"smooth",block:"start"});}}
- },250);
+ var found=panelPlayers.some(function(x){return x._uid===uid;});
+ if(found){renderPanelList();var el=$("playerTools");if(el)el.scrollIntoView({behavior:"smooth",block:"start"});return;}
+ /* player not in the loaded 100 — fetch them directly, once, no rebuild loop */
+ if(!fbDb||!fbUser)return;
+ fbDb.collection("users").doc(uid).get().then(function(doc){
+  if(!doc.exists){toast("Couldn't find that player.");return;}
+  var d=doc.data();d._uid=doc.id;
+  if(!panelPlayers.some(function(x){return x._uid===uid;}))panelPlayers.push(d);
+  renderPanelList();var el2=$("playerTools");if(el2)el2.scrollIntoView({behavior:"smooth",block:"start"});
+ }).catch(function(){toast("Couldn't load that player.");});
 }
 $("ppBack").addEventListener("click",closeProfileView);
 $("awayClose").addEventListener("click",function(){$("awayModal").classList.remove("open");});
@@ -2888,7 +3127,7 @@ function renderAuth(){
 function userDocPayload(){
  return {
   username:profile.username||"", name:displayName(), avatar:profile.avatar, avatarImg:profile.avatarImg||"",
-  title:S.title||"", banner:S.banner||"sunset", guildId:S.guildId||"", guildName:S.guildName||"",
+  title:S.title||"", banner:S.banner||"sunset", bannerGif:S.bannerGif||"", customTitle:myCustomTitle||"", roomCode:roomCode, guildId:S.guildId||"", guildName:S.guildName||"",
   coins:Math.floor(S.coins), lifetime:Math.floor(S.lifetime), taps:S.taps, pps:Math.round(perSec()*10)/10,
   level:level(), grantedLevel:S.grantedLevel||0, biggestWin:Math.floor(S.biggestWin||0), skin:S.skin||"classic",
   apples:S.apples, prestiges:S.prestiges, bestCombo:Math.round((S.bestCombo||1)*10)/10, bestCps:S.bestCps||0,
@@ -2953,6 +3192,8 @@ function onSignedIn(user){
    if(Array.isArray(d.powers))d.powers.forEach(function(pid){if(S.powers.indexOf(pid)===-1)S.powers.push(pid);});
    cloudCoinsSeen=(typeof d.coins==="number")?d.coins:null;
    profile.username=d.username||profile.username;
+   myCustomTitle=d.customTitle||"";
+   if(d.adminPerms)adminPermsByUid[user.uid]=d.adminPerms;
    profile.email=d.email||"";
    myLastSeenVersion=d.lastSeenVersion||"";
    friendsCache=Array.isArray(d.friends)?d.friends:[];
@@ -2994,6 +3235,7 @@ function onSignedIn(user){
    setTimeout(function(){startTutorial(false);},600);
   }
   renderCloudStrip();renderStats();mpPublishProfile();renderEmailCard();
+  claimGifts();claimBankInterest(false);loadAdminPerms();
   setupCloudListeners();hideGate();
  }).catch(function(err){
   noteFbError(err,"load");
@@ -3058,7 +3300,11 @@ function setupCloudListeners(){
   var u1=fbDb.collection("users").orderBy("lifetime","desc").limit(100).onSnapshot(function(snap){
    topCache=[];var online=0,now=Date.now();
    snap.forEach(function(doc){var d=doc.data();d._uid=doc.id;topCache.push(d);if(now-(d.updatedAt||0)<180000)online++;});
-   fbOnlineCount=online;fbDenied=false;renderGlobalBoard();renderFriends();updateOnlineStrip();renderDuelPick();renderCloudStrip();renderPlayers();
+   fbOnlineCount=online;fbDenied=false;
+   var staffOpen=$("staffFloat")&&$("staffFloat").style.display==="flex";
+   var now2=Date.now();
+   if(staffOpen){updateOnlineStrip();}
+   else if(!window.__lbLast||now2-window.__lbLast>2000){window.__lbLast=now2;renderGlobalBoard();renderFriends();updateOnlineStrip();renderDuelPick();renderCloudStrip();renderPlayers();renderHallOfFame();}
   },function(err){noteFbError(err,"leaderboard");renderGlobalBoard();});
   unsubscribers.push(u1);
  }catch(e){renderGlobalBoard();}
@@ -3152,7 +3398,7 @@ function renderGlobalBoard(){
   arr.forEach(function(d,idx){
    var b=document.createElement("button");b.type="button";b.className="player";
    var you=d._uid===fbUser.uid;
-   b.innerHTML='<span class="rank '+(idx===0?"top":"")+'">'+(idx===0?"👑":"#"+(idx+1))+'</span><span class="av">'+avatarHTML(d,40)+'</span><span class="grow"><h3>'+esc(d.name||d.username||"Player")+roleTag(roleOfUid(d._uid,d.role))+(you?'<span class="you-tag">YOU</span>':"")+(d.title?'<span class="title-tag">'+esc(titleName(d.title)||d.title)+"</span>":"")+'</h3><p>Lv '+(d.level||1)+" · "+fmt(d.lifetime||0)+' lifetime · '+fmt(d.taps||0)+' taps'+(d.guildName?" · 🏰 "+esc(d.guildName):"")+'</p></span><span style="font-family:Baloo 2;font-weight:800">🐷 '+fmt(d.coins||0)+"</span>";
+   b.innerHTML='<span class="rank '+(idx===0?"top":"")+'">'+(idx===0?"👑":"#"+(idx+1))+'</span><span class="av">'+avatarHTML(d,40)+'</span><span class="grow"><h3>'+esc(d.name||d.username||"Player")+roleTag(roleOfUid(d._uid,d.role),d)+(you?'<span class="you-tag">YOU</span>':"")+(d.title?'<span class="title-tag">'+esc(titleName(d.title)||d.title)+"</span>":"")+'</h3><p>Lv '+(d.level||1)+" · "+fmt(d.lifetime||0)+' lifetime · '+fmt(d.taps||0)+' taps'+(d.guildName?" · 🏰 "+esc(d.guildName):"")+'</p></span><span style="font-family:Baloo 2;font-weight:800">🐷 '+fmt(d.coins||0)+"</span>";
    b.addEventListener("click",function(){openProfile({avatar:d.avatar,avatarImg:d.avatarImg,name:d.name,username:d.username,coins:d.coins,lifetime:d.lifetime,pps:d.pps,taps:d.taps,bestCombo:d.bestCombo,bestCps:d.bestCps,level:d.level,grantedLevel:d.grantedLevel,apples:d.apples,title:titleName(d.title)||d.title,vip:d.vip,skin:"—",banner:d.banner,guild:d.guildName,_uid:d._uid,role:d.role,createdAt:d.createdAt,updatedAt:d.updatedAt,friends:d.friends,blocked:d.blocked,powers:d.powers});});
    el.appendChild(b);
   });
@@ -3178,7 +3424,8 @@ function renderFriends(){
  if(!fbUser){el.innerHTML='<div class="empty">Sign in to use the friends list. 🐷</div>';renderDuelPick();renderBlocked();return;}
  if(!friendsCache.length){el.innerHTML='<div class="empty">No friends yet. Search for any player in the Find Friends card above and send them a request!</div>';renderDuelPick();renderBlocked();return;}
  el.innerHTML="";
- friendsCache.forEach(function(f){
+ var sorted=friendsCache.slice();var sortMode=($("friendSort")||{}).value||"online";sorted.sort(function(a,b){if(sortMode==="name")return (a.name||a.username||"").localeCompare(b.name||b.username||"");if(sortMode==="level"){var la=(topCache.find(function(d){return d._uid===a.uid;})||{}).level||0,lb=(topCache.find(function(d){return d._uid===b.uid;})||{}).level||0;return lb-la;}if(sortMode==="recent"){var ra=toMs((topCache.find(function(d){return d._uid===a.uid;})||{}).updatedAt||0),rb=toMs((topCache.find(function(d){return d._uid===b.uid;})||{}).updatedAt||0);return rb-ra;}var ao=onlineNow[a.uid]?1:0,bo=onlineNow[b.uid]?1:0;return bo-ao;});
+ sorted.forEach(function(f){
   var live=topCache.find(function(d){return d._uid===f.uid;});
   var row=document.createElement("div");row.className="player";row.style.cursor="pointer";
   row.addEventListener("click",function(e){if(e.target.closest("button"))return;openProfile(live||f);});
@@ -3187,6 +3434,8 @@ function renderFriends(){
   db.addEventListener("click",function(){var sel=$("duelPick");sel.value=f.uid;showView("social");$("btnDuelSend").click();});
   var mb=document.createElement("button");mb.type="button";mb.className="buy small blue";mb.textContent="💬 Message";
   mb.addEventListener("click",function(){openDm(f.uid,f.name||f.username);});
+  var pk=document.createElement("button");pk.type="button";pk.className="buy small";pk.textContent="👉 Poke";
+  pk.addEventListener("click",function(){pokeFriend(f.uid,f.name||f.username);});
   var rb=document.createElement("button");rb.type="button";rb.className="buy small";rb.textContent="Remove";
   rb.addEventListener("click",function(){
    friendsCache=friendsCache.filter(function(x){return x.uid!==f.uid;});
@@ -3203,7 +3452,7 @@ function renderFriends(){
   var wrap=document.createElement("div");wrap.style.display="flex";wrap.style.flexDirection="column";wrap.style.gap="5px";
    var ib=document.createElement("button");ib.type="button";ib.className="buy small";ib.textContent="🗡️ Raid";
    ib.addEventListener("click",function(){inviteFriendToRaid(f);});
-   wrap.appendChild(db);wrap.appendChild(mb);wrap.appendChild(ib);wrap.appendChild(rb);wrap.appendChild(bb);
+   wrap.appendChild(db);wrap.appendChild(mb);wrap.appendChild(pk);wrap.appendChild(ib);wrap.appendChild(rb);wrap.appendChild(bb);
   row.appendChild(wrap);el.appendChild(row);
  });
  renderDuelPick();renderBlocked();
@@ -3400,7 +3649,8 @@ function setupGchatListener(){
     }
     var div=document.createElement("div");div.className="gmsg";
     var when=m.ts&&m.ts.toDate?m.ts.toDate().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"";
-    div.innerHTML='<span class="who">'+avatarHTML(m,22)+" "+esc(m.name||"Pig")+roleTag(roleOfUid(m.uid,m.role))+'</span> <span style="color:var(--muted);font-weight:700;font-size:.75rem">'+when+'</span><div class="txt">'+esc(m.text||"")+'</div>';
+    div.innerHTML='<span class="who">'+avatarHTML(m,22)+" "+esc(m.name||"Pig")+roleTag(roleOfUid(m.uid,m.role),m)+'</span> <span style="color:var(--muted);font-weight:700;font-size:.75rem">'+when+'</span><div class="txt">'+esc(m.text||"")+'</div>';
+    if(m.shout){div.style.border="2px solid #f5b301";div.style.background="rgba(245,179,1,.12)";}
     var rr=document.createElement("div");rr.className="react-row";
     ["👍","🔥","🐷","😂","❤️"].forEach(function(em){
      var cnt=(m.reactions&&m.reactions[em])||0;
@@ -3428,12 +3678,28 @@ $("gchatForm").addEventListener("submit",function(e){
  if(myMuted){toast("🔇 You are muted in global chat.");return;}
  if(!fbUser||!fbDb){toast("Global chat needs an account — sign in first (Profile tab).");return;}
  $("gchatInput").value="";
- fbDb.collection("globalChat").add({uid:fbUser.uid,name:displayName(),role:myRole,avatar:profile.avatar,avatarImg:profile.avatarImg||"",text:v.slice(0,200),reactions:{},ts:firebase.firestore.FieldValue.serverTimestamp()})
+ fbDb.collection("globalChat").add({uid:fbUser.uid,name:displayName(),role:myRole,customTitle:myCustomTitle||"",avatar:profile.avatar,avatarImg:profile.avatarImg||"",text:v.slice(0,200),reactions:{},ts:firebase.firestore.FieldValue.serverTimestamp()})
   .catch(function(err){noteFbError(err,"gchatSend");toast(fbErrText(err.code||"permission-denied"));});
 });
 
+$("btnShout").addEventListener("click",function(){
+ var v=$("gchatInput").value.trim();if(!v){toast("Type your shout in the chat box first.");return;}
+ if(S.coins<1000){toast("A shout costs 1,000 🪙.");return;}
+ if(!fbUser||!fbDb){toast("Global chat needs an account — sign in first.");return;}
+ if(isBanned){toast("🚫 Banned players can't use global chat.");return;}
+ if(myMuted){toast("🔇 You are muted in global chat.");return;}
+ S.coins-=1000;
+ fbDb.collection("globalChat").add({uid:fbUser.uid,name:displayName(),role:myRole,customTitle:myCustomTitle||"",avatar:profile.avatar,avatarImg:profile.avatarImg||"",text:v.slice(0,200),shout:true,reactions:{},ts:firebase.firestore.FieldValue.serverTimestamp()}).catch(function(err){noteFbError(err,"gchatSend");toast(fbErrText(err.code||"permission-denied"));});
+ $("gchatInput").value="";saveLocal();renderStats();toast("📣 SHOUT sent!");
+});
+
 /* ============================== RAIDS ============================== */
-var RAID_NAMES=["👹 MEGA MUD GOLEM","🦖 TRUFFLESAURUS REX","👺 THE GOLDEN BOAR","🐲 MUDWYRM THE ANCIENT","🤖 MECHA-PIG 9000","🐷 PIGZILLA","👑 KING BACON","🌋 LAVA BOAR","❄️ FROST SNOUT","⚡ STORM PIG"];
+var RAID_NAMES=["👹 MEGA MUD GOLEM","🦖 TRUFFLESAURUS REX","👺 THE GOLDEN BOAR","🐲 MUDWYRM THE ANCIENT","🤖 MECHA-PIG 9000","🐷 PIGZILLA","👑 KING BACON","🌋 LAVA BOAR","❄️ FROST SNOUT","⚡ STORM PIG",
+"🦁 LION KING PIG",
+"🐙 KRAKEN BOAR",
+"👻 GHOST PIG",
+"🦂 SCORPION HOG",
+"🌪️ TORNADO TUSK"];
 function raidId(){return "raid-"+Math.floor(Date.now()/(3*3600*1000));}
 function raidMaxHp(){var slot=Math.floor(Date.now()/(3*3600*1000));return 5000000+((slot*7919)%5)*2500000;}
 var raidDoc=null,raidMyDmgLocal=0,raidFlushAt=0,raidClaimedLocal=false;
@@ -3498,6 +3764,9 @@ function renderRaid(){
  if((S.raidCombo||0)>1)info.innerHTML+=" · 🔥 Raid combo ×"+(1+Math.min(S.raidCombo,20)*0.01).toFixed(2);
  $("raidMyDmg").textContent="Your damage: "+fmt(raidMyDmgLocal)+(hp<=0&&raidMyDmgLocal>0?" · your share: "+Math.max(1,Math.round(raidMyDmgLocal/Math.max(1,(raidDoc.totalDmg||raidMyDmgLocal))*(raidDoc.pool||10000000)))+" 🪙":"");
  $("btnRaidClaim").style.display=(hp<=0&&raidMyDmgLocal>0&&!raidClaimedLocal)?"":"none";
+  var bd=new Date().toISOString().slice(0,10);if(S.raidBountyDate!==bd){S.raidBountyDate=bd;S.raidBountyGoal=100000+Math.floor(Math.random()*400000);S.raidBountyClaimed=false;}
+  if(S.raidBountyGoal&&!S.raidBountyClaimed&&raidMyDmgLocal>=S.raidBountyGoal){S.raidBountyClaimed=true;S.coins+=25000;toast("🎯 Raid bounty complete! +25,000 🪙");saveLocal();renderStats();}
+  var rb=$("raidBounty");if(rb)rb.textContent="🎯 Today's bounty: deal "+fmt(S.raidBountyGoal||0)+" damage — reward 25,000 🪙 "+(S.raidBountyClaimed?"(claimed ✅)":"(your damage: "+fmt(raidMyDmgLocal)+")");
  $("btnRaidTap").disabled=hp<=0;
  /* v2.5: countdown + lobby + online + history + quests */
  var nx=raidNextInfo();
@@ -3532,11 +3801,12 @@ $("btnRaidTap").addEventListener("click",function(){
  if(!raidDoc){toast("The boss is still being summoned…");return;}
  if((raidDoc.hp||0)<=0){toast("Boss is down! Claim your reward.");return;}
   var weak=Date.now()<(S.raidWeakUntil||0);
-  var dmg=Math.max(1,Math.floor(perTap()*(0.9+Math.random()*0.2)*(1+skillLvl("raid")*0.10)*(S.guildId?1.05:1)*(weak?2:1)*(1+Math.min(S.raidCombo||0,20)*0.01)));
+  var dmg=Math.max(1,Math.floor(perTap()*(0.9+Math.random()*0.2)*(1+skillLvl("raid")*0.10)*(1+skillLvl("raidarmor")*0.10)*(S.guildId?1.05:1)*(weak?2:1)*(1+Math.min(S.raidCombo||0,20)*0.01)*(Date.now()<(S.raidBoostUntil||0)?1.25:1)*(1+Math.min(3,Math.max(0,Object.keys(players).length-1))*0.05)));
+  if(S.raidFirstHitDate!==raidId()){S.raidFirstHitDate=raidId();dmg=Math.floor(dmg*1.5);toast("🎯 First hit on this boss! +50% damage!");}
   S.raidCombo=(S.raidCombo||0)+1;clearTimeout(raidComboTimer);raidComboTimer=setTimeout(function(){S.raidCombo=0;renderRaid();},5000);
   if(weak)toast("🎯 WEAK POINT! Raid tap ×2!");
  var rb=$("raidBody");if(rb){var fl=document.createElement("span");fl.className="raid-float";fl.textContent="+"+fmt(dmg);fl.style.left=(25+Math.random()*50)+"%";fl.style.top="34px";rb.appendChild(fl);setTimeout(function(){fl.remove();},950);}
- raidMyDmgLocal+=dmg;onRaidTapGain(dmg);renderRaid();
+ raidMyDmgLocal+=dmg;var ms=S.raidMilestones[raidId()]||0;[100000,500000,1000000,5000000].forEach(function(t){if(raidMyDmgLocal>=t&&ms<t){S.raidMilestones[raidId()]=t;S.coins+=Math.floor(t/10);toast("🏆 Raid milestone: "+fmt(t)+" damage! +"+fmt(Math.floor(t/10))+" 🪙");}});onRaidTapGain(dmg);renderRaid();
  if(qol.vibe&&navigator.vibrate)navigator.vibrate(12);
 });
 $("btnRaidClaim").addEventListener("click",function(){
@@ -3556,6 +3826,12 @@ $("btnRaidClaim").addEventListener("click",function(){
  }).catch(function(err){noteFbError(err,"raidClaim");toast(fbErrText(err.code||"permission-denied"));});
 });
 setInterval(flushRaid,3000);
+$("btnSuperPrestige").addEventListener("click",function(){
+ if(S.apples<10){toast("Super Prestige costs 10 Golden Apples — you have "+(S.apples||0)+".");return;}
+ S.apples-=10;S.superPrestige=(S.superPrestige||0)+1;saveLocal();renderStats();renderShop();toast("🌟 SUPER PRESTIGE! +25% tap power forever (now +"+((S.superPrestige||0)*25)+"%)!");
+});
+$("btnRaidAuto").addEventListener("click",function(){S.raidAutoTap=!S.raidAutoTap;saveLocal();$("btnRaidAuto").textContent="🤖 Raid auto-tap: "+(S.raidAutoTap?"On":"Off");toast(S.raidAutoTap?"🤖 Raid auto-tap ON — your pig taps the boss for you!":"🤖 Raid auto-tap off.");});
+setInterval(function(){if(S.raidAutoTap&&raidDoc&&$("btnRaidTap")&&!$("btnRaidTap").disabled)$("btnRaidTap").click();},1200);
 
 /* ============================== DUELS ============================== */
 var duelDoc=null,duelUnsub=null,duelIncUnsub=null,duelScore={me:0,opp:0},duelEndsAt=0,duelFlushAt=0,duelRole="";
@@ -3685,6 +3961,7 @@ function renderGuild(){
  var buff=(g.level||0)*2;
  el.innerHTML='<div class="player" style="cursor:default"><span class="av">🏰</span><span class="grow"><h3>'+esc(g.name||S.guildName)+'</h3><p>Guild ID: '+esc(S.guildId)+'<br>Members: '+(g.members||1)+' · Bank: 🪙 '+fmt(g.bank||0)+' · Level '+(g.level||0)+' → <b>+'+buff+'% to everything</b> for all members</p></span></div>'
   +'<div class="room-row"><input class="room-input" id="guildDonate" type="number" min="1" placeholder="Donate coins to the guild bank…" style="flex:1"/><button class="send-btn" id="btnGuildDonate" type="button">Donate</button><button class="buy red" id="btnGuildLeave" type="button">Leave</button></div>'
+  +(g.owner===fbUser.uid?'<div class="room-row" style="margin-top:8px"><input class="room-input" id="guildWithdrawAmt" type="number" min="1" placeholder="Withdraw from bank…" style="flex:1"/><button class="send-btn" id="btnGuildWithdraw" type="button" style="background:var(--gold)">Withdraw</button></div>':"")
   +'<p class="sub" style="margin-top:8px">Every 1,000,000 🪙 in the bank = +1 guild level (max +20%). Donations are forever — choose wisely, pig.</p>';
  $("btnGuildDonate").addEventListener("click",function(){
   var amt=Math.floor(Number($("guildDonate").value)||0);
@@ -3698,6 +3975,13 @@ function renderGuild(){
    toast("🏰 Donated "+fmt(amt)+" 🪙 to the guild bank!");renderGuild();renderStats();markDirty();
   }).catch(function(err){noteFbError(err,"guildDonate");S.coins+=amt;renderStats();toast("Donation didn't go through — coins refunded.");});
  });
+  var wb=$("btnGuildWithdraw");if(wb)wb.addEventListener("click",function(){
+   var amt=Math.floor(Number($("guildWithdrawAmt").value)||0);
+   if(amt<1){sndErr();toast("Type how many coins to withdraw.");return;}
+   if(amt>(guildCache.bank||0)){sndErr();toast("The guild bank only has "+fmt(guildCache.bank||0)+" 🪙.");return;}
+   S.coins+=amt;renderStats();
+   fbDb.collection("guilds").doc(S.guildId).update({bank:firebase.firestore.FieldValue.increment(-amt)}).then(function(){toast("🏰 Withdrew "+fmt(amt)+" 🪙 from the guild bank!");renderGuild();markDirty();}).catch(function(err){noteFbError(err,"guildWithdraw");S.coins-=amt;renderStats();toast("Withdrawal didn't go through — coins refunded.");});
+  });
  $("btnGuildLeave").addEventListener("click",function(){
   var gid=S.guildId;S.guildId="";S.guildName="";guildCache=null;
   if(gid)fbDb.collection("guilds").doc(gid).update({members:firebase.firestore.FieldValue.increment(-1)}).catch(function(){});
@@ -3736,10 +4020,15 @@ function setupGuildBoardListener(){
 }
 
 /* ============================== ROLES: OWNER / ADMIN / BANS / GRANTS ============================== */
-function roleTag(role){
- if(role==="owner")return '<span class="role-tag tag-owner">👑 OWNER</span>';
- if(role==="admin")return '<span class="role-tag tag-admin">🛡️ ADMIN</span>';
- return "";
+function customTitleTag(p){
+ var t=p&&(p.customTitle||"");
+ if(!t)return "";
+ return ' <span class="title-tag" style="background:#7b2fbe;color:#fff">✨ '+esc(String(t).slice(0,24))+"</span>";
+}
+function roleTag(role,p){
+ if(role==="owner")return '<span class="role-tag tag-owner">👑 OWNER</span>'+customTitleTag(p);
+ if(role==="admin")return '<span class="role-tag tag-admin">🛡️ ADMIN</span>'+customTitleTag(p);
+ return customTitleTag(p);
 }
 function roleOfUid(uid,roleField){
  if(uid&&ownerInfo&&ownerInfo.ownerUid===uid)return "owner";
@@ -3748,6 +4037,8 @@ function roleOfUid(uid,roleField){
  return "player";
 }
 var myDocRole="player";
+var myCustomTitle="";
+var adminPermsByUid={};
 function computeRole(){
  if(!fbUser)return "player";
  if(ownerInfo&&ownerInfo.ownerUid===fbUser.uid)return "owner";
@@ -3984,7 +4275,7 @@ function claimOwner(){
  }).then(function(){
   /* the crown comes with every Goku form */
   if(!S.powers)S.powers=[];
-  var ids=GOKU_FORMS.map(function(f){return f.id;});
+  var ids=GOKU_FORMS.concat(LEGEND_POWERS).map(function(f){return f.id;});
   ids.forEach(function(id){if(S.powers.indexOf(id)===-1)S.powers.push(id);});
   var upd={role:"owner"};
   upd.powers=firebase.firestore.FieldValue.arrayUnion.apply(null,ids);
@@ -4020,7 +4311,7 @@ function renderRolePanel(){
   html+='<p class="sub">Checking who owns the farm…</p>';
  }
  if(fbUser){
-  html+='<p class="sub" style="margin:8px 0">Your role: <b>'+(myRole==="owner"?"👑 Owner":myRole==="admin"?"🛡️ Admin":"Player")+'</b>'+roleTag(myRole)+'</p>';
+  html+='<p class="sub" style="margin:8px 0">Your role: <b>'+(myRole==="owner"?"👑 Owner":myRole==="admin"?"🛡️ Admin":"Player")+'</b>'+roleTag(myRole,{customTitle:myCustomTitle})+'</p>';
  }
  if(fbUser&&(myRole==="owner"||myRole==="admin")){
   var isOwner=myRole==="owner";
@@ -4046,7 +4337,7 @@ function buildStaffFloat(){
   +'<button type="button" class="staff-x" id="staffMin" aria-label="Minimize panel">—</button>'
   +'<button type="button" class="staff-x" id="staffClose" aria-label="Close panel">✕</button></div>'
   +'<div class="staff-body" id="staffFloatBody"><div id="farmTools"></div>'
-  +'<div class="room-row" style="margin-bottom:10px"><input class="room-input" id="panelSearch" placeholder="🔎 Search players by name…" style="flex:1" autocomplete="off"/><button class="chip-btn" id="btnPanelRefresh" type="button">↻ Refresh list</button></div>'
+  +'<div class="room-row" style="margin-bottom:10px"><input class="room-input" id="panelSearch" placeholder="🔎 Search players by name…" style="flex:1" autocomplete="off"/><select id="panelFilter" class="search-input" style="max-width:130px"><option value="all">All players</option><option value="banned">🔨 Banned</option><option value="muted">🔇 Muted</option><option value="admins">🛡️ Admins</option><option value="online">🟢 Online</option></select><button class="chip-btn" id="btnPanelRefresh" type="button">↻ Refresh list</button></div>'
   +'<div id="panelList"><div class="empty">Loading players…</div></div></div>';
  document.body.appendChild(win);
  var head=$("staffHead"),drag=null;
@@ -4069,6 +4360,7 @@ function buildStaffFloat(){
  });
  $("staffClose").addEventListener("click",function(){win.style.display="none";});
  $("panelSearch").addEventListener("input",function(){panelSearch=$("panelSearch").value;renderPanelList();});
+ $("panelFilter").addEventListener("change",renderPanelList);
  $("btnPanelRefresh").addEventListener("click",loadPanelPlayers);
 }
 function openStaffPanel(){
@@ -4086,18 +4378,21 @@ function loadPanelPlayers(){
 }
 /* ---------- player list: compact rows, tap 🛠️ Manage for that player's tools ---------- */
 var panelSelectedUid=null;
+var panelFormState={};
 function renderPanelList(){
  var el=$("panelList");if(!el||!fbUser)return;
  var q=panelSearch.trim().toLowerCase();
+ var pd=$("panelBanDur");if(pd)panelFormState={selDur:pd.value,inReason:($("panelBanReason")||{}).value||"",inCustomNum:($("panelBanNum")||{}).value||"",selCustomUnit:($("panelBanUnit")||{}).value||""};
  el.innerHTML="";
  var shown=0;
  panelPlayers.forEach(function(p){
   var nm=p.name||p.username||"Player";
   if(q&&nm.toLowerCase().indexOf(q)===-1&&(p.username||"").toLowerCase().indexOf(q)===-1)return;
-  shown++;
   var role=roleOfUid(p._uid,p.role),isMe=p._uid===fbUser.uid;
+  var pf=($("panelFilter")||{}).value||"all";if(pf==="banned"&&!isBanActive(p))return;if(pf==="muted"&&!p.muted)return;if(pf==="admins"&&role!=="admin")return;if(pf==="online"&&!isOnline(p.updatedAt))return;
+  shown++;
   var row=document.createElement("div");row.className="player";row.style.cursor="default";row.style.alignItems="flex-start";
-  row.innerHTML='<span class="av">'+avatarHTML(p,40)+'</span><span class="grow"><h3>'+esc(nm)+roleTag(role)+(isMe?'<span class="you-tag">YOU</span>':"")+(isBanActive(p)?'<span class="role-tag tag-banned">🔨 BANNED'+(p.hardBanned?" · HARD":"")+'</span>':"")+(p.muted?'<span class="role-tag" style="background:var(--muted);color:#fff">🔇 MUTED</span>':"")+'</h3><p>🐷 '+fmt(p.coins||0)+' · Lv '+(Math.max(p.level||1,p.grantedLevel||0))+' · '+fmt(p.lifetime||0)+' lifetime'+(isBanActive(p)?' · '+banRemainingText(p):"")+(isBanActive(p)&&p.bannedByOwner?" · banned by the Owner":"")+'</p></span>';
+  row.innerHTML='<span class="av">'+avatarHTML(p,40)+'</span><span class="grow"><h3>'+esc(nm)+roleTag(role,p)+(isMe?'<span class="you-tag">YOU</span>':"")+(isBanActive(p)?'<span class="role-tag tag-banned">🔨 BANNED'+(p.hardBanned?" · HARD":"")+'</span>':"")+(p.muted?'<span class="role-tag" style="background:var(--muted);color:#fff">🔇 MUTED</span>':"")+'</h3><p>🐷 '+fmt(p.coins||0)+' · Lv '+(Math.max(p.level||1,p.grantedLevel||0))+' · '+fmt(p.lifetime||0)+' lifetime'+(isBanActive(p)?' · '+banRemainingText(p):"")+(isBanActive(p)&&p.bannedByOwner?" · banned by the Owner":"")+'</p></span>';
   var mg=document.createElement("button");mg.type="button";mg.className="buy small pink";
   mg.textContent=panelSelectedUid===p._uid?"▲ Close tools":"🛠️ Manage";
   mg.addEventListener("click",function(){panelSelectedUid=panelSelectedUid===p._uid?null:p._uid;renderPanelList();});
@@ -4116,6 +4411,7 @@ function renderPanelList(){
 }
 function panelGiveCoins(p,amt){
  if(!fbDb||!fbUser||(myRole!=="owner"&&myRole!=="admin"))return;
+ if(myRole==="admin"){if(!canAdmin("coins")){toast("🛡️ The Owner hasn't given you the Give coins permission.");return;}if(guardOwnerTarget(p,"give coins to"))return;}
  fbDb.collection("users").doc(p._uid).update({coins:firebase.firestore.FieldValue.increment(amt)}).then(function(){
   p.coins=(p.coins||0)+amt;
   auditGrant("grant_coins",p,{amount:amt});
@@ -4126,6 +4422,7 @@ function panelGiveCoins(p,amt){
 }
 function panelGivePower(p,powerId){
  if(!fbDb||!fbUser||(myRole!=="owner"&&myRole!=="admin"))return;
+ if(myRole==="admin"){if(!canAdmin("powers")){toast("🛡️ The Owner hasn't given you the Give powers permission.");return;}if(guardOwnerTarget(p,"give powers to"))return;}
  var f=gokuForm(powerId);if(!f)return;
  fbDb.collection("users").doc(p._uid).update({powers:firebase.firestore.FieldValue.arrayUnion(powerId)}).then(function(){
   if(!Array.isArray(p.powers))p.powers=[];
@@ -4158,11 +4455,18 @@ function customBanDuration(inNum,inUnit){
 function resolveBanDuration(selDur,inNum,inUnit){
  if(selDur.value==="custom")return customBanDuration(inNum,inUnit);
  var dur=BAN_DURATIONS[parseInt(selDur.value,10)||0];
+ if(!dur){toast("Pick a ban length first.");return null;}
  return {ms:dur.ms,label:""};
 }
 function panelSetBan(p,ban,opts){
  opts=opts||{};
- if(!fbDb||!fbUser||(myRole!=="owner"&&myRole!=="admin"))return;
+ if(!fbDb||!fbUser||(myRole!=="owner"&&myRole!=="admin")){toast("Only the Owner and Admins can ban.");return;}
+ if(myRole==="admin"){
+  if(ban&&opts.hard&&!canAdmin("hardban")){toast("🛡️ The Owner hasn't given you the Hard ban permission.");return;}
+  if(ban&&!opts.hard&&!canAdmin("ban")){toast("🛡️ The Owner hasn't given you the Ban permission.");return;}
+  if(!ban&&!canAdmin("unban")){toast("🛡️ The Owner hasn't given you the Unban permission.");return;}
+  if(guardOwnerTarget(p,ban?"ban":"unban"))return;
+ }
  if(p._uid===fbUser.uid){toast("You can't ban yourself.");return;}
  var role=roleOfUid(p._uid,p.role);
  if(myRole==="admin"){
@@ -4203,7 +4507,7 @@ function panelSetBan(p,ban,opts){
   systemChat(ban?("🔨 "+actorLabel()+(hard?" HARD-banned ":" banned ")+(p.name||p.username)+durTxt+(reason?" — "+reason:"")):("🔓 "+actorLabel()+" unbanned "+(p.name||p.username)));
   toast(ban?((hard?"🔨 Hard-banned ":"🔨 Banned ")+(p.name||p.username)+durTxt+(hard&&!(p.deviceIds||[]).length?" (No device recorded yet — account ban only for now.)":"")+"."):("🔓 Unbanned "+(p.name||p.username)+"."));
   renderPanelList();
- }).catch(function(err){noteFbError(err,"ban");toast(fbErrText(err.code||"permission-denied"));});
+ }).catch(function(err){noteFbError(err,"ban");toast(fbErrText(err.code||"permission-denied"));renderPanelList();});
 }
 function panelSetAdmin(p,make){
  if(!fbDb||!fbUser||myRole!=="owner")return;
@@ -4236,6 +4540,12 @@ function achById(id){for(var i=0;i<ACHIEVEMENTS.length;i++)if(ACHIEVEMENTS[i].id
 function skinName(id){for(var i=0;i<SKINS.length;i++)if(SKINS[i].id===id)return SKINS[i].name;return "";}
 function sendInbox(p, items, action, label){
  if(!fbDb||!fbUser||(myRole!=="owner"&&myRole!=="admin"))return Promise.reject(new Error("staff-only"));
+ if(myRole==="admin"){
+  if(guardOwnerTarget(p,"grant to"))return Promise.reject(new Error("owner-immune"));
+  var INBOX_PERM={xp:"levels",grantlevel:"levels",setxp:"levels",bpxp:"levels",bppremium:"levels",vip:"skins",achievement:"skins",title:"skins",skin:"skins",skins_all:"skins",powers_all:"powers",raiddmg:"powers",pigstudio_all:"skins",tutorial_reset:"levels",bankbonus:"coins",spins:"coins",reset:"reset",wipe:"reset"};
+  var need=null;items.forEach(function(it){if(INBOX_PERM[it.t])need=INBOX_PERM[it.t];});
+  if(need&&!canAdmin(need)){toast("🛡️ The Owner hasn't given you that permission.");return Promise.reject(new Error("no-perm"));}
+ }
  items.forEach(function(it){if(!it.k)it.k=inboxKey();});
  return fbDb.collection("users").doc(p._uid).update({staffInbox:firebase.firestore.FieldValue.arrayUnion.apply(null,items)}).then(function(){
   auditGrant(action,p,{});
@@ -4264,9 +4574,14 @@ function applyInbox(items){
   else if(it.t==="title"&&it.id){if(!S.grantedTitles)S.grantedTitles=[];if(S.grantedTitles.indexOf(it.id)===-1)S.grantedTitles.push(it.id);toast("🏷️ You were granted the title: "+(titleName(it.id)||it.id)+"!");changed=true;}
   else if(it.t==="skin"&&it.id){if(!S.skinsOwned)S.skinsOwned={};S.skinsOwned[it.id]=true;toast("🎨 You received the "+(skinName(it.id)||it.id)+" skin!");changed=true;}
   else if(it.t==="skins_all"){SKINS.forEach(function(sk){S.skinsOwned[sk.id]=true;});toast("🎨 All skins unlocked!");changed=true;}
-  else if(it.t==="powers_all"){GOKU_FORMS.forEach(function(f){if(S.powers.indexOf(f.id)===-1)S.powers.push(f.id);});toast("⚡ All Goku powers unlocked!");changed=true;}
+  else if(it.t==="powers_all"){GOKU_FORMS.concat(LEGEND_POWERS).forEach(function(f){if(S.powers.indexOf(f.id)===-1)S.powers.push(f.id);});toast("⚡ All Goku + Legend powers unlocked!");changed=true;}
   else if(it.t==="vip"&&it.id){S.vipGranted=it.id;toast("💎 VIP badge granted!");changed=true;}
   else if(it.t==="reset"){S=freshState();bestComboSeen=1;combo=1;toast("🔄 Your progress was reset by the Owner.");changed=true;}
+  else if(it.t==="raiddmg"&&it.amt){S.raidDamage=(S.raidDamage||0)+it.amt;toast("🗡️ You gained "+fmt(it.amt)+" raid damage!");changed=true;}
+  else if(it.t==="pigstudio_all"){SKINS.forEach(function(sk){S.skinsOwned[sk.id]=true;});PIG_POWERS.forEach(function(pp){S.pigPowersOwned=S.pigPowersOwned||{};S.pigPowersOwned[pp.id]=true;});toast("🎨 Pig Studio bundle unlocked — all skins + all Pig Powers!");changed=true;}
+  else if(it.t==="tutorial_reset"){toast("🎓 The Owner sent you the tutorial again!");try{startTutorial(true);}catch(e){}changed=true;}
+  else if(it.t==="bankbonus"&&it.amt){S.bankBalance=(S.bankBalance||0)+it.amt;toast("🏦 The Owner deposited "+fmt(it.amt)+" 🪙 in your Pig Bank!");changed=true;}
+  else if(it.t==="spins"&&it.n){S.spinTickets=(S.spinTickets||0)+it.n;toast("🎡 You received "+it.n+" Lucky Spin tickets!");changed=true;}
   else if(it.t==="wipe"){S=freshState();bestComboSeen=1;combo=1;friendsCache=[];blockedCache=[];toast("🧹 Your data was wiped by the Owner.");changed=true;}
  });
  if(changed){
@@ -4306,6 +4621,104 @@ function armConfirm(btn,armText,ms){
  setTimeout(function(){delete btn.dataset.arm;btn.textContent=old;},ms||3000);
 }
 function lifetimeForLevel(lv){lv=Math.max(1,Math.min(50,lv));return Math.pow(lv-1,2)*100;}
+
+
+/* ============================== v2.5.1: PER-ADMIN PERMISSIONS ============================== */
+/* Discord-role style: the Owner picks exactly what each admin can do.
+   HARD RULE (never a toggle, enforced in the UI AND in every action
+   function below): NO admin can do ANYTHING to the Owner, no matter
+   which toggles are on. */
+var ADMIN_PERMS=[
+ {id:"ban",label:"🔨 Ban players"},
+ {id:"hardban",label:"🔨 Hard ban (device)"},
+ {id:"unban",label:"🔓 Unban players"},
+ {id:"mute",label:"🔇 Mute / unmute"},
+ {id:"coins",label:"🪙 Give coins"},
+ {id:"powers",label:"⚡ Give powers"},
+ {id:"levels",label:"📈 Give levels / XP"},
+ {id:"skins",label:"🎨 Give skins / titles"},
+ {id:"reset",label:"🔄 Reset player progress"},
+ {id:"announce",label:"📣 Announcements & events"},
+ {id:"actadmin",label:"🛡️ Act on other admins (off by default)"}
+];
+var DEFAULT_ADMIN_PERMS={ban:true,hardban:true,unban:true,mute:true,coins:true,powers:true,levels:true,skins:true,reset:false,announce:false,actadmin:false};
+function adminPermsFor(uid){
+ var p=adminPermsByUid[uid];
+ if(!p)return DEFAULT_ADMIN_PERMS;
+ var out={};ADMIN_PERMS.forEach(function(x){out[x.id]=p[x.id]!==false;});return out;
+}
+function canAdmin(perm){
+ if(myRole==="owner")return true;
+ if(myRole!=="admin")return false;
+ return !!adminPermsFor(fbUser.uid)[perm];
+}
+function targetIsOwner(p){return roleOfUid(p._uid,p.role)==="owner";}
+function guardOwnerTarget(p,action){
+ if(p._uid===fbUser.uid){toast("You can't "+action+" yourself.");return true;}
+ if(targetIsOwner(p)){toast("🛡️ No admin can "+action+" the Owner — ever.");return true;}
+ return false;
+}
+function loadAdminPerms(){
+ if(!fbDb)return;
+ fbDb.collection("config").doc("admins").get().then(function(doc){
+  if(!doc.exists)return;var d=doc.data();
+  if(d.perms)adminPermsByUid=d.perms;
+  if($("staffFloat")&&$("staffFloat").style.display==="flex"){farmToolsSig="";renderFarmTools();}
+ }).catch(function(){});
+}
+function panelSetAdminPerms(uid,perms){
+ if(!fbDb||!fbUser||myRole!=="owner")return;
+ adminPermsByUid[uid]=perms;
+ fbDb.collection("config").doc("admins").set({perms:adminPermsByUid},{merge:true}).catch(function(err){noteFbError(err,"adminPerms");});
+ fbDb.collection("users").doc(uid).update({adminPerms:perms}).catch(function(){});
+ auditGrant("set_admin_perms",{_uid:uid,name:uid},{});
+ toast("🛡️ Permissions updated.");
+}
+function panelSetCustomTitle(p,title){
+ if(!fbDb||!fbUser||myRole!=="owner")return;
+ if(p._uid===fbUser.uid){toast("The Owner's title is fixed.");return;}
+ title=String(title||"").trim().slice(0,24);
+ fbDb.collection("users").doc(p._uid).update({customTitle:title}).then(function(){
+  p.customTitle=title;
+  auditGrant(title?"set_title":"remove_title",p,{title:title});
+  systemChat(title?("✨ 👑 Owner gave "+(p.name||p.username)+" the custom title “"+title+"”"):("✨ 👑 Owner removed "+(p.name||p.username)+"'s custom title"));
+  toast(title?("✨ Custom title set: "+title):("✨ Custom title removed."));
+  renderPanelList();
+ }).catch(function(err){noteFbError(err,"setTitle");toast(fbErrText(err.code||"permission-denied"));});
+}
+function loadPanelRecentBans(el,withUnban){
+ if(!el)return;el.innerHTML="Loading…";
+ fbDb.collection("grants").orderBy("at","desc").limit(50).get().then(function(snap){
+  var rows=[];
+  snap.forEach(function(d){var o=d.data();if(o.action==="ban"||o.action==="hard_ban"||o.action==="unban")rows.push({o:o});});
+  if(!rows.length){el.innerHTML="No bans yet.";return;}
+  el.innerHTML="";
+  rows.slice(0,5).forEach(function(r){
+   var o=r.o;
+   var when=o.at&&o.at.toDate?o.at.toDate().toLocaleString():"";
+   var div=document.createElement("div");div.className="perm-row";
+   var lab=document.createElement("span");lab.textContent=(o.action==="unban"?"🔓 ":"🔨 ")+(o.targetName||"Player")+(o.action==="hard_ban"?" (HARD)":"")+" · "+when;
+   div.appendChild(lab);
+   if(withUnban&&o.action!=="unban"){
+    var ub=document.createElement("button");ub.type="button";ub.className="chip-btn";ub.textContent="Unban";
+    ub.addEventListener("click",function(){
+     var target=panelPlayers.find(function(x){return x._uid===o.targetUid;})||{_uid:o.targetUid,name:o.targetName,username:o.targetName};
+     panelSetBan(target,false);
+    });
+    div.appendChild(ub);
+   }
+   el.appendChild(div);
+  });
+ }).catch(function(err){noteFbError(err,"banHistory");el.innerHTML="Couldn't load ban history.";});
+}
+function loadPanelActivity(el){
+ if(!el)return;el.innerHTML="Loading…";
+ fbDb.collection("grants").orderBy("at","desc").limit(8).get().then(function(snap){
+  if(snap.empty){el.innerHTML="No staff actions yet.";return;}
+  var lines=[];snap.forEach(function(d){var o=d.data();var when=o.at&&o.at.toDate?o.at.toDate().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"";lines.push(when+" · "+(o.actorName||"?")+" · "+o.action+" → "+(o.targetName||"?"));});
+  el.innerHTML=lines.map(function(l){return "<div>"+esc(l)+"</div>";}).join("");
+ }).catch(function(err){noteFbError(err,"activity");el.innerHTML="Couldn't load activity.";});
+}
 
 /* ---------- per-player tools: 31 for Owner, 5 for Admin ---------- */
 /* v2.4: "inf" arm state keyed by player UID in JS — the two-tap confirm
@@ -4401,13 +4814,13 @@ function buildPlayerTools(container,p,role,isMe){
  }
  /* --- ⚡ Powers --- */
  var g4=toolSec(container,"⚡ Powers");
- var c9=toolCard("Give Goku power","Grant one of the 8 Goku forms.");
- var selP=toolSelect(GOKU_FORMS.map(function(f){return{value:f.id,label:"⚡ "+f.name+" ×"+f.mult};}));
+ var c9=toolCard("Give power","Grant a Goku form or a Legend power (☀️ Sun God Luffy + 3 more).");
+ var selP=toolSelect(GOKU_FORMS.concat(LEGEND_POWERS).map(function(f){return{value:f.id,label:"⚡ "+f.name+" ×"+f.mult};}));
  var bP=toolBtn("Give power","pink");
  bP.addEventListener("click",function(){panelGivePower(p,selP.value);});
  c9.appendChild(selP);c9.appendChild(bP);g4.appendChild(c9);
  if(isOwner){
-  var c10=toolCard("Unlock all powers","Give ALL 8 Goku forms at once.");
+  var c10=toolCard("Unlock all powers","Give ALL Goku forms + Legend powers at once.");
   var bPAll=toolBtn("Unlock all ⚡","pink");
   bPAll.addEventListener("click",function(){panelGivePowerAll(p);});
   c10.appendChild(bPAll);g4.appendChild(c10);
@@ -4463,26 +4876,31 @@ function buildPlayerTools(container,p,role,isMe){
  var c19=toolCard(bannedNow?"Unban player":"Ban player",banBlocked?banWhy:(bannedNow?"Lift the ban — they can play again.":"Ban them: signed out on the spot, game locked."));
  var durOpts=BAN_DURATIONS.map(function(d,i){return{value:String(i),label:"⏱️ "+d.label};});
  durOpts.push({value:"custom",label:"⏱️ Custom…"});
- var selDur=toolSelect(durOpts);
- var inReason=toolInput("Reason for ban (optional)",true);
+ var selDur=toolSelect(durOpts);selDur.id="panelBanDur";
+ var inReason=toolInput("Reason for ban (optional)",true);inReason.id="panelBanReason";
  /* v2.4.1: custom length — number + unit, each in its own space. */
  var customRow=document.createElement("div");
  customRow.style.cssText="display:none;flex-direction:column;gap:8px;margin-top:8px;";
- var inCustomNum=toolInput("How long?");
- var selCustomUnit=toolSelect(BAN_CUSTOM_UNITS.map(function(u,i){return{value:String(i),label:u.label};}));
+ var inCustomNum=toolInput("How long?");inCustomNum.id="panelBanNum";
+ var selCustomUnit=toolSelect(BAN_CUSTOM_UNITS.map(function(u,i){return{value:String(i),label:u.label};}));selCustomUnit.id="panelBanUnit";
  customRow.appendChild(inCustomNum);customRow.appendChild(selCustomUnit);
  selDur.addEventListener("change",function(){customRow.style.display=selDur.value==="custom"?"flex":"none";});
  var bB=toolBtn(bannedNow?"🔓 Unban":"🔨 Ban",bannedNow?"blue":"red");
  if(banBlocked){bB.disabled=true;bB.title=banWhy;}
  bB.addEventListener("click",function(){
   if(banBlocked){toast(banWhy);return;}
-  if(bannedNow){panelSetBan(p,false);return;}
+  if(bannedNow){bB.disabled=true;bB.textContent="🔓 Unbanning…";panelSetBan(p,false);return;}
   var dur=resolveBanDuration(selDur,inCustomNum,selCustomUnit);
-  if(!dur)return;
+  if(!dur){toast("Pick a ban length first.");return;}
+  bB.disabled=true;bB.textContent="🔨 Banning…";
   panelSetBan(p,true,{durationMs:dur.ms,durationLabel:dur.label,reason:inReason.value});
  });
  if(!bannedNow){c19.appendChild(selDur);c19.appendChild(customRow);c19.appendChild(inReason);}
  c19.appendChild(bB);g6.appendChild(c19);
+ if(panelFormState.selDur){selDur.value=panelFormState.selDur;customRow.style.display=selDur.value==="custom"?"flex":"none";}
+ if(panelFormState.inReason)inReason.value=panelFormState.inReason;
+ if(panelFormState.inCustomNum)inCustomNum.value=panelFormState.inCustomNum;
+ if(panelFormState.selCustomUnit)selCustomUnit.value=panelFormState.selCustomUnit;
  /* v2.4: Hard Ban — account + device, so a new account can't dodge it. */
  if(!bannedNow){
   var c19h=toolCard("🔨 Hard Ban","Bans the account AND the device — no new-account dodging.");
@@ -4491,9 +4909,9 @@ function buildPlayerTools(container,p,role,isMe){
   bHB.addEventListener("click",function(){
    if(banBlocked){toast(banWhy);return;}
    var dur2=resolveBanDuration(selDur,inCustomNum,selCustomUnit);
-   if(!dur2)return;
+   if(!dur2){toast("Pick a ban length first.");return;}
    if(!bHB.dataset.arm){armConfirm(bHB,"⚠️ Tap again to HARD BAN");return;}
-   delete bHB.dataset.arm;bHB.textContent="🔨 Hard Ban";
+   delete bHB.dataset.arm;bHB.disabled=true;bHB.textContent="🔨 Hard-banning…";
    panelSetBan(p,true,{hard:true,durationMs:dur2.ms,durationLabel:dur2.label,reason:inReason.value});
   });
   c19h.appendChild(bHB);g6.appendChild(c19h);
@@ -4504,16 +4922,18 @@ function buildPlayerTools(container,p,role,isMe){
  var c20=toolCard(p.muted?"Unmute player":"Mute player",muteBlocked||(p.muted?"Let them chat again.":"Silence them in global chat and DMs."));
  var bM=toolBtn(p.muted?"🔊 Unmute":"🔇 Mute","blue");
  if(muteBlocked){bM.disabled=true;bM.title=muteBlocked;}
- bM.addEventListener("click",function(){if(muteBlocked){toast(muteBlocked);return;}panelSetMute(p,!p.muted);});
+ bM.addEventListener("click",function(){if(muteBlocked){toast(muteBlocked);return;}bM.disabled=true;bM.textContent=p.muted?"🔊 Unmuting…":"🔇 Muting…";panelSetMute(p,!p.muted);});
  c20.appendChild(bM);g6.appendChild(c20);
- if(isOwner&&!isMe){
+ if(!isMe&&(isOwner||canAdmin("reset"))){
   var c21=toolCard("Reset progress","Wipe their coins, levels, upgrades and badges back to zero. Account stays.");
   var bR=toolBtn("🔄 Reset progress","red");
   bR.addEventListener("click",function(){
    if(!bR.dataset.arm){armConfirm(bR,"⚠️ Tap again to RESET");return;}
-   delete bR.dataset.arm;bR.textContent="🔄 Reset progress";panelResetPlayer(p);
+   delete bR.dataset.arm;bR.disabled=true;bR.textContent="🔄 Resetting…";panelResetPlayer(p);
   });
   c21.appendChild(bR);g6.appendChild(c21);
+ }
+ if(isOwner&&!isMe){
   var c22=toolCard("Wipe all data","Full wipe: progress + friends + requests + chat messages. Gone forever.");
   var bW=toolBtn("🧹 Wipe everything","red");
   bW.addEventListener("click",function(){
@@ -4522,6 +4942,147 @@ function buildPlayerTools(container,p,role,isMe){
   });
   c22.appendChild(bW);g6.appendChild(c22);
  }
+
+ /* --- 🛠️ v2.5.1 Admin tools --- */
+ var g8=toolSec(container,"🛠️ Admin tools (v2.5.1)");
+ if(!bannedNow){
+ var cQ=toolCard("⚡ Quick ban","One tap, no form — 1h, 24h, 7d or permanent.");
+ var qbRow=document.createElement("div");qbRow.style.cssText="display:flex;flex-wrap:wrap;gap:8px;";
+ [["1h",3600000,"1 hour"],["24h",86400000,"24 hours"],["7d",604800000,"7 days"],["∞",null,"Permanent"]].forEach(function(qb){
+  var qbBtn=toolBtn("🔨 "+qb[0],"red");
+  if(banBlocked){qbBtn.disabled=true;qbBtn.title=banWhy;}
+  if(myRole==="admin"&&!canAdmin("ban")){qbBtn.disabled=true;qbBtn.title="The Owner hasn't given you the Ban permission.";}
+  qbBtn.addEventListener("click",function(){
+   if(banBlocked){toast(banWhy);return;}
+   qbBtn.disabled=true;qbBtn.textContent="🔨 Banning…";
+   panelSetBan(p,true,{durationMs:qb[1],durationLabel:qb[2],reason:"Quick ban"});
+  });
+  qbRow.appendChild(qbBtn);
+ });
+ cQ.appendChild(qbRow);g8.appendChild(cQ);
+ }
+ var cRB=toolCard("🔨 Recent bans","The last bans, with a one-tap unban.");
+ var rbList=document.createElement("div");rbList.className="sub";rbList.textContent="Tap Load to see recent bans.";
+ var bRB=toolBtn("Load recent bans","blue");
+ bRB.addEventListener("click",function(){loadPanelRecentBans(rbList,true);});
+ cRB.appendChild(rbList);cRB.appendChild(bRB);g8.appendChild(cRB);
+ var cBH=toolCard("📜 Ban history","Every ban / unban, newest first.");
+ var bhList=document.createElement("div");bhList.className="sub";bhList.textContent="Tap Load to see the history.";
+ var bBH=toolBtn("Load ban history","blue");
+ bBH.addEventListener("click",function(){loadPanelRecentBans(bhList,false);});
+ cBH.appendChild(bhList);cBH.appendChild(bBH);g8.appendChild(cBH);
+ var cBM=toolCard("🔇 Bulk mute","Mute every player online right now (staff excluded).");
+ var bBM=toolBtn("Mute all online","red");
+ if(myRole==="admin"&&!canAdmin("mute")){bBM.disabled=true;bBM.title="The Owner hasn't given you the Mute permission.";}
+ bBM.addEventListener("click",function(){
+  if(myRole==="admin"&&!canAdmin("mute")){toast("🛡️ The Owner hasn't given you the Mute permission.");return;}
+  if(!bBM.dataset.arm){armConfirm(bBM,"⚠️ Tap again to MUTE ALL ONLINE");return;}
+  delete bBM.dataset.arm;bBM.textContent="Mute all online";
+  var jobs=[];
+  panelPlayers.forEach(function(pp){
+   if(pp._uid===fbUser.uid)return;
+   var r=roleOfUid(pp._uid,pp.role);if(r==="owner"||r==="admin")return;
+   if(!isOnline(pp.updatedAt))return;
+   jobs.push(fbDb.collection("users").doc(pp._uid).update({muted:true}).catch(function(){}));
+  });
+  Promise.all(jobs).then(function(){auditGrant("bulk_mute",{_uid:"*",name:"online players"},{});systemChat("🔇 "+actorLabel()+" muted everyone online.");toast("🔇 Muted everyone online.");renderPanelList();});
+ });
+ cBM.appendChild(bBM);g8.appendChild(cBM);
+ var cBU=toolCard("🔊 Bulk unmute","Unmute every muted player in the list.");
+ var bBU=toolBtn("Unmute all muted","blue");
+ if(myRole==="admin"&&!canAdmin("mute")){bBU.disabled=true;bBU.title="The Owner hasn't given you the Mute permission.";}
+ bBU.addEventListener("click",function(){
+  if(myRole==="admin"&&!canAdmin("mute")){toast("🛡️ The Owner hasn't given you the Mute permission.");return;}
+  var jobs=[];
+  panelPlayers.forEach(function(pp){if(pp.muted)jobs.push(fbDb.collection("users").doc(pp._uid).update({muted:false}).catch(function(){}));});
+  Promise.all(jobs).then(function(){toast("🔊 Unmuted everyone.");renderPanelList();});
+ });
+ cBU.appendChild(bBU);g8.appendChild(cBU);
+ var cRT=toolCard("🎡 Give raid tickets","Hand out Lucky Spin tickets.");
+ var inRT=toolInput("Tickets");var bRT=toolBtn("Give tickets");
+ if(myRole==="admin"&&!canAdmin("coins")){bRT.disabled=true;bRT.title="The Owner hasn't given you this permission.";}
+ bRT.addEventListener("click",function(){var n=Math.floor(Number(inRT.value)||0);if(n<1){sndErr();toast("Type how many tickets first.");return;}sendInbox(p,[{t:"spins",n:n}],"grant_spins","🎡 "+actorLabel()+" gave "+n+" Lucky Spin tickets to "+nm);inRT.value="";});
+ cRT.appendChild(inRT);cRT.appendChild(bRT);g8.appendChild(cRT);
+ var cPS=toolCard("🎨 Grant Pig Studio bundle","All skins + all Pig Powers at once.");
+ var bPS=toolBtn("Grant Studio bundle");
+ if(myRole==="admin"&&!canAdmin("skins")){bPS.disabled=true;bPS.title="The Owner hasn't given you the Give skins/titles permission.";}
+ bPS.addEventListener("click",function(){sendInbox(p,[{t:"pigstudio_all"}],"grant_pigstudio","🎨 "+actorLabel()+" unlocked the full Pig Studio bundle for "+nm+"!");});
+ cPS.appendChild(bPS);g8.appendChild(cPS);
+ if(!isOwner){
+  var cST=toolCard("🎨 Give skin / title","Admins with the skins permission can grant these.");
+  var selST=toolSelect(SKINS.map(function(s){return{value:"skin:"+s.id,label:"🎨 "+s.name};}).concat(TITLES.map(function(t){return{value:"title:"+t.id,label:"🏷️ "+t.name};})));
+  var bST=toolBtn("Give it");
+  if(!canAdmin("skins")){bST.disabled=true;bST.title="The Owner hasn't given you the Give skins/titles permission.";}
+  bST.addEventListener("click",function(){
+   var v=selST.value.split(":");if(v[0]==="skin")sendInbox(p,[{t:"skin",id:v[1]}],"grant_skin","🎨 "+actorLabel()+" gave the "+skinName(v[1])+" skin to "+nm);
+   else sendInbox(p,[{t:"title",id:v[1]}],"grant_title","🏷️ "+actorLabel()+" gave the “"+titleName(v[1])+"” title to "+nm);
+  });
+  cST.appendChild(selST);cST.appendChild(bST);g8.appendChild(cST);
+ }
+ var cAF=toolCard("📰 Staff activity","The newest staff actions (bans, grants, mutes).");
+ var afList=document.createElement("div");afList.className="sub";afList.textContent="Tap Load to see staff activity.";
+ var bAF=toolBtn("Load activity","blue");
+ bAF.addEventListener("click",function(){loadPanelActivity(afList);});
+ cAF.appendChild(afList);cAF.appendChild(bAF);g8.appendChild(cAF);
+ var cBD=toolCard("📱 Ban this device","Device-ban every device this player has used (account stays).");
+ var bBD=toolBtn("Ban device","red");
+ if(banBlocked){bBD.disabled=true;bBD.title=banWhy;}
+ if(myRole==="admin"&&!canAdmin("hardban")){bBD.disabled=true;bBD.title="The Owner hasn't given you the Hard ban permission.";}
+ bBD.addEventListener("click",function(){
+  if(banBlocked){toast(banWhy);return;}
+  if(myRole==="admin"&&!canAdmin("hardban")){toast("🛡️ The Owner hasn't given you the Hard ban permission.");return;}
+  var devs=p.deviceIds||[];
+  if(!devs.length){toast("No device recorded for this player yet.");return;}
+  if(!bBD.dataset.arm){armConfirm(bBD,"⚠️ Tap again to BAN DEVICE");return;}
+  delete bBD.dataset.arm;bBD.textContent="Ban device";
+  var jobs=devs.map(function(dev){return fbDb.collection("deviceBans").doc(dev).set({deviceId:dev,bannedUid:p._uid,bannedBy:fbUser.uid,bannedAt:firebase.firestore.FieldValue.serverTimestamp(),bannedUntil:null,reason:"Device ban from panel",banLengthLabel:"Permanent"}).catch(function(){});});
+  Promise.all(jobs).then(function(){auditGrant("device_ban",p,{});systemChat("📱 "+actorLabel()+" device-banned "+(p.name||p.username));toast("📱 Device banned — new accounts on that device are locked out.");renderPanelList();});
+ });
+ cBD.appendChild(bBD);g8.appendChild(cBD);
+ var cEX=toolCard("📋 Export audit log","Copy the last 50 staff actions to the clipboard.");
+ var bEX=toolBtn("Copy audit log","blue");
+ bEX.addEventListener("click",function(){
+  fbDb.collection("grants").orderBy("at","desc").limit(50).get().then(function(snap){
+   var lines=[];snap.forEach(function(d){var o=d.data();var when=o.at&&o.at.toDate?o.at.toDate().toLocaleString():"";lines.push(when+" | "+(o.actorName||"?")+" | "+o.action+" | "+(o.targetName||"?")+(o.amount!=null?" | "+o.amount:"")+(o.reason?" | "+o.reason:""));});
+   var txt=lines.join("\n")||"No actions logged yet.";
+   if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(function(){toast("📋 Audit log copied ("+lines.length+" actions)!");},function(){toast("Couldn't copy — clipboard blocked.");});
+   else toast("Clipboard not available here.");
+  }).catch(function(err){noteFbError(err,"auditExport");toast("Couldn't load the audit log.");});
+ });
+ cEX.appendChild(bEX);g8.appendChild(cEX);
+ var cTU=toolCard("🎓 Replay tutorial","Make the first-join tutorial play again for this player.");
+ var bTU=toolBtn("Send tutorial");
+ bTU.addEventListener("click",function(){sendInbox(p,[{t:"tutorial_reset"}],"grant_tutorial","🎓 "+actorLabel()+" sent the tutorial to "+nm+" again.");});
+ cTU.appendChild(bTU);g8.appendChild(cTU);
+ var cBB=toolCard("🏦 Bank bonus","Drop coins straight into their Pig Bank.");
+ var inBB=toolInput("Coins for their bank");var bBB=toolBtn("Give bank bonus");
+ if(myRole==="admin"&&!canAdmin("coins")){bBB.disabled=true;bBB.title="The Owner hasn't given you this permission.";}
+ bBB.addEventListener("click",function(){var n=Math.floor(Number(inBB.value)||0);if(n<1){sndErr();toast("Type how many coins first.");return;}sendInbox(p,[{t:"bankbonus",amt:n}],"grant_bankbonus","🏦 "+actorLabel()+" deposited "+fmtFull(n)+" 🪙 in "+nm+"'s Pig Bank!");inBB.value="";});
+ cBB.appendChild(inBB);cBB.appendChild(bBB);g8.appendChild(cBB);
+ if(isOwner&&!isMe){
+  var cCT=toolCard("✨ Custom title","Give this admin a Discord-style custom title (shows next to their name everywhere).");
+  var inCT=toolInput("Custom title (max 24 chars)");var bCT=toolBtn("Set title","pink");
+  var bCTRm=toolBtn("Remove title","blue");
+  bCT.addEventListener("click",function(){if(!inCT.value.trim()){sndErr();toast("Type a title first.");return;}panelSetCustomTitle(p,inCT.value);inCT.value="";});
+  bCTRm.addEventListener("click",function(){panelSetCustomTitle(p,"");});
+  cCT.appendChild(inCT);cCT.appendChild(bCT);cCT.appendChild(bCTRm);g8.appendChild(cCT);
+ }
+ if(isOwner&&!isMe&&role==="admin"){
+  var cPM=toolCard("🛡️ Admin permissions","Pick exactly what this admin can do. No toggle can ever let an admin touch the Owner.");
+  var permsNow=adminPermsFor(p._uid);
+  var pmDiv=document.createElement("div");pmDiv.className="perm-list";
+  ADMIN_PERMS.forEach(function(perm){
+   var row=document.createElement("div");row.className="perm-row";
+   var lab=document.createElement("span");lab.textContent=perm.label;row.appendChild(lab);
+   var tgl=document.createElement("button");tgl.type="button";tgl.className="chip-btn";tgl.textContent=permsNow[perm.id]?"✅ On":"❌ Off";
+   tgl.addEventListener("click",function(){permsNow[perm.id]=!permsNow[perm.id];tgl.textContent=permsNow[perm.id]?"✅ On":"❌ Off";});
+   row.appendChild(tgl);pmDiv.appendChild(row);
+  });
+  var bPM=toolBtn("Save permissions","pink");
+  bPM.addEventListener("click",function(){panelSetAdminPerms(p._uid,permsNow);});
+  cPM.appendChild(pmDiv);cPM.appendChild(bPM);g8.appendChild(cPM);
+ }
+
  /* --- 🛡️ Roles (Owner) --- */
  if(isOwner&&!isMe&&role!=="owner"){
   var g7=toolSec(container,"🛡️ Roles");
@@ -4540,7 +5101,31 @@ function renderFarmTools(){
  if(sig===farmToolsSig&&el.dataset.built)return;
  farmToolsSig=sig;el.dataset.built="1";
  el.innerHTML="";
- if(myRole!=="owner")return;
+ if(myRole!=="owner"){
+  if(myRole==="admin"&&canAdmin("announce")){
+   var sec2=document.createElement("div");sec2.className="tool-sec";
+   var h2=document.createElement("h4");h2.textContent="🌍 Farm-wide tools — Admin (announcements & events)";sec2.appendChild(h2);
+   var g2=document.createElement("div");g2.className="tool-grid";sec2.appendChild(g2);
+   var a1=toolCard("📣 Global announcement","Post a system message to global chat.");
+   var inAn2=toolInput("Announcement text…",true);var bAn2=toolBtn("Send 📣","pink");
+   bAn2.addEventListener("click",function(){var v=inAn2.value.trim();if(!v){sndErr();toast("Type the announcement first.");return;}systemChat("📣 🛡️ Admin: "+v);auditGrant("announcement",{_uid:"*",name:"everyone"},{});toast("📣 Announcement sent!");inAn2.value="";});
+   a1.appendChild(inAn2);a1.appendChild(bAn2);g2.appendChild(a1);
+   var a2=toolCard("🎉 Double Coins event","Every tap + auto-earner pays ×2 for 1 hour.");
+   var bDC2=toolBtn("Start ×2 Coins","pink");
+   bDC2.addEventListener("click",function(){startEvent("coins",1);});
+   a2.appendChild(bDC2);g2.appendChild(a2);
+   var a3=toolCard("⚡ Double XP event","Levels fly twice as fast for 1 hour.");
+   var bDX2=toolBtn("Start ×2 XP","pink");
+   bDX2.addEventListener("click",function(){startEvent("xp",1);});
+   a3.appendChild(bDX2);g2.appendChild(a3);
+   var a4=toolCard("⏹️ End events","Stop all running double events now.");
+   var bE2=toolBtn("End events","blue");
+   bE2.addEventListener("click",function(){endEvents();});
+   a4.appendChild(bE2);g2.appendChild(a4);
+   el.appendChild(sec2);
+  }
+  return;
+ }
  var sec=document.createElement("div");sec.className="tool-sec";
  var h=document.createElement("h4");h.textContent="🌍 Farm-wide tools — Owner only";sec.appendChild(h);
  var g=document.createElement("div");g.className="tool-grid";sec.appendChild(g);
@@ -4603,6 +5188,7 @@ function loadAuditLog(){
 /* ---------- staff actions: coins / levels / mute / reset / wipe / all / events ---------- */
 function panelGiveLevels(p,n){
  if(!fbDb||!fbUser||(myRole!=="owner"&&myRole!=="admin"))return;
+ if(myRole==="admin"){if(!canAdmin("levels")){toast("🛡️ The Owner hasn't given you the Give levels permission.");return;}if(guardOwnerTarget(p,"give levels to"))return;}
  var cur=p.level||1, nl=Math.min(99999,cur+n);
  if(nl<=cur){toast((p.name||p.username)+" is already level "+cur+".");return;}
  if(nl<=50){
@@ -4635,17 +5221,21 @@ function panelSetCoins(p,target){
 }
 function panelGivePowerAll(p){
  if(!fbDb||!fbUser||myRole!=="owner")return;
- var ids=GOKU_FORMS.map(function(f){return f.id;});
+ var ids=GOKU_FORMS.concat(LEGEND_POWERS).map(function(f){return f.id;});
  fbDb.collection("users").doc(p._uid).update({powers:firebase.firestore.FieldValue.arrayUnion.apply(null,ids)}).then(function(){
   auditGrant("grant_powers_all",p,{});
-  systemChat("⚡ 👑 Owner unlocked ALL Goku powers for "+(p.name||p.username)+"!");
-  toast("⚡ "+(p.name||p.username)+" now has all Goku powers!");
+  systemChat("⚡ 👑 Owner unlocked ALL Goku + Legend powers for "+(p.name||p.username)+"!");
+  toast("⚡ "+(p.name||p.username)+" now has all Goku + Legend powers!");
   renderPanelList();
  }).catch(function(err){noteFbError(err,"givePowersAll");toast(fbErrText(err.code||"permission-denied"));});
 }
 function panelSetMute(p,mute){
  if(!fbDb||!fbUser||(myRole!=="owner"&&myRole!=="admin"))return;
  if(p._uid===fbUser.uid){toast("You can't mute yourself.");return;}
+ if(myRole==="admin"){
+  if(!canAdmin("mute")){toast("🛡️ The Owner hasn't given you the Mute permission.");return;}
+  if(guardOwnerTarget(p,mute?"mute":"unmute"))return;
+ }
  var role=roleOfUid(p._uid,p.role);
  if(myRole==="admin"&&(role==="owner"||role==="admin")){toast("🛡️ Admins can't mute the Owner or other admins.");return;}
  fbDb.collection("users").doc(p._uid).update({muted:mute}).then(function(){
@@ -4654,14 +5244,18 @@ function panelSetMute(p,mute){
   systemChat(mute?("🔇 "+actorLabel()+" muted "+(p.name||p.username)+" in chat"):("🔊 "+actorLabel()+" unmuted "+(p.name||p.username)));
   toast(mute?("🔇 Muted "+(p.name||p.username)+"."):("🔊 Unmuted "+(p.name||p.username)+"."));
   renderPanelList();
- }).catch(function(err){noteFbError(err,"mute");toast(fbErrText(err.code||"permission-denied"));});
+ }).catch(function(err){noteFbError(err,"mute");toast(fbErrText(err.code||"permission-denied"));renderPanelList();});
 }
 function panelResetPlayer(p){
- if(!fbDb||!fbUser||myRole!=="owner")return;
- sendInbox(p,[{t:"reset"}],"reset_progress","🔄 👑 Owner reset "+(p.name||p.username)+"'s progress.").then(function(){renderPanelList();});
+ if(!fbDb||!fbUser||(myRole!=="owner"&&myRole!=="admin"))return;
+ if(myRole==="admin"&&!canAdmin("reset")){toast("🛡️ The Owner hasn't given you the Reset permission.");return;}
+ if(myRole==="admin"&&guardOwnerTarget(p,"reset"))return;
+ if(p._uid===fbUser.uid){toast("You can't reset yourself.");return;}
+ sendInbox(p,[{t:"reset"}],"reset_progress","🔄 "+actorLabel()+" reset "+(p.name||p.username)+"'s progress.").then(function(){renderPanelList();}).catch(function(){renderPanelList();});
 }
 function panelWipePlayer(p){
  if(!fbDb||!fbUser||myRole!=="owner")return;
+ if(p._uid===fbUser.uid){toast("You can't wipe yourself.");return;}
  var jobs=[];
  jobs.push(fbDb.collection("users").doc(p._uid).update({friends:[],blocked:[]}).catch(function(){}));
  jobs.push(fbDb.collection("friendRequests").where("from","==",p._uid).get().then(function(s){s.forEach(function(d){d.ref.delete().catch(function(){});});}).catch(function(){}));
@@ -4814,12 +5408,260 @@ function sendDm(){
  }).catch(function(err){noteFbError(err,"dmSend");toast(fbErrText(err.code||"permission-denied"));});
 }
 
+
+/* ============================== v2.5.1 SYSTEMS ============================== */
+function bankRate(){return 0.02+(S.bankLevel||0)*0.005+(skillLvl("bankbonus")*0.01);}
+function renderBank(){
+ var b=$("bankBody");if(!b)return;
+ var bal=S.bankBalance||0,lvl=S.bankLevel||0;
+ var upCost=25000*Math.pow(2,lvl);
+ var last=S.bankLastInterest||0;
+ var html="";
+ html+='<div class="bank-stat"><span>💰 Banked coins</span><b>'+fmt(bal)+' 🪙</b></div>';
+ html+='<div class="bank-stat"><span>🏦 Bank level</span><b>Lv '+lvl+' ('+Math.round(bankRate()*100)+'% / hour)</b></div>';
+ html+='<div class="bank-stat"><span>⏰ Last interest</span><b>'+(last?new Date(last).toLocaleTimeString():"—")+'</b></div>';
+ html+='<div class="room-row"><input class="search-input" id="bankAmt" type="number" placeholder="Amount to deposit" style="flex:1"/><button class="chip-btn" id="btnBankDeposit" type="button">⬇️ Deposit</button><button class="chip-btn" id="btnBankWithdraw" type="button">⬆️ Withdraw all</button></div>';
+ html+='<div class="room-row" style="margin-top:8px"><button class="chip-btn" id="btnBankUpgrade" type="button">⬆️ Upgrade bank ('+fmt(upCost)+' 🪙)</button><button class="chip-btn" id="btnBankClaim" type="button">💸 Claim interest now</button></div>';
+ html+='<div class="room-row" style="margin-top:8px"><button class="chip-btn" id="btnOfflineCap" type="button">⏰ +4h offline cap ('+fmt(50000*((S.offlineCapHours||0)+1))+' 🪙)</button><span class="sub">Offline earnings now cap at '+(8+(S.offlineCapHours||0)*4)+'h.</span></div>';
+ b.innerHTML=html;
+ $("btnBankDeposit").onclick=function(){var amt=Math.floor(parseFloat($("bankAmt").value)||0);if(amt<=0){toast("Enter an amount to deposit.");return;}if(amt>S.coins){toast("Not enough coins on hand.");return;}S.coins-=amt;S.bankBalance=(S.bankBalance||0)+amt;saveLocal();renderBank();renderStats();toast("🏦 Deposited "+fmt(amt)+" 🪙.");};
+ $("btnBankWithdraw").onclick=function(){var bal2=S.bankBalance||0;if(bal2<=0){toast("Your bank is empty.");return;}S.coins+=bal2;S.bankBalance=0;saveLocal();renderBank();renderStats();toast("🏦 Withdrew "+fmt(bal2)+" 🪙.");};
+ $("btnBankUpgrade").onclick=function(){var cost=25000*Math.pow(2,S.bankLevel||0);if(S.coins<cost){toast("Need "+fmt(cost)+" 🪙 to upgrade the bank.");return;}S.coins-=cost;S.bankLevel=(S.bankLevel||0)+1;saveLocal();renderBank();renderStats();toast("🏦 Bank upgraded to Lv "+S.bankLevel+"! Rate now "+Math.round(bankRate()*100)+"%/hour.");};
+ $("btnBankClaim").onclick=function(){claimBankInterest(true);};
+ $("btnOfflineCap").onclick=function(){var cost=50000*((S.offlineCapHours||0)+1);if(S.coins<cost){toast("Need "+fmt(cost)+" 🪙 for +4h offline cap.");return;}S.coins-=cost;S.offlineCapHours=(S.offlineCapHours||0)+1;saveLocal();renderBank();renderStats();toast("⏰ Offline cap is now "+(8+(S.offlineCapHours||0)*4)+"h!");};
+}
+function claimBankInterest(manual){
+ var last=S.bankLastInterest||0,now=Date.now();
+ if(!last){S.bankLastInterest=now;return 0;}
+ var hours=Math.floor((now-last)/3600000);
+ if(hours<1){if(manual)toast("Interest accrues hourly — check back later.");return 0;}
+ var gain=Math.floor((S.bankBalance||0)*bankRate()*Math.min(hours,24));
+ if(gain>0){S.bankBalance=(S.bankBalance||0)+gain;toast("🏦 Bank interest: +"+fmt(gain)+" 🪙 ("+hours+"h)!");}
+ S.bankLastInterest=now;saveLocal();if($("bankBody"))renderBank();return gain;
+}
+function renderSpin(){
+ var b=$("spinBody");if(!b)return;
+ var today=new Date().toISOString().slice(0,10);
+ var freeLeft=S.spinLast!==today;
+ var html="";
+ html+='<div class="bank-stat"><span>🎟️ Tickets</span><b>'+(S.spinTickets||0)+'</b></div>';
+ html+='<div class="bank-stat"><span>🔥 Spin streak</span><b>'+(S.spinStreak||0)+' days</b></div>';
+ html+='<div class="bank-stat"><span>🎡 Total spins</span><b>'+(S.spinTotal||0)+'</b></div>';
+ html+='<div class="room-row"><button class="chip-btn" id="btnSpin" type="button">🎡 SPIN '+(freeLeft?'(FREE today)':'(1 ticket)')+'</button></div>';
+ html+='<div id="spinResult" class="spin-result"></div>';
+ b.innerHTML=html;
+ $("btnSpin").onclick=doSpin;
+}
+function doSpin(){
+ var today=new Date().toISOString().slice(0,10);
+ var free=S.spinLast!==today;
+ if(!free&&(S.spinTickets||0)<1){toast("No tickets left — come back tomorrow for a free spin, or ask staff for tickets.");return;}
+ if(free){S.spinLast=today;S.spinStreak=(S.spinStreak||0)+1;}else{S.spinTickets--;}
+ S.spinTotal=(S.spinTotal||0)+1;
+ var luck=1+skillLvl("spinluck")*0.05;
+ var roll=Math.random();
+ var res=$("spinResult");
+ var msg;
+ if(roll<0.30){var c1=Math.floor(500*luck);S.coins+=c1;msg="🪙 +"+fmt(c1)+" coins!";}
+ else if(roll<0.55){var c2=Math.floor(2000*luck);S.coins+=c2;msg="🪙 +"+fmt(c2)+" coins!";}
+ else if(roll<0.70){S.apples=(S.apples||0)+1;msg="🍎 +1 Golden Apple!";}
+ else if(roll<0.85){var c3=Math.floor(10000*luck);S.coins+=c3;msg="💰 JACKPOT +"+fmt(c3)+" coins!";}
+ else if(roll<0.93){S.spinTickets=(S.spinTickets||0)+2;msg="🎟️ +2 Spin tickets!";}
+ else{var locked=SKINS.filter(function(sk){return !S.skinsOwned[sk.id];});if(locked.length){var sk=locked[Math.floor(Math.random()*locked.length)];S.skinsOwned[sk.id]=true;msg="🎨 NEW SKIN: "+sk.name+"!";}else{var c4=Math.floor(25000*luck);S.coins+=c4;msg="🪙 +"+fmt(c4)+" coins!";}}
+ if(res)res.textContent=msg;
+ toast(msg);saveLocal();renderSpin();renderStats();
+}
+function renderMystery(){
+ var b=$("mysteryBody");if(!b)return;
+ b.innerHTML='<div class="bank-stat"><span>📦 Boxes opened</span><b>'+(S.mysteryOpened||0)+'</b></div><div class="room-row"><button class="chip-btn" id="btnMystery" type="button">🎁 Open Mystery Box (10,000 🪙)</button></div><div id="mysteryResult" class="spin-result"></div>';
+ $("btnMystery").onclick=function(){
+  if(S.coins<10000){toast("Need 10,000 🪙 for a Mystery Box.");return;}
+  S.coins-=10000;S.mysteryOpened=(S.mysteryOpened||0)+1;
+  var roll=Math.random(),msg;
+  if(roll<0.4){var c=Math.floor(5000+Math.random()*20000);S.coins+=c;msg="🪙 +"+fmt(c)+" coins!";}
+  else if(roll<0.6){S.apples=(S.apples||0)+1;msg="🍎 +1 Golden Apple!";}
+  else if(roll<0.8){var locked=SKINS.filter(function(sk){return !S.skinsOwned[sk.id];});if(locked.length){var sk=locked[Math.floor(Math.random()*locked.length)];S.skinsOwned[sk.id]=true;msg="🎨 NEW SKIN: "+sk.name+"!";}else{S.coins+=15000;msg="🪙 +15,000 coins!";}}
+  else{S.coins+=50000;msg="💰 MEGA +50,000 coins!";}
+  var r=$("mysteryResult");if(r)r.textContent=msg;
+  toast(msg);saveLocal();renderMystery();renderStats();
+ };
+}
+function pigOfTheDay(){
+ var day=new Date().getDate();
+ var pool=GENERATORS.concat(TAP_UPGRADES);
+ return pool[day%pool.length];
+}
+function renderPigOfDay(){
+ var el=$("pigOfDay");if(!el)return;
+ var item=pigOfTheDay();
+ var isGen=!!GENERATORS.find(function(g){return g.id===item.id;});
+ var price=isGen?genCost(item,S.gens[item.id]||0):item.cost;
+ var disc=Math.floor(price/2);
+ el.innerHTML='🏷️ <b>Pig of the Day — 50% OFF:</b> '+esc(item.name||item.id)+' — <s>'+fmt(price)+'</s> <b>'+fmt(disc)+' 🪙</b> <button class="chip-btn" id="btnBuyPotd" type="button">Buy now</button>';
+ $("btnBuyPotd").onclick=function(){
+   if(S.coins<disc){toast("Need "+fmt(disc)+" 🪙 for today's deal.");return;}
+   S.coins-=disc;
+   if(isGen){S.gens[item.id]=(S.gens[item.id]||0)+1;}else{S.tapOwned[item.id]=true;}
+   saveLocal();renderShop();renderStats();toast("🏷️ Pig of the Day bought: "+(item.name||item.id)+"!");
+ };
+ var line=$("pigOfDayLine");if(line)line.textContent="Today's deal: "+(item.name||item.id)+" at 50% off.";
+}
+function buyCheapest(){
+ var best=null,bestCost=Infinity,bestGen=false;
+ GENERATORS.forEach(function(g){var c=genCost(g,S.gens[g.id]||0);if(c<bestCost){bestCost=c;best=g;bestGen=true;}});
+ TAP_UPGRADES.forEach(function(u){if(!S.tapOwned[u.id]&&u.cost<bestCost){bestCost=u.cost;best=u;bestGen=false;}});
+ if(!best){toast("Nothing left to buy!");return;}
+ if(S.coins<bestCost){toast("Cheapest item is "+fmt(bestCost)+" 🪙 ("+(best.name||best.id)+") — you have "+fmt(S.coins)+".");return;}
+ S.coins-=bestCost;
+ if(bestGen)S.gens[best.id]=(S.gens[best.id]||0)+1;else S.tapOwned[best.id]=true;
+ saveLocal();renderShop();renderStats();toast("💰 Bought cheapest: "+(best.name||best.id)+" for "+fmt(bestCost)+" 🪙!");
+}
+function renderPlayGoals(){
+ var el=$("playGoals");if(!el)return;
+ ensureQuests();
+ renderQuestList(el,(S.quests.daily||[]).slice(0,3));
+}
+function renderPlayEvents(){
+ var el=$("playEvents");if(!el)return;
+ var es=$("eventStrip");
+ var html=es&&es.textContent?'<p>'+esc(es.textContent)+'</p>':'<p class="sub">No live events right now.</p>';
+ html+='<div class="room-row"><button class="chip-btn" id="btnRallyPing" type="button">📣 Rally ping (room)</button><span class="sub">Pings your room: "Raid starting — tap in!"</span></div>';
+ el.innerHTML=html;
+ var rp=$("btnRallyPing");if(rp)rp.addEventListener("click",rallyPing);
+}
+function rallyPing(){feedChat(displayName(),"📣 RALLY! Raid starting — tap in!",myId);toast("📣 Rally ping sent to your room!");}
+function renderHallOfFame(){
+ var el=$("hallOfFame");if(!el)return;
+ var top=(topCache||[]).slice(0,3);
+ if(!top.length){el.innerHTML='<div class="empty">No legends yet — be the first!</div>';return;}
+ el.innerHTML=top.map(function(d,i){return '<div class="player"><span class="av">'+avatarHTML(d,40)+'</span><span class="grow"><h3>'+["🥇","🥈","🥉"][i]+" "+esc(d.name||d.username||"Player")+roleTag(roleOfUid(d._uid,d.role),d)+'</h3><p>'+fmt(d.lifetime||0)+' lifetime coins · Lv '+(d.level||1)+'</p></span></div>';}).join("");
+}
+function myInviteCode(){
+ if(!S.inviteCode){S.inviteCode="PIG-"+makeCode();saveLocal();}
+ return S.inviteCode;
+}
+function renderInvite(){
+ var el=$("inviteBody");if(!el)return;
+ var code=myInviteCode();
+ el.innerHTML='<div class="bank-stat"><span>🎁 Your code</span><b>'+esc(code)+'</b></div><div class="bank-stat"><span>👥 Friends joined</span><b>'+(S.invitesUsed||0)+'</b></div><div class="room-row"><button class="chip-btn" id="btnCopyInvite" type="button">📋 Copy code</button><input class="search-input" id="inviteRedeemInput" placeholder="Enter a friend\'s code…" style="flex:1"/><button class="chip-btn" id="btnRedeemInvite" type="button">Redeem</button></div>';
+ $("btnCopyInvite").onclick=function(){if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(code).then(function(){toast("📋 Invite code copied!");},function(){toast("Your code: "+code);});else toast("Your code: "+code);};
+ $("btnRedeemInvite").onclick=function(){
+  var v=$("inviteRedeemInput").value.trim().toUpperCase();
+  if(!v){toast("Enter a friend's invite code.");return;}
+  if(v===code){toast("That's your own code — share it with a friend instead!");return;}
+  if(S.inviteRedeemed){toast("You already redeemed an invite code.");return;}
+  if(!/^PIG-[A-Z0-9]{6}$/.test(v)){toast("That doesn't look like a Pig Clicker invite code.");return;}
+  if(!fbUser||!fbDb){toast("Sign in to redeem an invite code.");return;}
+  S.inviteRedeemed=true;S.coins+=5000;S.lifetime+=5000;
+  fbDb.collection("inviteRedeems").add({code:v,by:fbUser.uid,byName:displayName(),at:Date.now()}).catch(function(){});
+  saveLocal();renderInvite();renderStats();toast("🎁 Invite redeemed! +5,000 🪙");
+ };
+}
+var lastHeaderSig="";
+function renderProfileHeader(){
+ var b=$("profileHeaderBanner");if(!b)return;
+ var bn=BANNERS.find(function(x){return x.id===S.banner;})||BANNERS[0];
+ var sig=displayName()+"|"+(S.pigName||"")+"|"+(S.bannerGif||S.banner)+"|"+(profile.avatarImg||profile.avatar)+"|"+myRole+"|"+myCustomTitle+"|"+(S.achDone?Object.keys(S.achDone).length:0);
+ if(sig===lastHeaderSig)return;lastHeaderSig=sig;
+ if(S.bannerGif){b.style.backgroundImage="url("+S.bannerGif+")";b.style.backgroundSize="cover";b.style.backgroundPosition="center";}else{b.style.backgroundImage="";b.style.background=bn.css;}
+ var av=$("profileHeaderAvatar");
+ if(safeAvatarImg(profile.avatarImg))av.innerHTML='<img src="'+safeAvatarImg(profile.avatarImg)+'" alt=""/>';else av.textContent=profile.avatar||"🐷";
+ $("profileHeaderName").textContent=displayName()+(S.pigName?(" — 🐷 "+S.pigName):"");
+ $("profileHeaderMeta").textContent="Level "+level()+" · "+fmt(S.lifetime)+" lifetime coins · "+(ACHIEVEMENTS.filter(function(a){return S.achDone[a.id];}).length)+" / "+ACHIEVEMENTS.length+" badges";
+ $("profileHeaderTags").innerHTML=roleTag(myRole,{customTitle:myCustomTitle});
+}
+/* ---- GIF uploads: gallery picker (accept="image/*") keeps GIFs animated ---- */
+function readGifFile(file,kind){
+ if(!file)return;
+ if(!/^image\/(png|jpe?g|gif|webp)$/i.test(file.type)){toast("That file isn't an image — pick a PNG, JPG, GIF or WebP.");return;}
+ if(file.size>300000){toast("That image is too big — max 300 KB for GIFs. Try a smaller one.");return;}
+ var r=new FileReader();
+ r.onload=function(){
+  var url=r.result;
+  if(kind==="avatar"){profile.avatarImg=url;S.gifAvatarSet=true;saveLocal();cloudSaveNow();renderStats();renderGifGalleries();toast("🎞️ GIF profile picture set!");}
+  else{S.bannerGif=url;S.gifBannerSet=true;saveLocal();cloudSaveNow();renderStats();renderGifGalleries();toast("🎞️ GIF banner set!");}
+ };
+ r.readAsDataURL(file);
+}
+function renderGifGalleries(qAv,qBn){
+ var av=$("gifAvatarGallery");
+ if(av){av.innerHTML="";PRESET_GIFS.filter(function(g){return !qAv||g.name.toLowerCase().indexOf(qAv.toLowerCase())>-1;}).forEach(function(g){var b=document.createElement("button");b.type="button";b.className="skin-btn";b.title=g.name;b.innerHTML='<img src="'+g.data+'" alt="'+esc(g.name)+'" style="width:64px;height:64px;object-fit:cover;border-radius:10px"/>';b.addEventListener("click",function(){profile.avatarImg=g.data;S.gifAvatarSet=true;saveLocal();cloudSaveNow();renderStats();toast("🎞️ GIF profile picture: "+g.name);});av.appendChild(b);});}
+ var bn=$("gifBannerGallery");
+ if(bn){bn.innerHTML="";PRESET_GIFS.filter(function(g){return !qBn||g.name.toLowerCase().indexOf(qBn.toLowerCase())>-1;}).forEach(function(g){var b=document.createElement("button");b.type="button";b.className="skin-btn";b.title=g.name;b.innerHTML='<img src="'+g.data+'" alt="'+esc(g.name)+'" style="width:96px;height:48px;object-fit:cover;border-radius:10px"/>';b.addEventListener("click",function(){S.bannerGif=g.data;S.gifBannerSet=true;saveLocal();cloudSaveNow();renderStats();toast("🎞️ GIF banner: "+g.name);});bn.appendChild(b);});}
+}
+/* ---- multiplayer helpers ---- */
+function joinRoom(code){
+ var v=String(code||"").trim().toUpperCase();
+ if(!v||v.length<4){toast("That room code doesn't look right.");return;}
+ roomCode=v;players={};players[myId]=mySnapshot();mpConnect();renderPlayers();
+ toast("🚪 Joining room "+roomCode+"…");showView("social");
+}
+function giftCoinsToFriend(uid,amt){
+ if(!fbUser||!fbDb){toast("Sign in to gift coins.");return;}
+ amt=Math.floor(amt)||0;if(amt<1){toast("Enter an amount to gift.");return;}
+ if(amt>S.coins){toast("You don't have that many coins.");return;}
+ S.coins-=amt;saveLocal();renderStats();
+ fbDb.collection("gifts").add({from:fbUser.uid,fromName:displayName(),to:uid,amt:amt,claimed:false,at:Date.now()}).then(function(){toast("🎁 Gift sent! They'll get it when they sign in.");}).catch(function(err){noteFbError(err,"giftSend");S.coins+=amt;saveLocal();renderStats();toast("Gift didn't go through — coins refunded.");});
+}
+function claimGifts(){
+ if(!fbUser||!fbDb)return;
+ fbDb.collection("gifts").where("to","==",fbUser.uid).where("claimed","==",false).get().then(function(snap){
+  var any=false;
+  snap.forEach(function(doc){
+   var g=doc.data();if(!g||!g.amt)return;
+   doc.ref.update({claimed:true}).catch(function(){});
+   S.coins+=g.amt;S.lifetime+=g.amt;any=true;
+   toast("🎁 "+(g.fromName||"A friend")+" gifted you "+fmt(g.amt)+" 🪙!");
+  });
+  if(any){saveLocal();renderStats();}
+ }).catch(function(err){noteFbError(err,"giftClaim");});
+}
+function pokeFriend(uid,name){
+ if(!fbUser||!fbDb){toast("Sign in to poke.");return;}
+ if(!friendsCache.some(function(f){return f.uid===uid;})){toast("You can only poke friends.");return;}
+ var dmId=dmIdFor(fbUser.uid,uid);
+ var parent=fbDb.collection("dms").doc(dmId);
+ parent.set({participants:[fbUser.uid,uid],a:fbUser.uid,aName:displayName(),b:uid,bName:name||"Friend",lastText:"👉 poked you!",lastAt:Date.now(),lastFrom:fbUser.uid},{merge:true}).then(function(){
+  return parent.collection("messages").add({from:fbUser.uid,text:"👉 poked you!",createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+ }).then(function(){toast("👉 You poked "+(name||"them")+"!");}).catch(function(err){noteFbError(err,"poke");toast("Poke didn't go through.");});
+}
+
+
+/* ============================== v2.5.1 static bindings ============================== */
+$("btnBuyCheapest").addEventListener("click",buyCheapest);
+$("btnCritBoost").addEventListener("click",function(){if(S.coins<5000){toast("Crit Boost costs 5,000 🪙 (60s, +10% crit).");return;}S.coins-=5000;S.critBoostUntil=Date.now()+60000;saveLocal();renderStats();toast("💥 Crit Boost active for 60s!");});
+$("btnComboFreeze").addEventListener("click",function(){if(S.coins<3000){toast("Combo Freeze costs 3,000 🪙 (30s).");return;}S.coins-=3000;S.comboFreezeUntil=Date.now()+30000;saveLocal();toast("🧊 Combo frozen for 30s — it won't decay!");});
+$("btnGoldenRadar").addEventListener("click",function(){if(!nextGoldenAt){toast("The radar is warming up…");return;}var sec=Math.max(0,Math.ceil((nextGoldenAt-Date.now())/1000));toast("🔍 Golden Pig in "+sec+"s!");});
+$("btnSessionReset").addEventListener("click",function(){sessionTaps=0;sessionCoins=0;bestComboSeen=1;combo=1;renderStats();toast("🔄 Session stats reset.");});
+$("btnManualSave").addEventListener("click",function(){saveLocal();cloudSaveNow();toast("💾 Saved!");});
+$("btnExportSave").addEventListener("click",function(){var blob=new Blob([JSON.stringify({v:CURRENT_VERSION,state:S,profile:profile})],{type:"application/json"});var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="pig-clicker-save.json";a.click();toast("📤 Save exported!");});
+$("btnImportSave").addEventListener("click",function(){$("importSaveFile").click();});
+$("importSaveFile").addEventListener("change",function(){var f=this.files[0];if(!f)return;var r=new FileReader();r.onload=function(){try{var d=JSON.parse(r.result);if(!d.state)throw new Error("bad save");S=Object.assign(freshState(),d.state);if(d.profile)profile=Object.assign(profile,d.profile);saveLocal();cloudSaveNow();applySkin();renderAch();renderTree();renderAll();renderQuests();renderBp();toast("📥 Save imported!");}catch(e){toast("That file isn't a valid Pig Clicker save.");}};r.readAsText(f);});
+$("btnSavePigName").addEventListener("click",function(){var v=$("pigNameInput").value.trim().slice(0,24);if(!v){toast("Type a name for your pig first.");return;}S.pigName=v;saveLocal();renderStats();toast("🐷 Your pig is now called "+v+"!");});
+$("friendSort").addEventListener("change",renderFriends);
+$("gifAvatarFile").addEventListener("change",function(){readGifFile(this.files[0],"avatar");this.value="";});
+$("gifBannerFile").addEventListener("change",function(){readGifFile(this.files[0],"banner");this.value="";});
+$("btnClearGifAvatar").addEventListener("click",function(){profile.avatarImg="";S.gifAvatarSet=false;saveLocal();cloudSaveNow();renderStats();toast("🎞️ GIF picture removed — back to emoji avatar.");});
+$("btnClearGifBanner").addEventListener("click",function(){S.bannerGif="";S.gifBannerSet=false;saveLocal();cloudSaveNow();renderStats();toast("🎞️ GIF banner removed — back to gradient.");});
+$("gifAvatarSearch").addEventListener("input",function(){renderGifGalleries(this.value,"");});
+$("gifBannerSearch").addEventListener("input",function(){renderGifGalleries("",this.value);});
+$("btnTenorAvatar").addEventListener("click",function(){var q=($("gifAvatarSearch").value||"pig").trim();window.open("https://tenor.com/search?q="+encodeURIComponent(q),"_blank");toast("🔎 Tenor opened — save a GIF, then upload it here!");});
+$("btnTenorBanner").addEventListener("click",function(){var q=($("gifBannerSearch").value||"pig").trim();window.open("https://tenor.com/search?q="+encodeURIComponent(q),"_blank");toast("🔎 Tenor opened — save a GIF, then upload it here!");});
+$("btnEditProfileHeader").addEventListener("click",function(){var sec=document.querySelector('[aria-label="Your profile and cosmetics"]');if(sec)sec.scrollIntoView({behavior:"smooth"});});
+
+
+$("btnSetGoals").addEventListener("click",function(){var tg=Math.floor(Number($("tapGoalInput").value)||0);var cg=Math.floor(Number($("coinGoalInput").value)||0);if(tg>0){S.tapGoal=tg;S.tapGoalDone=false;}if(cg>0){S.coinGoal=cg;S.coinGoalDone=false;}if(!tg&&!cg){toast("Type a tap goal or a coin goal first.");return;}saveLocal();toast("🎯 Goals set!");});
+$("btnSavePigName").addEventListener("click",function(){var v=$("pigNameInput").value.trim().slice(0,24);S.pigName=v;saveLocal();renderStats();toast(v?("🐷 Your pig is now called "+v+"!"):"🐷 Pig name cleared.");});
+if($("pigNameInput"))$("pigNameInput").value=S.pigName||"";
+$("btnRaidBoost").addEventListener("click",function(){if(S.coins<25000){toast("Raid booster costs 25,000 🪙.");return;}S.coins-=25000;S.raidBoostUntil=Date.now()+3600000;saveLocal();renderStats();toast("🚀 Raid booster active for 1h! +25% raid damage.");});
+$("btnBpBoost").addEventListener("click",function(){if(S.coins<10000){toast("Battle Pass XP boost costs 10,000 🪙.");return;}S.coins-=10000;S.bpBoostUntil=Date.now()+3600000;saveLocal();toast("⚡ Battle Pass XP boost active for 1h! +50% BP XP.");});
+
 /* ============================== LOOPS / INIT ============================== */
 setInterval(function(){var gain=perSec()/10;if(gain>0){S.coins+=gain*eventCoinMult();S.lifetime+=gain*eventXpMult();}renderStats();},100);
 setInterval(function(){if(activeTab!=="pig")renderShop();},4000);
 setInterval(saveLocal,5000);
 setInterval(function(){ensureQuests();},30000);
-setInterval(renderEventStrip,30000);
+setInterval(function(){renderEventStrip();renderPlayEvents();},30000);
 
 /* load local cache, apply offline earnings */
 var savedData=loadLocal();
@@ -4828,12 +5670,12 @@ if(savedData){
  for(var qk in qol){if(savedData.qol&&savedData.qol[qk]!==undefined)qol[qk]=savedData.qol[qk];}
  if(savedData.profile){profile.name=savedData.profile.name||"";profile.avatar=savedData.profile.avatar||"🐷";profile.avatarImg=savedData.profile.avatarImg||"";profile.username=savedData.profile.username||"";}
  if(savedData.roomCode)roomCode=savedData.roomCode;
- var awaySecs=Math.min(8*3600,Math.max(0,(Date.now()-(S.lastSeen||Date.now()))/1000));
+ var awaySecs=Math.min((8+(S.offlineCapHours||0)*4)*3600,Math.max(0,(Date.now()-(S.lastSeen||Date.now()))/1000));
  var awayRate=0.5*(1+skillLvl("vault")*0.25);
  var awayGain=perSec()*awaySecs*awayRate;
  if(awayGain>=100&&totalGens()>0){
   S.coins+=awayGain;S.lifetime+=awayGain;
-  $("awayText").innerHTML="Your auto-clickers banked <b>"+fmt(awayGain)+" 🪙</b> while you were away — "+fmtRate(perSec())+" /sec × "+(awaySecs/3600).toFixed(1)+"h at "+Math.round(awayRate*100)+"% rate (capped at 8 hours).";
+  $("awayText").innerHTML="Your auto-clickers banked <b>"+fmt(awayGain)+" 🪙</b> while you were away — "+fmtRate(perSec())+" /sec × "+(awaySecs/3600).toFixed(1)+"h at "+Math.round(awayRate*100)+"% rate (capped at "+(8+(S.offlineCapHours||0)*4)+" hours).";
   $("awayModal").classList.add("open");
  }
 }
@@ -4857,5 +5699,6 @@ fbInit();
 initGateAuth();
 setTimeout(function(){toast("🐷 Tap the pig to start earning!");},600);
 </script>
+  <div id="updatePrompt">🎉 New version of Pig Clicker is ready! <button id="btnUpdateApp" type="button">Update now</button></div>
 </body>
 </html>
