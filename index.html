@@ -16,6 +16,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
 <style>
 :root{
   --bg:#fff6ec; --bg2:#ffeef5; --card:#ffffff; --card2:#fff9f0; --ink:#2b1a12; --muted:#7a5c4d;
@@ -432,12 +433,12 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
   <div class="gate-card">
     <div class="gate-pig">🐷</div>
     <h1>Pig Clicker</h1>
-    <div class="gate-version"><span class="ver-badge">v2.5.1</span> <b>THE REDO — new layout, fixed bans, 152 more things</b></div>
+    <div class="gate-version"><span class="ver-badge">v2.5.2</span> <b>GIF &amp; IMAGE UPLOADS — 5 MB</b></div>
     <ul class="gate-highlights">
       <li>🎨 Studio + Bank tabs — the layout itself is new</li>
       <li>🏦 Pig Bank + 🎡 Lucky Spin</li>
       <li>🔨 Admin panel rebuilt, bans fixed</li>
-      <li>🎞️ GIF profile pics &amp; banners for everyone</li>
+      <li>🎞️ GIF uploads up to 5 MB — big Tenor GIFs finally fit</li>
       <li>☀️ Sun God Luffy + 3 Legend powers</li>
     </ul>
     <p class="sub">Play with an email, or just a username + password — your choice. Either way your progress saves to the cloud.</p>
@@ -885,9 +886,9 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
         <button class="chip-btn" id="btnClearAvatarImg" type="button">Use emoji avatar</button>
       </div>
       <h3 style="margin:14px 0 6px">🎞️ GIF profile picture</h3>
-      <p class="sub">Upload any GIF from your gallery — it stays animated. No live web search here: Tenor needs an API key we don't have. Search Tenor in your browser, save the GIF, then upload it below.</p>
+      <p class="sub">Upload any GIF from your gallery — it stays animated. Images up to 5 MB now — big Tenor GIFs go to cloud storage so they never break your save. No live web search here: Tenor needs an API key we don't have. Search Tenor in your browser, save the GIF, then upload it below.</p>
       <div class="room-row">
-        <label class="chip-btn" for="gifAvatarFile" style="display:inline-block">🎞️ Upload GIF / image</label>
+        <label class="chip-btn" for="gifAvatarFile" style="display:inline-block">🎞️ Upload GIF / image (up to 5 MB)</label>
         <input type="file" id="gifAvatarFile" accept="image/*" style="display:none"/>
         <button class="chip-btn" id="btnClearGifAvatar" type="button">Use emoji avatar</button>
       </div>
@@ -902,9 +903,9 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
       <div class="skin-row" id="bannerRow"></div>
       <div id="bannerPreview" style="margin-top:10px;border-radius:14px;padding:16px;font-family:'Baloo 2';font-weight:800;font-size:1.15rem;text-align:center;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.35)"></div>
       <h3 style="margin:14px 0 6px">🎞️ GIF banner</h3>
-      <p class="sub">Upload any GIF from your gallery as your showcase banner — it animates on your profile. Same deal as the picture: search Tenor in your browser, save the GIF, upload it here.</p>
+      <p class="sub">Upload any GIF from your gallery as your showcase banner — it animates on your profile. Up to 5 MB. Same deal as the picture: search Tenor in your browser, save the GIF, upload it here.</p>
       <div class="room-row">
-        <label class="chip-btn" for="gifBannerFile" style="display:inline-block">🎞️ Upload GIF banner</label>
+        <label class="chip-btn" for="gifBannerFile" style="display:inline-block">🎞️ Upload GIF banner (up to 5 MB)</label>
         <input type="file" id="gifBannerFile" accept="image/*" style="display:none"/>
         <button class="chip-btn" id="btnClearGifBanner" type="button">Use gradient banner</button>
       </div>
@@ -1006,10 +1007,10 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
       <p class="sub">Every version of Pig Clicker. Tap a version on the side to see what it added.</p>
       <div class="log-search-row">
         <input class="search-input" id="logSearch" placeholder="🔎 Search updates…" style="flex:1" autocomplete="off"/>
-        <select class="auth-input" id="logFilter" style="flex:0 0 150px"><option value="all">All versions</option><option value="v2.5.1">v2.5.1 only</option><option value="v2.4">v2.4.x</option><option value="old">v2.3 &amp; older</option></select>
+        <select class="auth-input" id="logFilter" style="flex:0 0 150px"><option value="all">All versions</option><option value="v2.5.2">v2.5.2 only</option><option value="v2.5.1">v2.5.1 only</option><option value="v2.4">v2.4.x</option><option value="old">v2.3 &amp; older</option></select>
       </div>
       <div class="room-row" style="margin-bottom:10px">
-        <button class="chip-btn" id="btnLogLatest" type="button">⬆️ Latest (v2.5.1)</button>
+        <button class="chip-btn" id="btnLogLatest" type="button">⬆️ Latest (v2.5.2)</button>
         <button class="chip-btn" id="btnLogCopy" type="button">📋 Copy changelog</button>
       </div>
       <div class="log-wrap">
@@ -1029,7 +1030,7 @@ body.compact-shop .item .ic{width:42px;height:42px;flex-basis:42px;font-size:1.5
       <p class="sub" id="installNote" style="margin-top:10px"></p>
     </section>
 
-    <p class="foot">🐷 Pig Clicker v2.5.1 — THE REWORK UPDATE, REDONE: new layout, fixed bans, 152 MORE new things. Tap, upgrade, prestige, raid and duel. Sign in to play — email optional, progress saves to the cloud.</p>
+    <p class="foot">🐷 Pig Clicker v2.5.2 — GIF &amp; IMAGE UPLOADS: images and GIFs up to 5 MB via cloud storage. Tap, upgrade, prestige, raid and duel. Sign in to play — email optional, progress saves to the cloud.</p>
   </main>
 </div>
 
@@ -1396,8 +1397,9 @@ var ACHIEVEMENTS=[
  {id:"b62", icon:"🐷", name:"Pig Namer", desc:"Give your pig a name.", test:function(s){return !!s.pigName}},
  {id:"b63", icon:"🎞️", name:"GIF Star", desc:"Set a GIF profile picture or banner.", test:function(s){return !!(s.gifAvatarSet||s.gifBannerSet)}}
 ];
-var CURRENT_VERSION="v2.5.1";
+var CURRENT_VERSION="v2.5.2";
 var UPDATE_LOG=[
+ {"v": "v2.5.2", "tag": "GIF & IMAGE UPLOADS — 5 MB", "date": "November 11, 2026", "highlights": ["🎞️ GIF & image uploads up to 5 MB — big Tenor GIFs finally fit", "☁️ Big uploads live in Firebase Storage, so they never break your save", "🖼️ Same 5 MB path for your profile picture, banner, and custom pig", "🔄 Small images still upload instantly, and your old uploads keep working"], "groups": [{"t": "5 MB uploads", "items": ["Upload GIFs and images up to 5 MB (was 300 KB)", "Big files stored in Firebase Storage, not your save", "Upload progress on the button (Uploading… 45%)", "Clear error when a file is over 5 MB", "Gallery upload for profile picture, banner, and custom pig", "GIFs stay animated — never converted to a still image"]}], "items": ["Upload GIFs and images up to 5 MB (was 300 KB)", "Big files stored in Firebase Storage, not your save", "Upload progress on the button (Uploading… 45%)", "Clear error when a file is over 5 MB", "Gallery upload for profile picture, banner, and custom pig", "GIFs stay animated — never converted to a still image"]},
  {"v": "v2.5.1", "tag": "THE REWORK UPDATE — REDONE", "date": "November 11, 2026", "highlights": ["🎨 The layout itself is new: Studio + Bank tabs, 8-tab nav, Play view rebuilt", "🔨 Admin panel rebuilt: 14 new tools, quick-ban presets, ban history", "🛡️ Per-admin permissions, Discord-style — and no admin can EVER touch the Owner", "🎞️ GIF profile pictures + banners for everyone (upload from your gallery)", "☀️ Sun God Luffy + 3 Legend powers, grant-only"], "groups": [{"t": "New auto-clickers — 8", "items": ["Pig Taxi", "Oink Brewery", "Truffle Mine", "Pig University", "Oink News Network", "Pig Theme Park", "Moon Cheese Mine", "Time Machine Pig"]}, {"t": "New tap upgrades — 6", "items": ["Golden Finger", "Meteor Glove", "Dragon Hoof", "Void Tap", "Rainbow Hammer", "God Finger"]}, {"t": "New Pig Powers — 6", "items": ["Mud Rocket", "Golden Storm", "Oink Quake", "Pig Nova", "Truffle Titan", "Cosmic Oink"]}, {"t": "New skill nodes — 6", "items": ["Golden Touch", "Raid Armor", "Duelist", "Bank Bonus", "Spin Luck", "Combo Surge"]}, {"t": "New skins — 6", "items": ["Lava Pig", "Ocean Pig", "Forest Pig", "Storm Pig", "Candy Cane Pig", "Midnight Pig"]}, {"t": "New click sounds — 6", "items": ["Squeak", "Roar", "Bubble", "Whistle", "Guitar", "Bell"]}, {"t": "New titles — 6", "items": ["Bank Baron", "Spin Master", "Raid Booster", "Mystery Mogul", "GIF Legend", "Pig Parent"]}, {"t": "New badges — 7", "items": ["Banker", "Spinner", "Mystery Hunter", "Raid Booster", "Big Spender", "Pig Namer", "GIF Star"]}, {"t": "New quests — 6", "items": ["Daily: Tap 5,000 times", "Daily: Catch 2 golden pigs", "Daily: Land 50 critical oinks", "Weekly: Deal 5,000,000 raid damage", "Weekly: Buy 100 auto-clickers", "Weekly: Earn 50,000,000 coins"]}, {"t": "New raid bosses — 5", "items": ["Lion King Pig", "Kraken Boar", "Ghost Pig", "Scorpion Hog", "Tornado Tusk"]}, {"t": "Admin tools — 14", "items": ["Quick-ban presets (1h / 24h / 7d / permanent)", "Recent bans list with one-tap unban", "Ban history viewer", "Player search + filter (banned / muted / admins / online)", "Bulk mute (all online)", "Bulk unmute", "Give raid tickets (Lucky Spin)", "Grant Pig Studio bundle", "Give skin / title (admins)", "Staff activity feed", "Ban-this-device shortcut", "Export audit log (copy to clipboard)", "Replay tutorial grant", "Bank bonus grant"]}, {"t": "Per-admin permissions — 13", "items": ["Permission system (stored per admin)", "Permissions editor in the owner panel", "Toggle: ban", "Toggle: hard ban", "Toggle: unban", "Toggle: mute / unmute", "Toggle: give coins", "Toggle: give powers", "Toggle: give levels / XP", "Toggle: give skins / titles", "Toggle: reset player progress", "Toggle: announcements & events", "Toggle: act on other admins"]}, {"t": "Multiplayer — 8", "items": ["Gift coins to a friend", "Guild bank withdraw (owner)", "Copy invite link", "Poke a friend", "Join a friend's room", "Friends sort (online / level / name / recent)", "Rally ping (room)", "Chat shout (gold, 1,000 coins)"]}, {"t": "QoL & settings — 10", "items": ["Export save (JSON)", "Import save (JSON)", "Manual save button", "Reset session stats", "Sell-back auto-clickers (50%)", "Prestige calculator", "Name your pig", "Crit Boost (60s, +10% crit)", "Combo Freeze (30s)", "Offline cap upgrade (+4h per level)"]}, {"t": "Pig Bank — 5", "items": ["Deposit coins", "Withdraw all", "Upgrade bank level", "Hourly interest", "Claim interest now"]}, {"t": "Lucky Spin — 2", "items": ["Daily free spin", "Spin tickets (earn + staff grants)"]}, {"t": "Shop extras — 2", "items": ["Pig of the Day (50% off, rotates daily)", "Buy cheapest affordable"]}, {"t": "Play view extras — 2", "items": ["Today's Goals card", "Live Events card"]}, {"t": "Structural UI — 8", "items": ["8-tab bottom nav (Play / Studio / Upgrades / Bank / Multiplayer / Friends / Ranks / Profile)", "Pig Studio as its own tab (out of the shop)", "Bank as its own view", "Play view reordered (goals + events above stats + quickbar)", "Discord-style profile header card", "Profile & Cosmetics moved to the top of Profile", "Login screen v2.5.1 badge + headline features", "Hall of Fame section in Ranks"]}, {"t": "Raid features — 6", "items": ["Daily raid bounty", "Raid damage milestones", "Raid auto-tap", "Raid booster (+25% for 1h)", "Squad damage bonus", "First-hit bonus (+50%)"]}, {"t": "GIF profiles & banners — 6", "items": ["Upload GIF profile picture (gallery)", "Upload GIF banner (gallery)", "Preset GIF gallery (profile picture)", "Preset GIF gallery (banner)", "GIF search filter", "Search more on Tenor button"]}, {"t": "Custom admin titles — 3", "items": ["Owner sets a custom title", "Owner removes a custom title", "Custom title shown in chat, leaderboards, profiles, staff panel"]}, {"t": "Legend grant powers — 4", "items": ["Sun God Luffy ×45", "Shadow Monarch ×35", "Storm Titan ×28", "Cosmic Kitsune ×22"]}, {"t": "Misc — 7", "items": ["Golden Pig radar", "Tap goal (set your own)", "Coin goal (set your own)", "Super Prestige (+25% tap power per 10 apples)", "Battle Pass XP boost (+50% for 1h)", "Mystery Box", "Invite codes"]}], "items": ["New auto-clickers — 8 new things", "New tap upgrades — 6 new things", "New Pig Powers — 6 new things", "New skill nodes — 6 new things", "New skins — 6 new things", "New click sounds — 6 new things", "New titles — 6 new things", "New badges — 7 new things", "New quests — 6 new things", "New raid bosses — 5 new things", "Admin tools — 14 new things", "Per-admin permissions — 13 new things", "Multiplayer — 8 new things", "QoL & settings — 10 new things", "Pig Bank — 5 new things", "Lucky Spin — 2 new things", "Shop extras — 2 new things", "Play view extras — 2 new things", "Structural UI — 8 new things", "Raid features — 6 new things", "GIF profiles & banners — 6 new things", "Custom admin titles — 3 new things", "Legend grant powers — 4 new things", "Misc — 7 new things"]},
  {v:"v2.5", tag:"THE REWORK UPDATE", date:"November 11, 2026", highlights:["🐷 Pig Studio: upload your own pig image, pick its icon, colours and hats", "🎵 Click sounds: 10 presets + upload your own MP3/WAV", "🗡️ Raid bosses reworked: phases, enrage, live top-5 damage board, 5 new bosses", "📱 Mobile UI rebuilt: GTA-style top bar, bigger pig, one-thumb nav", "📜 Update Log rebuilt: search, filter, counts, shareable changelog"], groups:[{"t": "Mobile UI + layout rework — 24", "items": ["GTA-style dark top bar", "Gold coin pill in the sticky HUD", "Bigger centred pig (340px)", "Mobile shop card, bottom-sheet style", "Desktop shop centred panel (760px)", "One-thumb bottom nav (64px targets)", "Bigger pig tap target (min 200px)", "Safe-area padding on the bottom nav", "Landscape mode layout", "Cleaner card radius + shadow refresh", "Spacing pass on the Play view", "Typography pass (Baloo headings)", "Combo bar rework (thicker gradient)", "New stage day/night gradient", "Full-width quickbar buttons on mobile", "Sticky buy-amount row in the shop", "Shop rows: bigger icon + price pill", "Bottom-nav active pill indicator", "Alert strip scrolls sideways on mobile", "Bottom-sheet modals on mobile", "Toasts docked above the bottom nav", "Update Log stacked layout on mobile", "Profile stats as card rows on mobile", "New v2.5 animations respect reduce-motion"]}, {"t": "Custom pig — 18", "items": ["New skin: Ember Pig", "New skin: Frost Pig", "New skin: Zombie Pig", "New skin: Candy Pig", "New skin: Rainbow Pig", "New skin: Neon Pig", "New skin: Pirate Pig", "New skin: Robot Pig", "New skin: Ninja Pig", "New skin: Royal Gold Pig", "New skin: Sunset Pig", "New skin: Shadow Pig", "Upload your own pig image", "Pig icon picker (12 icons)", "Body colour picker", "Snout colour picker", "Belly colour picker", "Accessories / hats layer (8)"]}, {"t": "Custom click sound — 12", "items": ["Preset sound: Classic Oink", "Preset sound: Pop", "Preset sound: Coin Ding", "Preset sound: Boing", "Preset sound: Laser Zap", "Preset sound: Quack", "Preset sound: Honk", "Preset sound: Drum Thump", "Preset sound: Sparkle", "Preset sound: Robot Beep", "Upload your own click sound (MP3/WAV)", "Per-pig sound pairing"]}, {"t": "Raid bosses rework — 20", "items": ["New raid boss: Pigzilla", "New raid boss: King Bacon", "New raid boss: Lava Boar", "New raid boss: Frost Snout", "New raid boss: Storm Pig", "Boss phases (3 phases)", "Enrage below 10% HP", "Live damage leaderboard (top 5)", "Raid lobby card", "Raid countdown to the next boss", "Rewards per phase", "Raid history (last 10)", "Weekly raid quest line (3 quests)", "Raid tap combo multiplier", "Segmented phase HP bar", "Floating raid damage numbers", "Raid milestone feed announcements (75/50/25%)", "Raid streak + streak bonus", "Boss weak-point window (x2 taps)", "Raid claim summary breakdown"]}, {"t": "Multiplayer rework — 16", "items": ["Live online list inside the raid card", "Room races refresh button", "Friend invites to raid", "Raid chat reactions (cheer row)", "Duel rematch button", "Duel best-of-3 series score", "Guild raid bonus (+5%)", "Guild shout button", "Friend-came-online toast", "Player search by skin: / power:", "Room race live positions (progress bars)", "Multiplayer status pill shows room size", "DM raid invite button", "Global raid ping button", "Guild board refresh + last-updated time", "Friends tab shows online-friend count"]}, {"t": "New content — 30", "items": ["New auto-clicker: Pig DJ", "New auto-clicker: Oink ATM", "New auto-clicker: Truffle Bank", "New auto-clicker: Pig Casino", "New auto-clicker: Bacon Rocket", "New auto-clicker: Pig AI Lab", "New tap upgrade: Titanium Finger", "New tap upgrade: Plasma Glove", "New tap upgrade: Quantum Tap", "New tap upgrade: God Hoof", "New power: Mud Shield", "New power: Golden Hoof", "New power: Oink Storm", "New power: Pig Tornado", "New skill node: Raid Crusher", "New skill node: Combo Keeper", "New title: Raid Master", "New title: Pig Stylist", "New badge: Custom Pig", "New badge: Wardrobe 12", "New badge: Raid Crusher", "New badge: Duel Ace", "New badge: Raid Streak 3", "New badge: Pig Power Up", "New badge: Sound Idea", "New badge: AI Lab Owner", "New daily quest: raid damage", "New daily quest: win a duel", "New weekly quest: raid damage", "New weekly quest: win 3 duels"]}, {"t": "QoL + polish — 18", "items": ["Hold-to-tap speed setting", "Haptics intensity setting", "Number format mode (short / full / exact)", "Best-buy hints: top 3", "Offline earnings breakdown", "Toast history log", "Force dark mode toggle", "Reduce motion toggle", "Compact shop toggle", "HUD per-sec toggle", "Auto-claim daily reward", "Floating +coins toggle", "Copy session stats", "Confirm-before-prestige toggle", "MAX buy warning", "Spacebar taps the pig", "Tap anywhere on the stage", "Reset QoL settings"]}, {"t": "Update Log rework — 12", "items": ["v2.5 top entry with all 150 items grouped", "Search updates", "Filter by version", "Item count badge per version", "Seen-state tick per version", "Copy changelog button", "What's New shows headline 5 only", "v2.5 highlights row (top 5 starred)", "Collapsible category groups", "Version header shows date + item count", "NEW badge reads 150 NEW", "Jump-to-latest button"]}], items:["Mobile UI + layout rework — 24 new things", "Custom pig — 18 new things", "Custom click sound — 12 new things", "Raid bosses rework — 20 new things", "Multiplayer rework — 16 new things", "New content — 30 new things", "QoL + polish — 18 new things", "Update Log rework — 12 new things"]},
  {v:"v2.4.1", tag:"CUSTOM BAN LENGTHS", date:"November 7, 2026", items:[
@@ -1703,6 +1705,7 @@ function safeSoundUrl(v){
 }
 function safePigImg(v){
  if(typeof v!=="string")return "";
+ if(isStorageImgUrl(v))return v; /* v2.5.2: Storage URLs (5 MB uploads) */
  return /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+/=]{20,}$/.test(v)?v:"";
 }
 /* ---- v2.5: custom pig ---- */
@@ -1710,7 +1713,7 @@ function applyCustomPig(){
  var sk=SKINS.find(function(x){return x.id===S.skin;})||SKINS[0];
  var img=safePigImg(S.pigImg);
  var im=$("pigCustomImg"),svg=$("pigSvg");
- if(im){im.style.display=img?"":"none";if(img)im.src=img;}
+ if(im){im.style.display=img?"":"none";if(img){im.src=img;im.onerror=function(){im.style.display="none";if(svg)svg.style.display="";};}}
  if(svg)svg.style.display=img?"none":"";
  var cols=S.pigColors||{};
  document.documentElement.style.setProperty("--pig",cols.body||sk.pig);
@@ -1736,8 +1739,8 @@ function renderPigStudio(){
  var sk=SKINS.find(function(x){return x.id===S.skin;})||SKINS[0];
  var html="";
  html+='<div class="studio-box"><h4>🖼️ Your pig image</h4><p class="sub">Upload your own pig picture — it replaces the pig on the big button. Only your own images, please.</p>';
- html+=S.pigImg?'<img src="'+safePigImg(S.pigImg)+'" alt="Your custom pig" style="width:120px;height:120px;object-fit:cover;border-radius:16px;display:block;margin-bottom:8px"/>':"<p class='sub'>No custom image yet — the classic pig is showing.</p>";
- html+='<label class="chip-btn" for="pigFile" style="display:inline-block">🖼️ Upload pig image</label><input type="file" id="pigFile" accept="image/*" style="display:none"/> <button class="chip-btn" id="btnRemovePigImg" type="button">Use the normal pig</button></div>';
+ html+=S.pigImg?'<img src="'+esc(safePigImg(S.pigImg))+'" alt="Your custom pig" style="width:120px;height:120px;object-fit:cover;border-radius:16px;display:block;margin-bottom:8px" onerror="this.style.display=\'none\'"/>':"<p class='sub'>No custom image yet — the classic pig is showing.</p>";
+ html+='<label class="chip-btn" for="pigFile" style="display:inline-block">🖼️ Upload pig image (up to 5 MB)</label><input type="file" id="pigFile" accept="image/*" style="display:none"/> <button class="chip-btn" id="btnRemovePigImg" type="button">Use the normal pig</button></div>';
  html+='<div class="studio-box"><h4>😀 Pig icon</h4><p class="sub">Pick an icon that sits on your pig button.</p><div class="skin-row">';
  PIG_ICONS.forEach(function(ic){html+='<button type="button" class="skin'+(S.pigIcon===ic?" on":"")+'" data-icon="'+ic+'" style="font-size:1.6rem">'+ic+'</button>';});
  html+='</div><button class="chip-btn" id="btnClearPigIcon" type="button" style="margin-top:6px">No icon</button></div>';
@@ -1766,18 +1769,9 @@ function renderPigStudio(){
  var pf=$("pigFile");
  if(pf)pf.addEventListener("change",function(){
   var f=this.files&&this.files[0];if(!f)return;
-  if(f.size>2000000){sndErr();toast("🚫 That image is too big — keep it under 2MB.");return;}
-  var rd=new FileReader();
-  rd.onload=function(){
-   var img=new Image();
-   img.onload=function(){
-    var c=document.createElement("canvas");c.width=256;c.height=256;var ctx=c.getContext("2d");
-    var s2=Math.min(img.width,img.height);ctx.drawImage(img,(img.width-s2)/2,(img.height-s2)/2,s2,s2,0,0,256,256);
-    S.pigImg=c.toDataURL("image/jpeg",0.85);applyCustomPig();checkAch();markDirty();renderPigStudio();toast("🖼️ Custom pig image set!");
-   };
-   img.src=rd.result;
-  };
-  rd.readAsDataURL(f);
+  /* v2.5.2: same 5 MB Storage path as profile pictures — GIFs stay animated. */
+  uploadImageFile(f,"pig",function(url){S.pigImg=url;applyCustomPig();checkAch();markDirty();renderPigStudio();toast("🖼️ Custom pig image set!");});
+  this.value="";
  });
  var rb=$("btnRemovePigImg");if(rb)rb.addEventListener("click",function(){S.pigImg="";applyCustomPig();markDirty();renderPigStudio();toast("🐷 Back to the normal pig.");});
  list.querySelectorAll("[data-icon]").forEach(function(b){b.addEventListener("click",function(){S.pigIcon=b.dataset.icon;applyCustomPig();markDirty();renderPigStudio();});});
@@ -1991,16 +1985,60 @@ function feedChat(name,text,pid){
  $("feed").prepend(d);
  while($("feed").children.length>30)$("feed").lastChild.remove();
 }
+function isStorageImgUrl(v){
+ /* v2.5.2: Firebase Storage download URLs for THIS project's bucket only —
+    never arbitrary remote URLs (a stranger's profile could point anywhere). */
+ return typeof v==="string" && /^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\/pig-clicker-cb299\.firebasestorage\.app\/o\//.test(v) && v.length<2000;
+}
 function safeAvatarImg(v){
- /* Only allow strict base64 image data URLs (what the in-page uploader produces).
+ /* Only allow strict base64 image data URLs (what the in-page uploader produces)
+    or this project's Firebase Storage URLs (v2.5.2 5 MB uploads).
     Anything else from a remote profile is treated as no image — never interpolated raw. */
  if(typeof v!=="string")return "";
+ if(isStorageImgUrl(v))return v;
  return /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+/=]{20,}$/.test(v)&&v.length<400000?v:"";
 }
+function avatarImgHTML(url,emoji,size){
+ /* v2.5.2: emoji behind the image — shows while it loads, and stays if the
+    image fails (a dead Storage URL never shows a broken-image icon). */
+ var u=safeAvatarImg(url);
+ if(!u)return null;
+ var s=size||40;
+ return '<span style="display:inline-block;position:relative;width:'+s+'px;height:'+s+'px;vertical-align:middle"><span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:'+Math.round(s*0.6)+'px">'+esc(emoji||"🐷")+'</span><img src="'+esc(u)+'" alt="" style="position:absolute;inset:0;width:'+s+'px;height:'+s+'px;border-radius:50%;object-fit:cover" onerror="this.remove()"/></span>';
+}
 function avatarHTML(p,size){
- var img=p?safeAvatarImg(p.avatarImg):"";
- if(img)return '<img src="'+img+'" alt="" style="width:'+(size||40)+'px;height:'+(size||40)+'px;border-radius:50%;object-fit:cover;vertical-align:middle"/>';
- return esc((p&&p.avatar)||"🐷");
+ var t=avatarImgHTML(p?p.avatarImg:"",p?p.avatar:"🐷",size||40);
+ return t||esc((p&&p.avatar)||"🐷");
+}
+function avatarImgFallback(img){
+ /* onerror for the fixed avatar slots: drop the broken image, show the emoji. */
+ var p=img&&img.parentNode;if(!p)return;
+ img.remove();
+ p.textContent=p.dataset.emoji||"🐷";
+}
+function setAvatarImg(el,url,emoji){
+ /* Fixed avatar slots (HUD, profile header, profile view): keep the exact old
+    markup/sizing, but a failed image falls back to the emoji instead of a
+    broken-image icon. The emoji is stored on the element for the fallback. */
+ if(!el)return;
+ el.dataset.emoji=emoji||"🐷";
+ var u=safeAvatarImg(url);
+ if(!u){el.textContent=emoji||"🐷";return;}
+ el.innerHTML='<img src="'+esc(u)+'" alt="" onerror="avatarImgFallback(this)"/>';
+ var im=el.querySelector("img");
+ if(el.id==="ppAvatar"&&im)im.setAttribute("style","width:100%;height:100%;border-radius:50%;object-fit:cover");
+}
+function setBannerBg(el,url,fallbackCss){
+ /* v2.5.2: the gradient goes on FIRST (shows while the image loads), then
+    the image layers over it on load. A dead URL just keeps the gradient —
+    never a blank banner, never a broken image. */
+ if(!el)return;
+ var u=(typeof url==="string" && (isStorageImgUrl(url) || /^data:image\/(jpeg|png|webp|gif);base64,/.test(url))) ? url : "";
+ el.style.backgroundImage="";el.style.background=fallbackCss;
+ if(!u)return;
+ var bi=new Image();
+ bi.onload=function(){el.style.backgroundImage='url("'+u+'")';el.style.backgroundSize="cover";el.style.backgroundPosition="center";};
+ bi.src=u;
 }
 
 /* ============================== CLICKING ============================== */
@@ -2341,14 +2379,14 @@ function renderStats(){
  $("qTime").textContent=Math.floor(secs/60)+":"+("0"+(secs%60)).slice(-2);
  var hc=document.querySelector(".hud-cps");if(hc)hc.style.display=qol.hudCps?"":"none";
  var av=$("hudAvatar");
- if(safeAvatarImg(profile.avatarImg))av.innerHTML='<img src="'+safeAvatarImg(profile.avatarImg)+'" alt=""/>';else av.textContent=profile.avatar||"🐷";
+ setAvatarImg(av,profile.avatarImg,profile.avatar||"🐷");
  $("vipLine").innerHTML=vt.id==="none"?("No tier yet — "+fmt(vt.next-S.taps)+" taps to 🥉 Bronze."):('<span class="vip-badge '+vt.cls+'">'+vt.name+"</span>")+(vt.next?(" · "+fmt(vt.next-S.taps)+" taps to the next tier."):" · Top tier. Absolute pig royalty. 👑");
  $("cosmLine").textContent="🎨 Skins owned: "+Object.keys(S.skinsOwned).length+" / "+SKINS.length+" · 🖼️ Banner: "+(BANNERS.find(function(b){return b.id===S.banner;})||BANNERS[0]).name+" · 🐷 Avatar: "+(profile.avatarImg?"custom photo":profile.avatar);
  renderBanner();
 }
 function renderBanner(){
  var b=BANNERS.find(function(x){return x.id===S.banner;})||BANNERS[0];
- var pv=$("bannerPreview");if(pv){if(S.bannerGif){pv.style.backgroundImage="url("+S.bannerGif+")";pv.style.backgroundSize="cover";pv.style.backgroundPosition="center";}else{pv.style.backgroundImage="";pv.style.background=b.css;}pv.textContent=displayName()+(titleName(S.title)?" — “"+titleName(S.title)+"”":"");}
+ var pv=$("bannerPreview");if(pv){setBannerBg(pv,S.bannerGif,b.css);pv.textContent=displayName()+(titleName(S.title)?" — “"+titleName(S.title)+"”":"");}
  var row=$("bannerRow");if(!row||row.dataset.done)return;row.dataset.done="1";
  BANNERS.forEach(function(bn){
   var btn=document.createElement("button");btn.type="button";btn.className="skin"+(S.banner===bn.id?" on":"");
@@ -2897,9 +2935,9 @@ function renderProfileView(p){
  var isMe=!!fbUser&&uid===fbUser.uid;
  var role=roleOfUid(uid,p.role);
  var bn=BANNERS.find(function(x){return x.id===p.banner;})||BANNERS[0];
- var pb=$("ppBanner");if(p.bannerGif){pb.style.backgroundImage="url("+p.bannerGif+")";pb.style.backgroundSize="cover";pb.style.backgroundPosition="center";}else{pb.style.backgroundImage="";pb.style.background=bn.css;}
+ var pb=$("ppBanner");setBannerBg(pb,p.bannerGif,bn.css);
  pb.textContent=(p.guild?"🏰 "+p.guild+" · ":"")+(p.title?"“"+(titleName(p.title)||p.title)+"”":"Pig Clicker player");
- if(safeAvatarImg(p.avatarImg))$("ppAvatar").innerHTML='<img src="'+safeAvatarImg(p.avatarImg)+'" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover"/>';else $("ppAvatar").textContent=p.avatar||"🐷";
+ setAvatarImg($("ppAvatar"),p.avatarImg,p.avatar||"🐷");
  $("ppName").innerHTML=esc(p.name||p.username||"Player");
  $("ppTags").innerHTML=roleTag(role,p)+(isMe?'<span class="you-tag">YOU</span>':"")+((p.hasRealEmail||p.email)?' <b style="color:var(--pink-d)">✉️ Verified</b>':"");
  /* join date — real createdAt only; "Joined: —" when the doc has none. */
@@ -3005,7 +3043,7 @@ $("btnInstall").addEventListener("click",function(){
 
 /* ============================== FIREBASE ============================== */
 var firebaseConfig = { apiKey: "AIzaSyAnX_888awH-Zo_mToAkHz_PmEogozV4ZM", authDomain: "pig-clicker-cb299.firebaseapp.com", projectId: "pig-clicker-cb299", storageBucket: "pig-clicker-cb299.firebasestorage.app", messagingSenderId: "284448526450", appId: "1:284448526450:web:f012cd3a0b850ea89372eb" };
-var fbApp=null, fbAuth=null, fbDb=null, fbUser=null;
+var fbApp=null, fbAuth=null, fbDb=null, fbUser=null, fbStorage=null;
 var fbReady=false, fbDenied=false, fbOnlineCount=0;
 var friendsCache=[], blockedCache=[], guildCache=null, topCache=[];
 /* roles: owner (first-claim, config/owner) + admins (config/admins) */
@@ -3019,6 +3057,7 @@ function fbInit(){
   if(typeof firebase==="undefined"||!firebase.initializeApp)throw new Error("sdk");
   fbApp=firebase.initializeApp(firebaseConfig);
   fbAuth=firebase.auth(); fbDb=firebase.firestore();
+  try{if(firebase.storage)fbStorage=firebase.storage();}catch(e){fbStorage=null;}
   fbReady=true;
   fbAuth.onAuthStateChanged(function(u){
    fbUser=u||null;
@@ -5563,25 +5602,81 @@ function renderProfileHeader(){
  var bn=BANNERS.find(function(x){return x.id===S.banner;})||BANNERS[0];
  var sig=displayName()+"|"+(S.pigName||"")+"|"+(S.bannerGif||S.banner)+"|"+(profile.avatarImg||profile.avatar)+"|"+myRole+"|"+myCustomTitle+"|"+(S.achDone?Object.keys(S.achDone).length:0);
  if(sig===lastHeaderSig)return;lastHeaderSig=sig;
- if(S.bannerGif){b.style.backgroundImage="url("+S.bannerGif+")";b.style.backgroundSize="cover";b.style.backgroundPosition="center";}else{b.style.backgroundImage="";b.style.background=bn.css;}
+ setBannerBg(b,S.bannerGif,bn.css);
  var av=$("profileHeaderAvatar");
- if(safeAvatarImg(profile.avatarImg))av.innerHTML='<img src="'+safeAvatarImg(profile.avatarImg)+'" alt=""/>';else av.textContent=profile.avatar||"🐷";
+ setAvatarImg(av,profile.avatarImg,profile.avatar||"🐷");
  $("profileHeaderName").textContent=displayName()+(S.pigName?(" — 🐷 "+S.pigName):"");
  $("profileHeaderMeta").textContent="Level "+level()+" · "+fmt(S.lifetime)+" lifetime coins · "+(ACHIEVEMENTS.filter(function(a){return S.achDone[a.id];}).length)+" / "+ACHIEVEMENTS.length+" badges";
  $("profileHeaderTags").innerHTML=roleTag(myRole,{customTitle:myCustomTitle});
 }
+/* ---- v2.5.2: Firebase Storage uploads (up to 5 MB) ----
+   Why Storage: the Firestore save doc caps at 1 MB, so a big Tenor GIF
+   stored as base64 would break the save. Primary path is Storage for every
+   new upload — only the short download URL is saved. Small files (<=300 KB)
+   fall back to instant base64 when Storage isn't available yet (not enabled,
+   rules not published, or offline), so uploads never regress to worse than
+   v2.5.1. Big files without Storage get a clear toast, never a silent fail. */
+var FB_IMG_MAX=5*1024*1024; /* 5 MB */
+var FB_IMG_SMALL=300000; /* base64 fallback cap — same as the old v2.5.1 limit */
+function uploadLabelEl(kind){
+ var id=kind==="avatar"?"gifAvatarFile":kind==="banner"?"gifBannerFile":"pigFile";
+ return document.querySelector('label[for="'+id+'"]');
+}
+function setUploadBusy(kind,busy,pct){
+ var id=kind==="avatar"?"gifAvatarFile":kind==="banner"?"gifBannerFile":"pigFile";
+ var inp=$(id);if(inp)inp.disabled=!!busy;
+ var lab=uploadLabelEl(kind);if(!lab)return;
+ if(!lab.dataset.orig)lab.dataset.orig=lab.textContent;
+ lab.textContent=busy?("⏳ Uploading… "+Math.round(pct||0)+"%"):lab.dataset.orig;
+}
+function uploadImageFile(file,kind,onDone){
+ if(!file)return;
+ if(!/^image\/(png|jpe?g|gif|webp)$/i.test(file.type)){sndErr();toast("That file isn't an image — pick a PNG, JPG, GIF or WebP.");return;}
+ if(file.size>FB_IMG_MAX){sndErr();toast("🚫 That image is too big — max 5 MB. Tenor GIFs are usually under that — try a smaller one.");return;}
+ function saveBase64(){
+  if(file.size>FB_IMG_SMALL){toast("☁️ Big-image uploads need Firebase Storage — it isn't turned on yet. Small images (under 300 KB) still work.");return;}
+  var r=new FileReader();
+  r.onload=function(){onDone(r.result);};
+  r.onerror=function(){toast("Couldn't read that file — try again.");};
+  r.readAsDataURL(file);
+ }
+ if(!fbUser||!fbStorage){saveBase64();return;}
+ var ext=(String(file.name||"").split(".").pop()||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+ if(ext==="jpeg")ext="jpg";
+ if(["png","jpg","gif","webp"].indexOf(ext)<0)ext=(file.type==="image/gif")?"gif":(file.type==="image/png")?"png":(file.type==="image/webp")?"webp":"jpg";
+ var path="users/"+fbUser.uid+"/profile/"+kind+"-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8)+"."+ext;
+ setUploadBusy(kind,true,0);
+ var ref=fbStorage.ref(path);
+ var task=ref.put(file,{contentType:file.type});
+ var done=false;
+ function finish(url){if(done)return;done=true;setUploadBusy(kind,false,0);onDone(url);}
+ function fail(err){
+  if(done)return;done=true;setUploadBusy(kind,false,0);
+  if(file.size<=FB_IMG_SMALL){toast("☁️ Cloud upload hiccup — saved it small instead.");saveBase64();return;}
+  var code=err&&err.code||"";
+  noteFbError(err,"storageUpload");
+  if(code==="storage/unauthorized")toast("☁️ Upload not allowed — sign in and try again.");
+  else if(code==="storage/bucket-not-found"||code==="storage/unknown")toast("☁️ Big-image uploads need Firebase Storage — it isn't turned on yet.");
+  else toast("☁️ Upload didn't go through — check your connection and try again.");
+ }
+ try{
+  var ev=(firebase.storage&&firebase.storage.TaskEvent&&firebase.storage.TaskEvent.STATE_CHANGED)||"state_changed";
+  if(task&&task.on){
+   task.on(ev,function(snap){var pct=0;if(snap&&snap.totalBytes)pct=100*snap.bytesTransferred/snap.totalBytes;setUploadBusy(kind,true,pct);},fail,function(){ref.getDownloadURL().then(finish).catch(fail);});
+  }else if(task&&task.then){
+   task.then(function(){return ref.getDownloadURL();}).then(finish).catch(fail);
+  }else{fail(new Error("no upload task"));}
+ }catch(e){fail(e);}
+}
 /* ---- GIF uploads: gallery picker (accept="image/*") keeps GIFs animated ---- */
 function readGifFile(file,kind){
  if(!file)return;
- if(!/^image\/(png|jpe?g|gif|webp)$/i.test(file.type)){toast("That file isn't an image — pick a PNG, JPG, GIF or WebP.");return;}
- if(file.size>300000){toast("That image is too big — max 300 KB for GIFs. Try a smaller one.");return;}
- var r=new FileReader();
- r.onload=function(){
-  var url=r.result;
+ /* v2.5.2: the 300 KB cap is gone — uploads up to 5 MB go to Firebase
+    Storage; small files still use the instant base64 path when needed. */
+ uploadImageFile(file,kind,function(url){
   if(kind==="avatar"){profile.avatarImg=url;S.gifAvatarSet=true;saveLocal();cloudSaveNow();renderStats();renderGifGalleries();toast("🎞️ GIF profile picture set!");}
   else{S.bannerGif=url;S.gifBannerSet=true;saveLocal();cloudSaveNow();renderStats();renderGifGalleries();toast("🎞️ GIF banner set!");}
- };
- r.readAsDataURL(file);
+ });
 }
 function renderGifGalleries(qAv,qBn){
  var av=$("gifAvatarGallery");
