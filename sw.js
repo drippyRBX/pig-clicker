@@ -1,6 +1,6 @@
-// Pig Clicker service worker — v2.5.2
+// Pig Clicker service worker — v2.5.3
 // Network-first for the game page (so updates always land), cache-first for local icons/manifest.
-var CACHE = "pig-clicker-v2.5.2";
+var CACHE = "pig-clicker-v2.5.3";
 var ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 self.addEventListener("install", function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(ASSETS); }).then(function () { return self.skipWaiting(); }));
@@ -29,4 +29,10 @@ self.addEventListener("fetch", function (e) {
       });
     }));
   }
+});
+
+// v2.5.3: the in-app "Update now" button posts SKIP_WAITING — without
+// this listener the tap did nothing when a worker was left waiting.
+self.addEventListener("message", function (e) {
+  if (e.data && e.data.type === "SKIP_WAITING") self.skipWaiting();
 });
